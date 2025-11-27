@@ -33,14 +33,11 @@ class BuildPromptService {
   async getPlanPrincipalFormatted() {
     try {
       const planesModel = new TblPlanesTarifariosModel();
-      const planes = await planesModel.getPlanesPortabilidad();
+      const plan = await planesModel.getPlanPrincipal();
 
-      if (!planes || planes.length === 0) {
+      if (!plan) {
         return "No hay plan principal disponible.";
       }
-
-      // Tomar el primer plan (el más caro/premium por el ORDER BY DESC)
-      const plan = planes[0];
 
       // Construir el mensaje del plan con saltos de línea entre cada beneficio
       // Orden exacto: Precio, Internet, Llamadas/SMS, GB alta velocidad, Bono TikTok, Streaming, GB Acumulables
@@ -97,14 +94,14 @@ class BuildPromptService {
   async getPlanesTarifariosFormatted() {
     try {
       const planesModel = new TblPlanesTarifariosModel();
-      const planes = await planesModel.getAllActivos();
+      const planes = await planesModel.getAll();
 
       if (!planes || planes.length === 0) {
         return "No hay planes disponibles actualmente.";
       }
 
       const planesFormatted = planes.map(plan => {
-        let planInfo = `**${plan.nombre}** (${plan.tipo_plan.toUpperCase()})\n\n`;
+        let planInfo = `**${plan.nombre}** \n\n`;
 
         // Mostrar precio promocional si existe
         if (plan.precio_promocional) {
@@ -114,36 +111,12 @@ class BuildPromptService {
           planInfo += `- Precio: S/${plan.precio_regular}\n\n`;
         }
 
-        if (plan.internet_ilimitado) {
-          planInfo += `✅ Internet Ilimitado\n\n`;
+        if (plan.descripcion) {
+          planInfo += `✅ Descripcion adicional: ${plan.descripcion}`;
         }
 
-        if (plan.gigas_alta_velocidad) {
-          planInfo += `✅ ${plan.gigas_alta_velocidad} GB en alta velocidad\n\n`;
-        }
-
-        if (plan.minutos_ilimitados) {
-          planInfo += `✅ Llamadas ilimitadas\n\n`;
-        }
-
-        if (plan.sms_ilimitados) {
-          planInfo += `✅ SMS ilimitados\n\n`;
-        }
-
-        if (plan.gigas_acumulables) {
-          planInfo += `✅ GB ACUMULABLES\n\n`;
-        }
-
-        if (plan.bono_adicional) {
-          planInfo += `✅ Bono: ${plan.bono_adicional}\n\n`;
-        }
-
-        if (plan.streaming_incluido) {
-          planInfo += `✅ Streaming: ${plan.streaming_incluido}\n\n`;
-        }
-
-        if (plan.requisitos) {
-          planInfo += `📋 REQUISITOS: ${plan.requisitos}`;
+        if (plan.imagen_url) {
+          planInfo += `✅ Url de la imagen: ${plan.imagen_url}`
         }
 
         return planInfo;

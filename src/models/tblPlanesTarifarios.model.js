@@ -36,6 +36,17 @@ class TblPlanesTarifariosModel {
         }
     }
 
+    async getPlanPrincipal() {
+        try {
+            const [rows] = await this.connection.execute(
+                'SELECT * FROM tbl_planes_tarifarios WHERE principal = 1'
+            );
+            return rows;
+        } catch (error) {
+            throw new Error(`Error al obtener planes: ${error.message}`);
+        }
+    }
+
     /**
      * Obtiene planes por tipo (prepago, postpago o portabilidad)
      * @param {string} tipo_plan - 'prepago', 'postpago' o 'portabilidad'

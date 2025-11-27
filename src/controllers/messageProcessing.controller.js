@@ -78,6 +78,7 @@ class MessageProcessingController {
             let status;
             let answer;
             let datosCliente = null;
+            let imagen_url;
 
             // Verificar el valor del contador de contacto
             const maxCountContact = parseInt(process.env.MAX_COUNT_VALUE);
@@ -148,7 +149,7 @@ class MessageProcessingController {
             });
 
             // Construir respuesta según el status
-            const responseData = { status, answer };
+            const responseData = { status, answer, imagen_url };
 
             // Incluir datos_cliente solo cuando es line1 o line2
             if (datosCliente && (status === "line1" || status === "line2")) {
