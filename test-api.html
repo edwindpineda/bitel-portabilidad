@@ -110,7 +110,7 @@
 
         <div class="config">
             <label>API URL:</label>
-            <input type="text" id="apiUrl" value="https://slinky-bitel-portabilidad.dvmssk.easypanel.host/api/assistant/message">
+            <input type="text" id="apiUrl" value="http://localhost:3020/api/assistant/message">
             <label>API Key:</label>
             <input type="text" id="apiKey" value="4798d8360969047c6072cb160fad77829288f528f6aa41d35c48134d0a30772a">
             <label>Celular:</label>
@@ -164,13 +164,17 @@
                 });
 
                 const data = await response.json();
+                console.log(data);
 
                 // Remover loading
                 document.getElementById('loading')?.remove();
 
                 // Mostrar respuesta (convertir \n a <br> para saltos de línea)
                 let respuesta = data.data?.[0]?.answer || data.message || 'Sin respuesta';
+                const imagen = data?.data[0].imagen_url;
+                
                 respuesta = respuesta.replace(/\n/g, '<br>');
+                imagen ? chatBox.innerHTML += `<img src=${imagen} height=100 width=100>` : "";
                 chatBox.innerHTML += `<div class="message assistant">${respuesta}</div>`;
 
             } catch (error) {

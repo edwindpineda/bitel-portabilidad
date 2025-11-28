@@ -38,47 +38,24 @@ class BuildPromptService {
       if (!plan) {
         return "No hay plan principal disponible.";
       }
-
+      const principal = plan[0]
       // Construir el mensaje del plan con saltos de línea entre cada beneficio
       // Orden exacto: Precio, Internet, Llamadas/SMS, GB alta velocidad, Bono TikTok, Streaming, GB Acumulables
       let planInfo = `Muchas gracias por su respuesta, tenemos este plan para usted:\n\n`;
 
-      // 1. Precio promocional
-      if (plan.precio_promocional) {
-        planInfo += `✅ Pagas solo S/${plan.precio_promocional} x ${plan.meses_promocion} meses 🔥\n\n`;
+      if (principal.precio_promocional) {
+        planInfo += `✅ Precio: S/${principal.precio_promocional}🔥\n\n`;
+        planInfo += `   (Precio regular: S/${principal.precio_regular})\n\n`;
+      } else {
+        planInfo += `- Precio: S/${principal.precio_regular}\n\n`;
       }
 
-      // 2. Internet Ilimitado
-      if (plan.internet_ilimitado) {
-        planInfo += `✅ Internet Ilimitado\n\n`;
+      if (principal.descripcion) {
+        planInfo += `✅ Descripcion adicional: ${principal.descripcion}\n`;
       }
 
-      // 3. Llamadas y SMS ilimitados
-      if (plan.minutos_ilimitados && plan.sms_ilimitados) {
-        planInfo += `✅ Llamadas y SMS ilimitados.\n\n`;
-      }
-
-      // 4. GB en alta velocidad
-      if (plan.gigas_alta_velocidad) {
-        planInfo += `✅ ${plan.gigas_alta_velocidad} GB en alta velocidad.\n\n`;
-      }
-
-      // 5. Bono adicional (TikTok, etc)
-      if (plan.bono_adicional) {
-        planInfo += `✅ Bono ${plan.bono_adicional}.\n\n`;
-      }
-
-      // 6. Streaming incluido (separar por comas y poner cada uno en línea separada)
-      if (plan.streaming_incluido) {
-        const streamings = plan.streaming_incluido.split(',').map(s => s.trim());
-        streamings.forEach(streaming => {
-          planInfo += `✅ Suscripción a ${streaming}.\n\n`;
-        });
-      }
-
-      // 7. GB Acumulables (al final)
-      if (plan.gigas_acumulables) {
-        planInfo += `✅ GB ACUMULABLES\n\n`;
+      if (principal.imagen_url) {
+        planInfo += `✅ Url de la imagen: ${principal.imagen_url}\n`
       }
 
       planInfo += `¿Te interesa este plan? 😊`;
@@ -101,7 +78,7 @@ class BuildPromptService {
       }
 
       const planesFormatted = planes.map(plan => {
-        let planInfo = `**${plan.nombre}** \n\n`;
+        let planInfo = `**${plan.nombre}**\n\n`;
 
         // Mostrar precio promocional si existe
         if (plan.precio_promocional) {
@@ -112,7 +89,7 @@ class BuildPromptService {
         }
 
         if (plan.descripcion) {
-          planInfo += `✅ Descripcion adicional: ${plan.descripcion}`;
+          planInfo += `✅ Descripcion adicional: ${plan.descripcion}\n`;
         }
 
         if (plan.imagen_url) {

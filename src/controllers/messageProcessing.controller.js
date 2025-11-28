@@ -78,7 +78,7 @@ class MessageProcessingController {
             let status;
             let answer;
             let datosCliente = null;
-            let imagen_url;
+            const imagen_url = response?.imagen?.replace(/\s+/g, '') || null;
 
             // Verificar el valor del contador de contacto
             const maxCountContact = parseInt(process.env.MAX_COUNT_VALUE);

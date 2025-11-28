@@ -118,10 +118,10 @@ class AssistantService {
                     .trim();
 
                 responseObject = JSON.parse(cleanOutputTextAutocorrector);
-                //console.log("responseObject desde corrector", responseObject);
+                // console.log("responseObject desde corrector", responseObject);
             }
 
-            //console.log("responseObject desde asistant", responseObject );
+            // console.log("responseObject desde asistant", responseObject );
             return responseObject;
             
         } catch (error) {
