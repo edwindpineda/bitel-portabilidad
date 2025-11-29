@@ -25,7 +25,7 @@ const testConnection = async () => {
     try {
         // Usar una consulta simple para verificar la conexión
         await pool.execute('SELECT 1');
-        logger.info('[dbConnection.js] ✅ Conexión a MySQL verificada correctamente');
+        logger.info(`[dbConnection.js] ✅ Conexión a MySQL verificada correctamente. BD: ${process.env.DB_NAME}`);
     } catch (error) {
         throw new Error('[dbConnection.js] ❌ Error verificando conexión a MySQL:', error.message);
     }
