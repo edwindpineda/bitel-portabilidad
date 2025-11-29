@@ -12,7 +12,7 @@ RUN npm ci --omit=dev
 COPY . .
 
 # Copiar .env.example como .env
-RUN cp .env.example .env
+# RUN cp .env.example .env
 
 # Crear directorio de logs
 RUN mkdir -p logs
