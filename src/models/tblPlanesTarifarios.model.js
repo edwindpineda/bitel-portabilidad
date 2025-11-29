@@ -43,7 +43,7 @@ class TblPlanesTarifariosModel {
             );
             return rows;
         } catch (error) {
-            throw new Error(`Error al obtener planes: ${error.message}`);
+            throw new Error(`Error al obtener planes: ${error}`);
         }
     }
 
