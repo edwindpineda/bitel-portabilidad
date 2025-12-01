@@ -13,7 +13,7 @@ class TblPlanesTarifariosModel {
     async getAllActivos() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_planes_tarifarios WHERE activo = 1 ORDER BY precio_promocional ASC'
+                'SELECT * FROM planes_tarifarios WHERE activo = 1 ORDER BY precio_promocional ASC'
             );
             return rows;
         } catch (error) {
@@ -28,7 +28,7 @@ class TblPlanesTarifariosModel {
     async getAll() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_planes_tarifarios ORDER BY precio_promocional ASC'
+                'SELECT * FROM planes_tarifarios ORDER BY precio_promocional ASC'
             );
             return rows;
         } catch (error) {
@@ -39,7 +39,7 @@ class TblPlanesTarifariosModel {
     async getPlanPrincipal() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_planes_tarifarios WHERE principal = 1'
+                'SELECT * FROM planes_tarifarios WHERE principal = 1'
             );
             return rows;
         } catch (error) {
@@ -55,7 +55,7 @@ class TblPlanesTarifariosModel {
     async getByTipoPlan(tipo_plan) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_planes_tarifarios WHERE tipo_plan = ? AND activo = 1 ORDER BY precio_promocional ASC',
+                'SELECT * FROM planes_tarifarios WHERE tipo_plan = ? AND activo = 1 ORDER BY precio_promocional ASC',
                 [tipo_plan]
             );
             return rows;
@@ -71,7 +71,7 @@ class TblPlanesTarifariosModel {
     async getPlanesPortabilidad() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_planes_tarifarios WHERE tipo_plan = "portabilidad" AND activo = 1 ORDER BY precio_promocional DESC'
+                'SELECT * FROM planes_tarifarios WHERE tipo_plan = "portabilidad" AND activo = 1 ORDER BY precio_promocional DESC'
             );
             return rows;
         } catch (error) {
@@ -87,7 +87,7 @@ class TblPlanesTarifariosModel {
     async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_planes_tarifarios WHERE id = ?',
+                'SELECT * FROM planes_tarifarios WHERE id = ?',
                 [id]
             );
             return rows.length > 0 ? rows[0] : null;
@@ -121,7 +121,7 @@ class TblPlanesTarifariosModel {
     }) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO tbl_planes_tarifarios
+                `INSERT INTO planes_tarifarios
                 (nombre, tipo_plan, precio_regular, precio_promocional, meses_promocion, internet_ilimitado, gigas_alta_velocidad, minutos_ilimitados, sms_ilimitados, gigas_acumulables, bono_adicional, streaming_incluido, vigencia_dias, descripcion, requisitos, activo)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [nombre, tipo_plan, precio_regular, precio_promocional, meses_promocion, internet_ilimitado, gigas_alta_velocidad, minutos_ilimitados, sms_ilimitados, gigas_acumulables, bono_adicional, streaming_incluido, vigencia_dias, descripcion, requisitos, activo]
@@ -158,7 +158,7 @@ class TblPlanesTarifariosModel {
     }) {
         try {
             const [result] = await this.connection.execute(
-                `UPDATE tbl_planes_tarifarios
+                `UPDATE planes_tarifarios
                 SET nombre = ?, tipo_plan = ?, precio_regular = ?, precio_promocional = ?, meses_promocion = ?,
                     internet_ilimitado = ?, gigas_alta_velocidad = ?, minutos_ilimitados = ?, sms_ilimitados = ?,
                     gigas_acumulables = ?, bono_adicional = ?, streaming_incluido = ?, vigencia_dias = ?,
@@ -180,7 +180,7 @@ class TblPlanesTarifariosModel {
     async softDelete(id) {
         try {
             const [result] = await this.connection.execute(
-                'UPDATE tbl_planes_tarifarios SET activo = 0 WHERE id = ?',
+                'UPDATE planes_tarifarios SET activo = 0 WHERE id = ?',
                 [id]
             );
             return result.affectedRows > 0;
@@ -197,7 +197,7 @@ class TblPlanesTarifariosModel {
     async delete(id) {
         try {
             const [result] = await this.connection.execute(
-                'DELETE FROM tbl_planes_tarifarios WHERE id = ?',
+                'DELETE FROM planes_tarifarios WHERE id = ?',
                 [id]
             );
             return result.affectedRows > 0;

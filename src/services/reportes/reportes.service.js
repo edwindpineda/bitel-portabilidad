@@ -1,5 +1,5 @@
 const ExcelJS = require('exceljs');
-const TblClienteRestModel = require("../../models/tblClienteRest.model.js");
+const TblClienteRestModel = require("../../models/tblProspectos.model.js");
 
 class ReportesService {
 

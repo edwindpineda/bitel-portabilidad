@@ -14,7 +14,7 @@ class TblContactoModel {
     async existsByCelular(celular, id_cliente_rest) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT COUNT(*) as count FROM tbl_contactos WHERE celular = ? AND id_cliente_rest = ?',
+                'SELECT COUNT(*) as count FROM contacto WHERE celular = ? AND id_prospecto = ?',
                 [celular, id_cliente_rest]
             );
             return rows[0].count > 0;
@@ -31,7 +31,7 @@ class TblContactoModel {
     async getByCelular(celular, id_cliente_rest) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_contactos WHERE celular = ? AND id_cliente_rest = ?',
+                'SELECT * FROM contacto WHERE celular = ? AND id_prospecto = ?',
                 [celular, id_cliente_rest]
             );
             return rows.length > 0 ? rows[0] : null;
@@ -48,7 +48,7 @@ class TblContactoModel {
     async create(celular, id_cliente_rest) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO tbl_contactos (celular, id_cliente_rest) VALUES (?, ?)',
+                'INSERT INTO contacto (celular, id_prospecto) VALUES (?, ?)',
                 [celular, id_cliente_rest]
             );
             return result.insertId;
@@ -76,7 +76,7 @@ class TblContactoModel {
 
             // Incrementamos el contador
             const [result] = await this.connection.execute(
-                'UPDATE tbl_contactos SET count = count + 1 WHERE celular = ? AND id_cliente_rest = ?',
+                'UPDATE contacto SET count = count + 1 WHERE celular = ? AND id_prospecto = ?',
                 [celular, id_cliente_rest]
             );
 
@@ -99,7 +99,7 @@ class TblContactoModel {
         try {
             // Incrementamos el contador incr_count directamente por ID
             const [result] = await this.connection.execute(
-                'UPDATE tbl_contactos SET incr_count = incr_count + 1 WHERE id = ?',
+                'UPDATE contacto SET incr_count = incr_count + 1 WHERE id = ?',
                 [id]
             );
             
@@ -129,7 +129,7 @@ class TblContactoModel {
 
             // Reseteamos el contador a cero
             const [result] = await this.connection.execute(
-                'UPDATE tbl_contactos SET count = 0 WHERE celular = ? AND id_cliente_rest = ?',
+                'UPDATE contacto SET count = 0 WHERE celular = ? AND id_prospecto = ?',
                 [celular, id_cliente_rest]
             );
 

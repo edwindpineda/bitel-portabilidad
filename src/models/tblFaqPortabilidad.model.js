@@ -13,7 +13,7 @@ class TblFaqPortabilidadModel {
     async getAllActivas() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_faq_portabilidad WHERE activo = 1 ORDER BY numero ASC'
+                'SELECT * FROM faq_portabilidad WHERE activo = 1 ORDER BY numero ASC'
             );
             return rows;
         } catch (error) {
@@ -28,7 +28,7 @@ class TblFaqPortabilidadModel {
     async getAll() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_faq_portabilidad ORDER BY numero ASC'
+                'SELECT * FROM faq_portabilidad ORDER BY numero ASC'
             );
             return rows;
         } catch (error) {
@@ -44,7 +44,7 @@ class TblFaqPortabilidadModel {
     async getByProceso(proceso) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_faq_portabilidad WHERE proceso = ? AND activo = 1 ORDER BY numero ASC',
+                'SELECT * FROM faq_portabilidad WHERE proceso = ? AND activo = 1 ORDER BY numero ASC',
                 [proceso]
             );
             return rows;
@@ -61,7 +61,7 @@ class TblFaqPortabilidadModel {
     async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM tbl_faq_portabilidad WHERE id = ?',
+                'SELECT * FROM faq_portabilidad WHERE id = ?',
                 [id]
             );
             return rows.length > 0 ? rows[0] : null;
@@ -78,7 +78,7 @@ class TblFaqPortabilidadModel {
     async search(texto) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT * FROM tbl_faq_portabilidad
+                `SELECT * FROM faq_portabilidad
                  WHERE activo = 1 AND (pregunta LIKE ? OR respuesta LIKE ?)
                  ORDER BY numero ASC`,
                 [`%${texto}%`, `%${texto}%`]
@@ -97,7 +97,7 @@ class TblFaqPortabilidadModel {
     async create({ numero, pregunta, proceso, respuesta, activo = 1 }) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO tbl_faq_portabilidad (numero, pregunta, proceso, respuesta, activo)
+                `INSERT INTO faq_portabilidad (numero, pregunta, proceso, respuesta, activo)
                  VALUES (?, ?, ?, ?, ?)`,
                 [numero, pregunta, proceso, respuesta, activo]
             );
@@ -116,7 +116,7 @@ class TblFaqPortabilidadModel {
     async update(id, { numero, pregunta, proceso, respuesta, activo }) {
         try {
             const [result] = await this.connection.execute(
-                `UPDATE tbl_faq_portabilidad
+                `UPDATE faq_portabilidad
                  SET numero = ?, pregunta = ?, proceso = ?, respuesta = ?, activo = ?
                  WHERE id = ?`,
                 [numero, pregunta, proceso, respuesta, activo, id]
@@ -135,7 +135,7 @@ class TblFaqPortabilidadModel {
     async softDelete(id) {
         try {
             const [result] = await this.connection.execute(
-                'UPDATE tbl_faq_portabilidad SET activo = 0 WHERE id = ?',
+                'UPDATE faq_portabilidad SET activo = 0 WHERE id = ?',
                 [id]
             );
             return result.affectedRows > 0;
@@ -152,7 +152,7 @@ class TblFaqPortabilidadModel {
     async delete(id) {
         try {
             const [result] = await this.connection.execute(
-                'DELETE FROM tbl_faq_portabilidad WHERE id = ?',
+                'DELETE FROM faq_portabilidad WHERE id = ?',
                 [id]
             );
             return result.affectedRows > 0;

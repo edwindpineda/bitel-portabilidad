@@ -2,7 +2,7 @@
 const AssistantService = require("../services/assistant/asistant.service");
 // modelo de contacto
 const TblContactoModel = require("../models/tblContacto.model.js");
-const TblClienteRestModel = require("../models/tblClienteRest.model.js");
+const TblClienteRestModel = require("../models/tblProspectos.model.js");
 const TblAuditoriaApiModel = require("../models/tblAuditoriaApi.model.js");
 const logger = require('../config/logger/loggerClient');
 const { getLocalDateTime } = require('../utils/customTimestamp');
@@ -29,7 +29,7 @@ class MessageProcessingController {
             let id_cliente_rest;
             if (!clienteRest) {
                 // Registrar cliente rest e inicializar el contador de consumo
-                id_cliente_rest = await clienteRestModel.createUserConsumo(fechaConsumo, userType);
+                id_cliente_rest = await clienteRestModel.createUserConsumo(fechaConsumo, userType, 2);
             } else {
                 id_cliente_rest = clienteRest.id;
             }

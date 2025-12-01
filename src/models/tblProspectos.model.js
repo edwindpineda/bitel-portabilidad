@@ -9,7 +9,7 @@ class TblClienteRestModel {
     // Obtener el consumo total de un usuario
     async getConsumoTotal(tipo_usuario) {
         const [rows] = await this.connection.execute(
-            'SELECT SUM(count_consumo) AS total_consumo FROM cliente_rest WHERE tipo_usuario = ?',
+            'SELECT SUM(count_consumo) AS total_consumo FROM prospecto WHERE tipo_usuario = ?',
             [tipo_usuario]
         );
 
@@ -26,7 +26,7 @@ class TblClienteRestModel {
         try {
     
             const [rows] = await this.connection.execute(
-                'SELECT * FROM cliente_rest WHERE fecha_consumo = ? AND tipo_usuario = ?',
+                'SELECT * FROM prospecto WHERE fecha_consumo = ? AND tipo_usuario = ?',
                 [fechaConsumo, tipo_usuario]
             );
 
@@ -43,11 +43,11 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<number>} - ID del registro creado
      */
-    async createUserConsumo(fechaConsumo, tipo_usuario) {
+    async createUserConsumo(fechaConsumo, tipo_usuario, id_estado) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO cliente_rest (fecha_consumo, tipo_usuario) VALUES (?, ?)',
-                [fechaConsumo, tipo_usuario]
+                'INSERT INTO prospecto (fecha_consumo, tipo_usuario, id_estado) VALUES (?, ?, ?)',
+                [fechaConsumo, tipo_usuario, id_estado]
             );
 
             return result.insertId;
@@ -65,7 +65,7 @@ class TblClienteRestModel {
     async updateConsumo(fechaConsumo, tipo_usuario) {
         try {
             const [result] = await this.connection.execute(
-                'UPDATE cliente_rest SET count_consumo = count_consumo + 1 WHERE fecha_consumo = ? AND tipo_usuario = ?',
+                'UPDATE prospecto SET count_consumo = count_consumo + 1 WHERE fecha_consumo = ? AND tipo_usuario = ?',
                 [fechaConsumo, tipo_usuario]
             );
 
@@ -88,7 +88,7 @@ class TblClienteRestModel {
     async getAllConsumoByTipo(tipo_usuario) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT fecha_consumo, count_consumo FROM cliente_rest WHERE tipo_usuario = ?',
+                'SELECT fecha_consumo, count_consumo FROM prospecto WHERE tipo_usuario = ?',
                 [tipo_usuario]
             );
             return rows;
@@ -106,7 +106,7 @@ class TblClienteRestModel {
     async getConsumoByFechaAndTipo(fechaConsumo, tipo_usuario) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT fecha_consumo, count_consumo FROM cliente_rest WHERE fecha_consumo = ? AND tipo_usuario = ?',
+                'SELECT fecha_consumo, count_consumo FROM prospecto WHERE fecha_consumo = ? AND tipo_usuario = ?',
                 [fechaConsumo, tipo_usuario]
             );
             
