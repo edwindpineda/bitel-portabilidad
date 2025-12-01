@@ -44,18 +44,18 @@ class BuildPromptService {
       let planInfo = `Muchas gracias por su respuesta, tenemos este plan para usted:\n\n`;
 
       if (principal.precio_promocional) {
-        planInfo += `✅ Precio: S/${principal.precio_promocional}🔥\n\n`;
+        planInfo += `Precio: S/${principal.precio_promocional}🔥\n\n`;
         planInfo += `   (Precio regular: S/${principal.precio_regular})\n\n`;
       } else {
         planInfo += `- Precio: S/${principal.precio_regular}\n\n`;
       }
 
       if (principal.descripcion) {
-        planInfo += `✅ Descripcion adicional: ${principal.descripcion}\n`;
+        planInfo += `Descripcion adicional: ${principal.descripcion}\n`;
       }
 
       if (principal.imagen_url) {
-        planInfo += `✅ Url de la imagen: ${principal.imagen_url}\n`
+        planInfo += `Url de la imagen: ${principal.imagen_url}\n`
       }
 
       planInfo += `¿Te interesa este plan? 😊`;
@@ -82,18 +82,18 @@ class BuildPromptService {
 
         // Mostrar precio promocional si existe
         if (plan.precio_promocional) {
-          planInfo += `✅ Precio: S/${plan.precio_promocional} x ${plan.meses_promocion} meses 🔥\n\n`;
+          planInfo += `Precio: S/${plan.precio_promocional} x ${plan.meses_promocion} meses 🔥\n\n`;
           planInfo += `   (Precio regular: S/${plan.precio_regular})\n\n`;
         } else {
           planInfo += `- Precio: S/${plan.precio_regular}\n\n`;
         }
 
         if (plan.descripcion) {
-          planInfo += `✅ Descripcion adicional: ${plan.descripcion}\n`;
+          planInfo += `Descripcion adicional: ${plan.descripcion}\n`;
         }
 
         if (plan.imagen_url) {
-          planInfo += `✅ Url de la imagen: ${plan.imagen_url}`
+          planInfo += `Url de la imagen: ${plan.imagen_url}`
         }
 
         return planInfo;
