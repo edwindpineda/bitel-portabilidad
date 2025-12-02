@@ -19,6 +19,20 @@ class TblUsuarioModel {
     }
   }
 
+  async getByUserAndPass(username, password) {
+    try {
+      const [rows] = await this.connection.execute(
+        "SELECT * FROM usuario WHERE username = ? AND password = ?",
+        [username, password]
+      );
+
+      return rows[0];
+    }
+    catch (error) {
+      throw new Error(`Error al obtener usuario: ${error.message}`);
+    }
+  }
+
   async create({
     id_rol,
     username,
@@ -83,3 +97,5 @@ class TblUsuarioModel {
         }
     }
 }
+
+module.exports = TblUsuarioModel;

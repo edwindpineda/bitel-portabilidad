@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import apiClient from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,26 +36,16 @@ export default function LoginPage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/crm/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          password: formData.password,
-        }),
+      const response = await apiClient.post("/crm/login", {
+        "username": formData.username,
+        "password": formData.password
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Credenciales inválidas');
-      }
+;
+      console.log(response)
 
       // Guardar token y datos del usuario
-      localStorage.setItem('token', data.data.token);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
+      localStorage.setItem('token', response?.token);
+      localStorage.setItem('user', JSON.stringify(response?.user));
 
       // Redirigir al dashboard
       router.push('/dashboard');
