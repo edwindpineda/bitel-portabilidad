@@ -5,6 +5,7 @@ const messageProcessingRoutes = require('./routes/messageProcessing.route.js');
 const { responseHandler } = require('./middlewares/response.middleware.js');
 const checkApiKey = require('./middlewares/apiKey.middleware.js');
 const reporteRoutes = require('./routes/reporte.route.js');
+const authRoutes = require('./routes/crm/auth.route.js');
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use(responseHandler);
 // Rutas
 app.use('/api', reporteRoutes);
 app.use('/api/assistant', checkApiKey, messageProcessingRoutes);
+app.use('/api/crm/auth', authRoutes);
 
 
 // Ruta de health check
