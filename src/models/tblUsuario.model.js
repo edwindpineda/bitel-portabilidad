@@ -22,7 +22,10 @@ class TblUsuarioModel {
   async getByUserAndPass(username, password) {
     try {
       const [rows] = await this.connection.execute(
-        "SELECT * FROM usuario WHERE username = ? AND password = ?",
+        `SELECT u.*, r.nombre as rol_nombre
+         FROM usuario u
+         INNER JOIN rol r ON u.id_rol = r.id
+         WHERE u.username = ? AND u.password = ?`,
         [username, password]
       );
 
