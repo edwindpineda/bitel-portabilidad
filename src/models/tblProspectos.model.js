@@ -6,6 +6,15 @@ class TblClienteRestModel {
         this.connection = dbConnection || pool;
     }
 
+    async getById(id) {
+        const [rows] = await this.connection.execute(
+            "SELECT * FROM prospecto WHERE id = ?",
+            [id]
+        );
+
+        return rows[0];
+    }
+
     // Obtener el consumo total de un usuario
     async getConsumoTotal(tipo_usuario) {
         const [rows] = await this.connection.execute(
@@ -67,6 +76,24 @@ class TblClienteRestModel {
             const [result] = await this.connection.execute(
                 'UPDATE prospecto SET count_consumo = count_consumo + 1 WHERE fecha_consumo = ? AND tipo_usuario = ?',
                 [fechaConsumo, tipo_usuario]
+            );
+
+            if (result.affectedRows === 0) {
+                throw new Error('No se pudo actualizar el consumo');
+            }
+
+            return true;
+        } catch (error) {
+            console.log("error", error);
+            throw new Error(`Error al actualizar consumo: ${error.message}`);
+        }
+    }
+
+    async updateEstado(id, id_estado) {
+        try {
+            const [result] = await this.connection.execute(
+                'UPDATE prospecto SET id_estado = ? WHERE id = ?',
+                [id_estado, id]
             );
 
             if (result.affectedRows === 0) {

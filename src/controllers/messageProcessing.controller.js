@@ -4,6 +4,7 @@ const AssistantService = require("../services/assistant/asistant.service");
 const TblContactoModel = require("../models/tblContacto.model.js");
 const TblClienteRestModel = require("../models/tblProspectos.model.js");
 const TblAuditoriaApiModel = require("../models/tblAuditoriaApi.model.js");
+const TblEstadoModel = require("../models/tblEstado.model.js");
 const logger = require('../config/logger/loggerClient');
 const { getLocalDateTime } = require('../utils/customTimestamp');
 
@@ -24,12 +25,15 @@ class MessageProcessingController {
 
             // Verificar si existe el cliente rest para la fecha de consumo
             const clienteRestModel = new TblClienteRestModel();
-            const clienteRest = await clienteRestModel.selectByFechaAndTipo(fechaConsumo, userType);
+            const estadoModel = new TblEstadoModel();
+
+            let clienteRest = await clienteRestModel.selectByFechaAndTipo(fechaConsumo, userType);
             
             let id_cliente_rest;
             if (!clienteRest) {
                 // Registrar cliente rest e inicializar el contador de consumo
-                id_cliente_rest = await clienteRestModel.createUserConsumo(fechaConsumo, userType, 2);
+                id_cliente_rest = await clienteRestModel.createUserConsumo(fechaConsumo, userType, 1);
+                clienteRest = await clienteRestModel.getById(id_cliente_rest);
             } else {
                 id_cliente_rest = clienteRest.id;
             }
@@ -80,6 +84,8 @@ class MessageProcessingController {
             let datosCliente = null;
             const imagen_url = response?.imagen?.replace(/\s+/g, '') || null;
 
+            console.log(response);
+
             // Verificar el valor del contador de contacto
             const maxCountContact = parseInt(process.env.MAX_COUNT_VALUE);
 
@@ -96,44 +102,39 @@ class MessageProcessingController {
 
                 if (response.estado_respuesta === "exitosa") {
                     status = "pending";
-                    answer = response.mensaje_asistente;
 
-                } else if (response.estado_respuesta === "derivada" || response.estado_respuesta === "queue") {
+                } else if (response.estado_respuesta === "queue") {
                     // Derivar a un agente humano (no sabe responder o cliente pide hablar con humano)
                     status = "queue";
-                    answer = response.mensaje_asistente;
-                    // Resetear el contador de contacto
-                    await contactModel.resetCountByCelular(phone, id_cliente_rest);
 
                 } else if (response.estado_respuesta === "ambigua") {
                     status = "pending";
-                    answer = response.mensaje_asistente;
 
                 } else if (response.estado_respuesta === "finalizada") {
                     status = "closed";
-                    answer = response.mensaje_asistente;
-                    // Resetear el contador de contacto
-                    await contactModel.resetCountByCelular(phone, id_cliente_rest);
 
                 } else if (response.estado_respuesta === "line1") {
                     // Cliente interesado pero con dudas - derivar a asesor para llamada
                     status = "line1";
-                    answer = response.mensaje_asistente;
                     // Incluir datos del cliente para el asesor
                     datosCliente = response.datos_cliente || null;
-                    // Resetear el contador de contacto
-                    await contactModel.resetCountByCelular(phone, id_cliente_rest);
 
                 } else if (response.estado_respuesta === "line2") {
                     // Cliente convencido - derivar a backoffice para procesar portabilidad
                     status = "line2";
-                    answer = response.mensaje_asistente;
                     // Incluir datos del cliente para backoffice
                     datosCliente = response.datos_cliente || null;
-                    // Resetear el contador de contacto
-                    await contactModel.resetCountByCelular(phone, id_cliente_rest);
                 }
 
+                answer = response.mensaje_asistente;
+                // Resetear el contador de contacto
+                await contactModel.resetCountByCelular(phone, id_cliente_rest);
+
+            }
+            const id_estado = await estadoModel.getIdByName(status);
+            
+            if (clienteRest.id_estado !== id_estado) {
+                await clienteRestModel.updateEstado(id_cliente_rest, id_estado);
             }
 
             // Registrar en auditoria_api

@@ -5,14 +5,14 @@ class TblEstadoModel {
     this.connection = dbConnection || pool;
   }
 
-  async getById(id) {
+  async getIdByName(nombre) {
     try {
       const [rows] = await this.connection.execute(
-        "SELECT * FROM estado WHERE id = ?",
-        [id]
+        "SELECT * FROM estado WHERE nombre = ?",
+        [nombre]
       );
 
-      return rows[0];
+      return rows[0].id;
     }
     catch (error) {
       throw new Error(`Error al obtener estado: ${error.message}`);
