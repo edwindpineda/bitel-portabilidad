@@ -3,16 +3,18 @@ const logger = require('../../config/logger/loggerClient.js');
 
 class AuditoriaController {
 
-  async getAll(req, res) {
+  async getChatsByContacto(req, res) {
     try {
+      const { contacto } = req.params
+
       const auditoriaModel = new TblAuditoriaApiModel();
-      const auditorias = await auditoriaModel.getAll();
+      const auditorias = await auditoriaModel.getChatsByContacto(contacto);
 
       return res.status(200).json({ data: auditorias });
     }
     catch (error) {
       logger.error(`[auditoria.controller.js] Error al obtener auditorias: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener información de auditoría" });
+      return res.status(500).json({ msg: "Error al obtener informaciï¿½n de auditorï¿½a" });
     }
   }
 }

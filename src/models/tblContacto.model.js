@@ -40,6 +40,17 @@ class TblContactoModel {
         }
     }
 
+    async getAll() {
+        try {
+            const [rows] = await this.connection.execute(
+                'SELECT contacto FROM contacto'
+            );
+            return rows.length > 0 ? rows[0] : null;
+        } catch (error) {
+            throw new Error(`Error al obtener contacto por celular: ${error.message}`);
+        }
+    }
+
     /**
      * Crea un nuevo contacto
      * @param {string} celular - Número de celular del contacto

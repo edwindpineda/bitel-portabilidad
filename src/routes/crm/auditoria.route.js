@@ -3,6 +3,6 @@ const AuditoriaController = require("../../controllers/crm/auditoria.controller.
 
 const router = Router();
 
-router.get("/chats", AuditoriaController.getAll);
+router.get("/chats/:contacto", AuditoriaController.getChatsByContacto);
 
 module.exports = router;
