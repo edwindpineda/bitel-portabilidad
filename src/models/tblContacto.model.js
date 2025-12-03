@@ -45,7 +45,7 @@ class TblContactoModel {
             const [rows] = await this.connection.execute(
                 'SELECT celular FROM contacto'
             );
-            return rows.length > 0 ? rows[0] : null;
+            return rows;
         } catch (error) {
             throw new Error(`Error al obtener contacto por celular: ${error.message}`);
         }
