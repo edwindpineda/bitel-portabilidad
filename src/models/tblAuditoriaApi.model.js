@@ -40,6 +40,19 @@ class TblAuditoriaApiModel {
             throw new Error(`Error al insertar en auditoria_api: ${error.message}`);
         }
     }
+
+    async getAll () {
+        try {
+            const [rows] = await this.connection.execute(
+                "SELECT * FROM auditoria_api"
+            );
+
+            return rows;
+        }
+        catch (error) {
+            throw new Error(`Error al obtener info de auditoria_api: ${error.message}`);
+        }
+    }
 }
 
 module.exports = TblAuditoriaApiModel;

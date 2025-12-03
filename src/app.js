@@ -6,6 +6,7 @@ const { responseHandler } = require('./middlewares/response.middleware.js');
 const checkApiKey = require('./middlewares/apiKey.middleware.js');
 const reporteRoutes = require('./routes/reporte.route.js');
 const usuarioRoutes = require("./routes/crm/usuario.route.js");
+const auditoriaRoutes = require("./routes/crm/auditoria.route.js");
 
 const app = express();
 
@@ -32,7 +33,7 @@ app.use(responseHandler);
 
 // Rutas
 app.use('/api', reporteRoutes);
-app.use("/api/crm", usuarioRoutes);
+app.use("/api/crm", usuarioRoutes, auditoriaRoutes);
 app.use('/api/assistant', checkApiKey, messageProcessingRoutes);
 
 
