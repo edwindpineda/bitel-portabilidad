@@ -52,13 +52,13 @@ class TblPlanesTarifariosModel {
      * @param {string} tipo_plan - 'prepago', 'postpago' o 'portabilidad'
      * @returns {Promise<Array>} - Array de planes del tipo especificado
      */
-    async getByTipoPlan(tipo_plan) {
+    async getIdByNombre(nombre) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM planes_tarifarios WHERE tipo_plan = ? AND activo = 1 ORDER BY precio_promocional ASC',
-                [tipo_plan]
+                'SELECT * FROM planes_tarifarios WHERE nombre = ?',
+                [nombre]
             );
-            return rows;
+            return rows[0].id;
         } catch (error) {
             throw new Error(`Error al obtener planes por tipo: ${error.message}`);
         }

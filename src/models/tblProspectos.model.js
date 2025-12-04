@@ -45,6 +45,20 @@ class TblClienteRestModel {
         }
     }
 
+    async selectByCelular(userType, celular) {
+        try {
+    
+            const [rows] = await this.connection.execute(
+                'SELECT * FROM prospecto WHERE tipo_usuario = ? AND celular = ?',
+                [userType, celular]
+            );
+
+            return rows.length > 0 ? rows[0] : null;
+        } catch (error) {
+            throw new Error(`Error al buscar registro: ${error.message}`);
+        }
+    }
+
 
     /**
      * Crea un nuevo registro de consumo
@@ -52,14 +66,19 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<number>} - ID del registro creado
      */
-    async createUserConsumo(fechaConsumo, tipo_usuario, id_estado) {
+    async createProspecto(tipo_usuario, id_estado, phone) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO prospecto (fecha_consumo, tipo_usuario, id_estado) VALUES (?, ?, ?)',
-                [fechaConsumo, tipo_usuario, id_estado]
+                'INSERT INTO prospecto (tipo_usuario, id_estado, celular) VALUES (?, ?, ?)',
+                [tipo_usuario, id_estado, phone]
             );
 
-            return result.insertId;
+                const [rows] = await this.connection.execute(
+                `SELECT * FROM prospecto WHERE id = ?`,
+                [result.insertId]
+            );
+
+            return rows[0];
         } catch (error) {
             throw new Error(`Error al crear consumo: ${error.message}`);
         }
@@ -104,6 +123,24 @@ class TblClienteRestModel {
         } catch (error) {
             console.log("error", error);
             throw new Error(`Error al actualizar consumo: ${error.message}`);
+        }
+    }
+
+    async updateDatosProspecto(nombre_completo, dni, direccion, id_plan, celular, id) {
+        try {
+            const [result] = await this.connection.execute(
+                'UPDATE prospecto SET nombre_completo = ?, dni = ?, direccion = ?, id_plan = ?, celular = ? WHERE id = ?',
+                [nombre_completo, dni, direccion, id_plan, celular, id]
+            );
+
+            if (result.affectedRows === 0) {
+                throw new Error('No se pudo actualizar el consumo');
+            }
+
+            return true;
+        } catch (error) {
+            console.log("error", error);
+            throw new Error(`Error al actualizar datos del prospecto: ${error.message}`);
         }
     }
 

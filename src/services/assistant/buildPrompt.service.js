@@ -41,9 +41,9 @@ class BuildPromptService {
       const principal = plan[0]
       // Construir el mensaje del plan con saltos de línea entre cada beneficio
       // Orden exacto: Precio, Internet, Llamadas/SMS, GB alta velocidad, Bono TikTok, Streaming, GB Acumulables
-      let planInfo = `Muchas gracias por su respuesta, tenemos este plan para usted:\n\n`;
-
+      let planInfo = ""
       if (principal.precio_promocional) {
+        planInfo = `Nombre: ${principal.nombre}\n`
         planInfo += `Precio: S/${principal.precio_promocional}🔥\n\n`;
         planInfo += `   (Precio regular: S/${principal.precio_regular})\n\n`;
       } else {
@@ -58,7 +58,7 @@ class BuildPromptService {
         planInfo += `Url de la imagen: ${principal.imagen_url}\n`
       }
 
-      planInfo += `¿Te interesa este plan? 😊`;
+      //console.log(planInfo)
 
       return planInfo;
     } catch (error) {
@@ -78,11 +78,11 @@ class BuildPromptService {
       }
 
       const planesFormatted = planes.map(plan => {
-        let planInfo = `**${plan.nombre}**\n\n`;
+        let planInfo = `**Nombre: ${plan.nombre}**\n\n`;
 
         // Mostrar precio promocional si existe
         if (plan.precio_promocional) {
-          planInfo += `Precio: S/${plan.precio_promocional} x ${plan.meses_promocion} meses 🔥\n\n`;
+          planInfo += `Precio: S/${plan.precio_promocional} x 12 meses 🔥\n\n`;
           planInfo += `   (Precio regular: S/${plan.precio_regular})\n\n`;
         } else {
           planInfo += `- Precio: S/${plan.precio_regular}\n\n`;
@@ -96,6 +96,7 @@ class BuildPromptService {
           planInfo += `Url de la imagen: ${plan.imagen_url}`
         }
 
+        //console.log(planInfo)
         return planInfo;
       }).join("\n---\n\n");
 

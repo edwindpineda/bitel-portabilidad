@@ -1,12 +1,14 @@
 const TblContactoApiModel = require("../../models/tblContacto.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 
-class AuditoriaController {
+class ContactoController {
 
   async getAll(req, res) {
     try {
+      const { offset } = req.params;
+
       const contactoModel = new TblContactoApiModel();
-      const contactos = await contactoModel.getAll();
+      const contactos = await contactoModel.getAll(offset);
 
       return res.status(200).json({ data: contactos });
     }
@@ -17,4 +19,4 @@ class AuditoriaController {
   }
 }
 
-module.exports = new AuditoriaController();
+module.exports = new ContactoController();

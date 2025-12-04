@@ -17,7 +17,8 @@ const pool = mysql.createPool({
     keepAliveInitialDelay: 0,
     charset: 'utf8mb4', // Soporte completo para Unicode,
     // Como string las fechas DATE/DATETIME
-    dateStrings: true
+    dateStrings: true,
+    timezone: "-05:00"
 });
 
 // Función para verificar conexión

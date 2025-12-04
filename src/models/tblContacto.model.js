@@ -28,22 +28,23 @@ class TblContactoModel {
      * @param {string} celular - Número de celular del contacto
      * @returns {Promise<Object|null>} - Objeto del contacto o null si no existe
      */
-    async getByCelular(celular, id_cliente_rest) {
+    async getByCelular(celular) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM contacto WHERE celular = ? AND id_prospecto = ?',
-                [celular, id_cliente_rest]
+                'SELECT * FROM contacto WHERE celular = ?',
+                [celular]
             );
-            return rows.length > 0 ? rows[0] : null;
+            return rows.length > 0 ? rows[0].id : null;
         } catch (error) {
             throw new Error(`Error al obtener contacto por celular: ${error.message}`);
         }
     }
 
-    async getAll() {
+    async getAll(offset) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT celular FROM contacto LIMIT 15'
+                'SELECT id, celular FROM contacto LIMIT 15 OFFSET ?',
+                [offset]
             );
             return rows;
         } catch (error) {

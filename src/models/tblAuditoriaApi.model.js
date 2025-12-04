@@ -22,7 +22,6 @@ class TblAuditoriaApiModel {
         phone,
         question,
         tipo_usuario,
-        fecha_ingreso,
         id_contacto = null,
         id_cliente_rest = null,
         respuesta_api
@@ -30,9 +29,9 @@ class TblAuditoriaApiModel {
         try {
             const [result] = await this.connection.execute(
                 `INSERT INTO auditoria_api 
-                 (phone, question, tipo_usuario, fecha_ingreso, id_contacto, id_cliente_rest, respuesta_api) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [phone, question, tipo_usuario, fecha_ingreso, id_contacto, id_cliente_rest, JSON.stringify(respuesta_api)]
+                 (phone, question, tipo_usuario, id_contacto, id_cliente_rest, respuesta_api) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [phone, question, tipo_usuario, id_contacto, id_cliente_rest, JSON.stringify(respuesta_api)]
             );
 
             return result.insertId;
