@@ -44,7 +44,7 @@ class TblAuditoriaApiModel {
     async getChatsByContacto (contacto) {
         try {
             const [rows] = await this.connection.execute(
-                "SELECT question, respuesta_api, created_at FROM auditoria_api WHERE phone = ? LIMIT 10",
+                "SELECT question, respuesta_api, created_at FROM auditoria_api WHERE phone = ?",
                 [contacto]
             );
 

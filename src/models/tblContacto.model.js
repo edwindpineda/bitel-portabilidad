@@ -43,7 +43,7 @@ class TblContactoModel {
     async getAll() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT celular FROM contacto'
+                'SELECT celular FROM contacto LIMIT 15'
             );
             return rows;
         } catch (error) {
