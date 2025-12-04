@@ -25,7 +25,7 @@ class MessageProcessingController {
             const contactModel = new TblContactoModel();
 
             //let prospecto = await prospectoModel.selectByFechaAndTipo(fechaConsumo, userType);
-            let prospecto = await prospectoModel.selectByCelular(userType, phone);
+            let prospecto = await prospectoModel.selectByCelular(phone);
 
             if (!prospecto) {
                 prospecto = await prospectoModel.createProspecto(userType, 1, phone);

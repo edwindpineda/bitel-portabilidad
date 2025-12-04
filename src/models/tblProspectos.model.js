@@ -45,12 +45,12 @@ class TblClienteRestModel {
         }
     }
 
-    async selectByCelular(userType, celular) {
+    async selectByCelular(celular) {
         try {
     
             const [rows] = await this.connection.execute(
-                'SELECT * FROM prospecto WHERE tipo_usuario = ? AND celular = ?',
-                [userType, celular]
+                'SELECT * FROM prospecto WHERE AND celular = ?',
+                [celular]
             );
 
             return rows.length > 0 ? rows[0] : null;
