@@ -70,8 +70,8 @@ class MessageProcessingController {
             });
 
             // Respuesta
-            let status;
-            let answer;
+            let status = null;
+            let answer = null;
             let datosCliente = null;
             const imagen_url = response?.imagen?.replace(/\s+/g, '') || null;
 

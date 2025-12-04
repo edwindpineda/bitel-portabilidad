@@ -12,7 +12,7 @@ class TblEstadoModel {
         [nombre]
       );
 
-      return rows[0].id;
+      return rows.length > 0 ? rows[0].id : null;
     }
     catch (error) {
       throw new Error(`Error al obtener estado: ${error.message}`);
