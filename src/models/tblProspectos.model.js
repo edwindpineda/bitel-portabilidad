@@ -49,7 +49,7 @@ class TblClienteRestModel {
         try {
     
             const [rows] = await this.connection.execute(
-                'SELECT * FROM prospecto WHERE AND celular = ?',
+                'SELECT * FROM prospecto WHERE celular = ?',
                 [celular]
             );
 
