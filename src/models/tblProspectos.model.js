@@ -45,12 +45,15 @@ class TblClienteRestModel {
         }
     }
 
-    async selectByCelular(celular) {
+    async selectByCelular(phone) {
         try {
     
             const [rows] = await this.connection.execute(
-                'SELECT * FROM prospecto WHERE celular = ?',
-                [celular]
+                `SELECT p.*, c.celular as num_contacto
+                FROM prospecto p
+                INNER JOIN contacto c ON p.id = c.id_prospecto
+                WHERE c.celular = ?`,
+                [phone]
             );
 
             return rows.length > 0 ? rows[0] : null;
@@ -66,11 +69,11 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<number>} - ID del registro creado
      */
-    async createProspecto(tipo_usuario, id_estado, phone) {
+    async createProspecto(tipo_usuario, id_estado) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO prospecto (tipo_usuario, id_estado, celular) VALUES (?, ?, ?)',
-                [tipo_usuario, id_estado, phone]
+                'INSERT INTO prospecto (tipo_usuario, id_estado) VALUES (?, ?)',
+                [tipo_usuario, id_estado]
             );
 
                 const [rows] = await this.connection.execute(

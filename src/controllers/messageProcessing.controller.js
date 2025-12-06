@@ -1,6 +1,5 @@
 // assistant
 const AssistantService = require("../services/assistant/asistant.service");
-// modelo de contacto
 const TblContactoModel = require("../models/tblContacto.model.js");
 const TblProspectoModel = require("../models/tblProspectos.model.js");
 const TblPlanesTarifariosModel = require("../models/tblPlanesTarifarios.model.js");
@@ -24,28 +23,13 @@ class MessageProcessingController {
             const planesModel = new TblPlanesTarifariosModel();
             const contactModel = new TblContactoModel();
 
-            //let prospecto = await prospectoModel.selectByFechaAndTipo(fechaConsumo, userType);
+            // Verificar si prospecto esta registrado por medio del celular.
             let prospecto = await prospectoModel.selectByCelular(phone);
-            console.log("Prospecto:", prospecto)
 
             if (!prospecto) {
+                // Registar prospecto
                 prospecto = await prospectoModel.createProspecto(userType, 1, phone);
             }
-            
-            // let id_cliente_rest;
-            // if (!prospecto) {
-            //     // Registrar cliente rest e inicializar el contador de consumo
-            //     id_cliente_rest = await prospectoModel.createUserConsumo(fechaConsumo, userType, 1);
-            //     prospecto = await prospectoModel.getById(id_cliente_rest);
-            // } else {
-            //     id_cliente_rest = prospecto.id;            // }
-
-            // Obtener el consumo total de un usuario            // const consumoTotal = await prospectoModel.getConsumoTotal(userType);
-
-            // // Si el consumo total es mayor o igual a 20k, se cierra el chat
-            // if (consumoTotal >= 20000) {
-            //     return res.clientError(403, "El usuario ha alcanzado el límite de consumo");
-            // }
 
             // Verificar si existe el contacto
             let contact = await contactModel.getByCelular(phone);
@@ -54,14 +38,6 @@ class MessageProcessingController {
                 // Registrar contacto
                 contact = await contactModel.create(phone, prospecto.id);
             }
-
-            // // Incrementar consumo cuando el contador de contacto es 0
-            // if (contactCount === 0) {
-            //     await prospectoModel.updateConsumo(fechaConsumo, userType);
-            // }
-
-            // // Incrementar el contador incremental incr_count de un contacto por su id
-            // await contactModel.incrementIncrCountById(contactId);
 
             // Asistente
             const response = await AssistantService.runProcess({
@@ -76,7 +52,7 @@ class MessageProcessingController {
             let datosCliente = null;
             const imagen_url = response?.imagen?.replace(/\s+/g, '') || null;
 
-            console.log(response);
+            logger.info(`[messageProcessing.controller.js] Response agente: ${JSON.stringify(response)}`);
 
             // // Verificar el valor del contador de contacto
             // const maxCountContact = parseInt(process.env.MAX_COUNT_VALUE);
@@ -126,7 +102,7 @@ class MessageProcessingController {
 
             const id_estado = await estadoModel.getIdByName(status);
             
-            if (prospecto.id_estado !== id_estado) {
+            if (prospecto.id_estado !== id_estado && id_estado) {
                 await prospectoModel.updateEstado(prospecto.id, id_estado);
             }
 
@@ -147,7 +123,6 @@ class MessageProcessingController {
             // Incluir datos_cliente solo cuando es line1 o line2
             if (datosCliente && (status === "line1" || status === "line2")) {
                 responseData.datos_cliente = datosCliente;
-                console.log(datosCliente);
 
                 let id_plan;
                 if (datosCliente.plan_a_vender) {
