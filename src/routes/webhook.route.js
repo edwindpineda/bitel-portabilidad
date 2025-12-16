@@ -423,6 +423,67 @@ router.post('/whatsapp', async (req, res) => {
 });
 
 /**
+ * POST /webhook/send-whatsapp
+ * Endpoint para n8n - Envía mensaje directo a WhatsApp
+ *
+ * Payload:
+ * {
+ *   "phone": "51999999999",
+ *   "message": "Tu mensaje aquí",
+ *   "image_url": "https://..." (opcional)
+ * }
+ */
+router.post('/send-whatsapp', async (req, res) => {
+    try {
+        const { phone, message, image_url } = req.body;
+
+        if (!phone) {
+            return res.status(400).json({
+                success: false,
+                error: 'Número de teléfono requerido (phone)'
+            });
+        }
+
+        if (!message && !image_url) {
+            return res.status(400).json({
+                success: false,
+                error: 'Se requiere mensaje (message) o imagen (image_url)'
+            });
+        }
+
+        console.log('========== [webhook/send-whatsapp] ENVIANDO ==========');
+        console.log(`📱 Phone: ${phone}`);
+        console.log(`💬 Message: ${message ? message.substring(0, 50) + '...' : 'Sin texto'}`);
+        console.log(`🖼️ Image: ${image_url || 'Sin imagen'}`);
+
+        const results = await sendToBaileys(CONFIG.SESSION_ID, phone, message, image_url);
+
+        console.log(`✅ Mensaje enviado correctamente`);
+        console.log('======================================================');
+
+        res.json({
+            success: true,
+            message: 'Mensaje enviado correctamente',
+            data: {
+                phone,
+                message_sent: message || null,
+                image_sent: !!image_url
+            },
+            whatsapp_results: results
+        });
+
+    } catch (error) {
+        console.error('❌ [webhook/send-whatsapp] Error:', error.message);
+
+        res.status(500).json({
+            success: false,
+            error: 'Error al enviar mensaje',
+            details: error.response?.data || error.message
+        });
+    }
+});
+
+/**
  * POST /webhook/trigger
  * Recibe mensajes de Baileys con codOpe y los envía a n8n
  */
