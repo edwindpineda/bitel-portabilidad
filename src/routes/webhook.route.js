@@ -4,6 +4,7 @@ const sharp = require('sharp');
 const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
+const { isBotActivo } = require('../services/assistant/ws_contacto.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -843,6 +844,35 @@ router.get('/test-download', async (req, res) => {
             statusText: error.response?.statusText,
             responseHeaders: error.response?.headers,
             responseData: error.response?.data ? Buffer.from(error.response.data).slice(0, 500).toString() : null
+        });
+    }
+});
+
+/**
+ * GET /webhook/bot-activo/:celular
+ * Verifica si un contacto tiene el bot activo
+ */
+router.get('/bot-activo/:celular', async (req, res) => {
+    const { celular } = req.params;
+
+    if (!celular) {
+        return res.status(400).json({
+            success: false,
+            error: 'El número de celular es requerido'
+        });
+    }
+
+    try {
+        const result = await isBotActivo(celular);
+        res.json({
+            success: true,
+            celular,
+            ...result
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
