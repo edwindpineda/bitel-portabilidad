@@ -1,4 +1,5 @@
 const TblContactoApiModel = require("../../models/tblContacto.model.js");
+const TblMensajeModel = require("../../models/tblMensaje.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 
 class ContactoController {
@@ -7,14 +8,65 @@ class ContactoController {
     try {
       const { offset } = req.params;
 
-      const contactoModel = new TblContactoApiModel();
-      const contactos = await contactoModel.getAll(offset);
+      // Obtener info del usuario autenticado
+      const { userId, rolId } = req.user || {};
 
-      return res.status(200).json({ data: contactos });
+      // Si el rol es >= 3, filtrar solo los contactos de prospectos asignados a este asesor
+      let id_asesor = null;
+      if (rolId && rolId >= 3) {
+        id_asesor = userId;
+      }
+
+      const contactoModel = new TblContactoApiModel();
+      const contactos = await contactoModel.getAll(offset, id_asesor);
+      const total = await contactoModel.getTotal(id_asesor);
+
+      return res.status(200).json({ data: contactos, total });
     }
     catch (error) {
-      logger.error(`[auditoria.controller.js] Error al obtener contactos: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener informaci�n de auditor�a" });
+      logger.error(`[contacto.controller.js] Error al obtener contactos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener contactos" });
+    }
+  }
+
+  async getMensajes(req, res) {
+    try {
+      const { idContacto } = req.params;
+
+      const mensajeModel = new TblMensajeModel();
+      const mensajes = await mensajeModel.getByContactoId(idContacto);
+
+      return res.status(200).json({ data: mensajes });
+    }
+    catch (error) {
+      logger.error(`[contacto.controller.js] Error al obtener mensajes: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener mensajes" });
+    }
+  }
+
+  async search(req, res) {
+    try {
+      const { query } = req.params;
+      const offset = parseInt(req.query.offset) || 0;
+
+      // Obtener info del usuario autenticado
+      const { userId, rolId } = req.user || {};
+
+      // Si el rol es >= 3, filtrar solo los contactos de prospectos asignados a este asesor
+      let id_asesor = null;
+      if (rolId && rolId >= 3) {
+        id_asesor = userId;
+      }
+
+      const contactoModel = new TblContactoApiModel();
+      const contactos = await contactoModel.search(query, offset, id_asesor);
+      const total = await contactoModel.getSearchTotal(query, id_asesor);
+
+      return res.status(200).json({ data: contactos, total });
+    }
+    catch (error) {
+      logger.error(`[contacto.controller.js] Error al buscar contactos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al buscar contactos" });
     }
   }
 }

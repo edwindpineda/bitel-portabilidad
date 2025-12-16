@@ -40,15 +40,113 @@ class TblContactoModel {
         }
     }
 
-    async getAll(offset) {
+    async getAll(offset, id_asesor = null) {
         try {
-            const [rows] = await this.connection.execute(
-                'SELECT id, celular FROM contacto LIMIT 15 OFFSET ?',
-                [offset]
-            );
+            let query = `SELECT
+                    c.id,
+                    c.celular,
+                    p.nombre_completo,
+                    e.nombre as estado_nombre,
+                    e.color as estado_color,
+                    t.nombre as tipificacion_nombre,
+                    t.color as tipificacion_color,
+                    (SELECT MAX(m.fecha_registro) FROM mensaje m WHERE m.id_contacto = c.id) as ultimo_mensaje
+                FROM contacto c
+                LEFT JOIN prospecto p ON p.id = c.id_prospecto
+                LEFT JOIN estado e ON e.id = p.id_estado
+                LEFT JOIN tipificacion t ON t.id = p.id_tipificacion`;
+
+            const params = [];
+
+            if (id_asesor !== null) {
+                query += ` WHERE p.id_asesor = ?`;
+                params.push(id_asesor);
+            }
+
+            query += ` ORDER BY ultimo_mensaje DESC, c.id DESC LIMIT 20 OFFSET ?`;
+            params.push(offset);
+
+            const [rows] = await this.connection.execute(query, params);
             return rows;
         } catch (error) {
-            throw new Error(`Error al obtener contacto por celular: ${error.message}`);
+            throw new Error(`Error al obtener contactos: ${error.message}`);
+        }
+    }
+
+    async getTotal(id_asesor = null) {
+        try {
+            let query = 'SELECT COUNT(*) as total FROM contacto c';
+            const params = [];
+
+            if (id_asesor !== null) {
+                query += ' LEFT JOIN prospecto p ON p.id = c.id_prospecto WHERE p.id_asesor = ?';
+                params.push(id_asesor);
+            }
+
+            const [rows] = await this.connection.execute(query, params);
+            return rows[0].total;
+        } catch (error) {
+            throw new Error(`Error al obtener total de contactos: ${error.message}`);
+        }
+    }
+
+    async search(query, offset = 0, id_asesor = null) {
+        try {
+            const searchTerm = `%${query}%`;
+            const offsetNum = parseInt(offset, 10) || 0;
+
+            let sqlQuery = `SELECT
+                    c.id,
+                    c.celular,
+                    p.nombre_completo,
+                    e.nombre as estado_nombre,
+                    e.color as estado_color,
+                    t.nombre as tipificacion_nombre,
+                    t.color as tipificacion_color,
+                    (SELECT MAX(m.fecha_registro) FROM mensaje m WHERE m.id_contacto = c.id) as ultimo_mensaje
+                FROM contacto c
+                LEFT JOIN prospecto p ON p.id = c.id_prospecto
+                LEFT JOIN estado e ON e.id = p.id_estado
+                LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
+                WHERE (c.celular LIKE ? OR p.nombre_completo LIKE ?)`;
+
+            const params = [searchTerm, searchTerm];
+
+            if (id_asesor !== null) {
+                sqlQuery += ` AND p.id_asesor = ?`;
+                params.push(id_asesor);
+            }
+
+            sqlQuery += ` ORDER BY ultimo_mensaje DESC, c.id DESC LIMIT 20 OFFSET ?`;
+            params.push(offsetNum);
+
+            const [rows] = await this.connection.query(sqlQuery, params);
+            return rows;
+        } catch (error) {
+            throw new Error(`Error al buscar contactos: ${error.message}`);
+        }
+    }
+
+    async getSearchTotal(query, id_asesor = null) {
+        try {
+            const searchTerm = `%${query}%`;
+
+            let sqlQuery = `SELECT COUNT(*) as total
+                 FROM contacto c
+                 LEFT JOIN prospecto p ON p.id = c.id_prospecto
+                 WHERE (c.celular LIKE ? OR p.nombre_completo LIKE ?)`;
+
+            const params = [searchTerm, searchTerm];
+
+            if (id_asesor !== null) {
+                sqlQuery += ` AND p.id_asesor = ?`;
+                params.push(id_asesor);
+            }
+
+            const [rows] = await this.connection.execute(sqlQuery, params);
+            return rows[0].total;
+        } catch (error) {
+            throw new Error(`Error al obtener total de búsqueda: ${error.message}`);
         }
     }
 

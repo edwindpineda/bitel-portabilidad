@@ -1,30 +1,35 @@
 const express = require('express');
 const helmet = require('helmet');
+const cors = require('cors');
 
 const messageProcessingRoutes = require('./routes/messageProcessing.route.js');
 const { responseHandler } = require('./middlewares/response.middleware.js');
 const checkApiKey = require('./middlewares/apiKey.middleware.js');
+const authMiddleware = require('./middlewares/auth.middleware.js');
 const reporteRoutes = require('./routes/reporte.route.js');
 const usuarioRoutes = require("./routes/crm/usuario.route.js");
 const auditoriaRoutes = require("./routes/crm/auditoria.route.js");
 const contactoRoutes = require("./routes/crm/contacto.route.js");
+const configuracionRoutes = require("./routes/crm/configuracion.route.js");
+const leadsRoutes = require("./routes/crm/leads.route.js");
+const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
 
 const app = express();
 
-// Middleware de seguridad
-app.use(helmet());
+// CORS - permitir todas las peticiones (debe ir primero)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  credentials: true
+}));
 
-// CORS - permitir todas las peticiones
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// Middleware de seguridad (configurado para permitir CORS)
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 
 // Middleware para parsing
 app.use(express.json());
@@ -34,7 +39,12 @@ app.use(responseHandler);
 
 // Rutas
 app.use('/api', reporteRoutes);
-app.use("/api/crm", usuarioRoutes, auditoriaRoutes, contactoRoutes);
+// Rutas publicas (sin auth)
+app.use("/api/crm", usuarioRoutes);
+// Rutas protegidas del CRM (requieren auth)
+app.use("/api/crm", authMiddleware, auditoriaRoutes, contactoRoutes, configuracionRoutes);
+app.use("/api/crm/leads", authMiddleware, leadsRoutes);
+app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
 app.use('/api/assistant', checkApiKey, messageProcessingRoutes);
 
 

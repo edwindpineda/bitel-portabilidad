@@ -15,6 +15,37 @@ class TblClienteRestModel {
         return rows[0];
     }
 
+    async getAllByTipoUsuario(tipo_usuario = 'user', id_asesor = null) {
+        let query = `SELECT p.*,
+                    e.nombre as estado_nombre,
+                    e.color as estado_color,
+                    pv.nombre as proveedor_nombre,
+                    pt.nombre as plan_nombre,
+                    t.nombre as tipificacion_nombre,
+                    t.color as tipificacion_color,
+                    c.celular as contacto_celular
+             FROM prospecto p
+             LEFT JOIN estado e ON p.id_estado = e.id
+             LEFT JOIN proveedor pv ON p.id_provedor = pv.id
+             LEFT JOIN planes_tarifarios pt ON p.id_plan = pt.id
+             LEFT JOIN tipificacion t ON p.id_tipificacion = t.id
+             LEFT JOIN contacto c ON c.id_prospecto = p.id
+             WHERE p.tipo_usuario = ?`;
+
+        const params = [tipo_usuario];
+
+        // Si se proporciona id_asesor, filtrar por ese asesor
+        if (id_asesor !== null) {
+            query += ` AND p.id_asesor = ?`;
+            params.push(id_asesor);
+        }
+
+        query += ` ORDER BY p.created_at DESC`;
+
+        const [rows] = await this.connection.execute(query, params);
+        return rows;
+    }
+
     // Obtener el consumo total de un usuario
     async getConsumoTotal(tipo_usuario) {
         const [rows] = await this.connection.execute(
@@ -126,6 +157,24 @@ class TblClienteRestModel {
         } catch (error) {
             console.log("error", error);
             throw new Error(`Error al actualizar consumo: ${error.message}`);
+        }
+    }
+
+    async updateAsesor(id, id_asesor) {
+        try {
+            const [result] = await this.connection.execute(
+                'UPDATE prospecto SET id_asesor = ? WHERE id = ?',
+                [id_asesor, id]
+            );
+
+            if (result.affectedRows === 0) {
+                throw new Error('No se pudo actualizar el asesor');
+            }
+
+            return true;
+        } catch (error) {
+            console.log("error", error);
+            throw new Error(`Error al actualizar asesor: ${error.message}`);
         }
     }
 
