@@ -2,6 +2,7 @@ const express = require('express');
 const axios = require('axios');
 const sharp = require('sharp');
 const path = require('path');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -10,8 +11,139 @@ const CONFIG = {
     BAILEYS_URL: process.env.BAILEYS_URL || 'https://bitel-baileys.xylure.easypanel.host',
     AUTH_TOKEN: process.env.BAILEYS_AUTH_TOKEN || 'f39a8c1d7b264fb19ce2a1d0b7441e98c4f7ba3ef1cd9a0e5d2c8f03b7a5e961',
     BITEL_API_KEY: process.env.USER_API_KEY || '4798d8360969047c6072cb160fad77829288f528f6aa41d35c48134d0a30772a',
-    SESSION_ID: process.env.SESSION_ID || 'bitel'
+    SESSION_ID: process.env.SESSION_ID || 'bitel',
+    N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://bitel-n8n-bitel.xylure.easypanel.host/webhook/5263fbce-4ecc-4ef6-b18e-564ff29b255c/chat'
 };
+
+/**
+ * Mapeo de tipos de archivo para directorios
+ */
+const TYPE_MAPPING = {
+    'image': 'imagen',
+    'video': 'video',
+    'audio': 'audio',
+    'voice': 'audio',
+    'document': 'documentos',
+    'sticker': 'imagen'
+};
+
+/**
+ * Extensiones por defecto según tipo
+ */
+const DEFAULT_EXTENSIONS = {
+    'image': 'jpg',
+    'video': 'mp4',
+    'audio': 'opus',
+    'voice': 'opus',
+    'document': 'pdf',
+    'sticker': 'webp'
+};
+
+/**
+ * Sanitizar nombre de archivo
+ */
+function sanitizeFilename(filename) {
+    return filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+/**
+ * Procesar buffer base64
+ */
+function processBuffer(buffer) {
+    if (!buffer) return null;
+
+    let cleanBuffer = buffer.replace(/^data:.*?;base64,/, '');
+    cleanBuffer = cleanBuffer.replace(/\s+/g, '');
+
+    if (/^[A-Za-z0-9+/=]+$/.test(cleanBuffer)) {
+        try {
+            const decoded = Buffer.from(cleanBuffer, 'base64');
+            if (decoded.length > 0) {
+                return {
+                    content: decoded,
+                    isBase64: true,
+                    size: decoded.length
+                };
+            }
+        } catch (e) {
+            // No es base64 válido
+        }
+    }
+
+    return {
+        content: Buffer.from(buffer),
+        isBase64: false,
+        size: buffer.length
+    };
+}
+
+/**
+ * Procesar archivos del buffer
+ */
+function processBufferFiles(bufferData, sessionId, fromNumber) {
+    const uploadedFiles = [];
+
+    if (!bufferData || !Array.isArray(bufferData) || bufferData.length === 0) {
+        return uploadedFiles;
+    }
+
+    bufferData.forEach((bufferItem, index) => {
+        try {
+            const type = bufferItem.type || 'document';
+            const buffer = bufferItem.data || bufferItem.buffer || null;
+            let filename = bufferItem.filename || null;
+            const mimetype = bufferItem.mimetype || 'application/octet-stream';
+            const caption = bufferItem.caption || null;
+            const itemMessageId = bufferItem.messageId || null;
+
+            if (!buffer) {
+                console.log(`⚠️  Buffer item #${index} no tiene 'data' ni 'buffer', saltando...`);
+                return;
+            }
+
+            console.log(`📎 Procesando archivo #${index}: tipo=${type}, filename=${filename}`);
+
+            if (!filename) {
+                const timestamp = Date.now();
+                const ext = DEFAULT_EXTENSIONS[type] || 'bin';
+                filename = `${type}_${timestamp}.${ext}`;
+            }
+
+            filename = sanitizeFilename(filename);
+
+            const processed = processBuffer(buffer);
+            if (!processed || processed.size === 0) {
+                console.log(`❌ Buffer vacío después de procesar`);
+                return;
+            }
+
+            const fileHash = crypto.createHash('md5').update(processed.content).digest('hex');
+            const uploadType = TYPE_MAPPING[type] || 'documentos';
+            const filePath = `uploads/bitel/${sessionId}/${uploadType}/${filename}`;
+
+            uploadedFiles.push({
+                index,
+                type,
+                messageId: itemMessageId,
+                filename,
+                originalFilename: bufferItem.filename || filename,
+                path: filePath,
+                size: processed.size,
+                caption,
+                mimetype,
+                hash: fileHash,
+                bufferBase64: processed.content.toString('base64')
+            });
+
+            console.log(`✅ Archivo #${index} procesado exitosamente`);
+
+        } catch (e) {
+            console.error(`❌ Error al procesar archivo #${index}:`, e.message);
+        }
+    });
+
+    return uploadedFiles;
+}
 
 /**
  * Descargar archivo desde URL
@@ -282,6 +414,142 @@ router.post('/whatsapp', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [webhook/whatsapp] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: error.response?.data || null
+        });
+    }
+});
+
+/**
+ * POST /webhook/trigger
+ * Recibe mensajes de Baileys con codOpe y los envía a n8n
+ */
+router.post('/trigger', async (req, res) => {
+    try {
+        const { codOpe } = req.body;
+
+        if (!codOpe) {
+            return res.status(400).json({
+                success: false,
+                error: 'Código de operación requerido'
+            });
+        }
+
+        if (codOpe !== 'ENVIAR_MENSAJE_WHATSAPP') {
+            return res.status(400).json({
+                success: false,
+                error: 'Operación no válida'
+            });
+        }
+
+        // El campo "data" puede venir como string JSON o como objeto
+        let messageData = req.body.data;
+        if (typeof messageData === 'string') {
+            try {
+                messageData = JSON.parse(messageData);
+            } catch (e) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'No se pudo decodificar los datos del mensaje'
+                });
+            }
+        }
+
+        if (!messageData) {
+            messageData = req.body;
+        }
+
+        console.log('========== [webhook/trigger] MENSAJE WHATSAPP RECIBIDO ==========');
+        console.log('Data recibida:', JSON.stringify(messageData, null, 2));
+
+        // Extraer datos del mensaje
+        const sessionId = messageData.sessionId || messageData.EmpresaId || null;
+        const fromNumber = messageData.fromNumber || messageData.from?.replace('@s.whatsapp.net', '') || null;
+        const messageText = messageData.messageText || messageData.message?.conversation || messageData.message?.extendedTextMessage?.text || '';
+        const messageTypes = messageData.messageTypes || ['text'];
+        const messageCount = messageData.messageCount || 1;
+        const bufferData = messageData.buffer || [];
+
+        const messageId = messageData.messageId || null;
+        const from = messageData.from || null;
+        const timestamp = messageData.timestamp || Date.now();
+        const pushName = messageData.pushName || 'Usuario';
+        const messageType = messageData.messageType || 'text';
+
+        console.log(`Session ID: ${sessionId}`);
+        console.log(`From Number: ${fromNumber}`);
+        console.log(`Message Types: ${messageTypes.join(', ')}`);
+        console.log(`Message Count: ${messageCount}`);
+        console.log(`Buffer Items: ${bufferData.length}`);
+
+        // Procesar archivos del buffer si existen
+        const uploadedFiles = processBufferFiles(bufferData, sessionId, fromNumber);
+
+        // Preparar payload para n8n
+        const payload = {
+            EmpresaId: sessionId,
+            messageId,
+            from,
+            fromNumber,
+            timestamp,
+            messageText,
+            pushName,
+            messageType,
+            messageTypes,
+            messageCount,
+            buffer: bufferData,
+            files: uploadedFiles
+        };
+
+        // Enviar a n8n
+        console.log(`📡 Enviando a n8n: ${CONFIG.N8N_WEBHOOK_URL}`);
+
+        const response = await axios.post(CONFIG.N8N_WEBHOOK_URL, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            timeout: 30000,
+            maxRedirects: 5
+        });
+
+        const httpCode = response.status;
+        console.log(`✅ Mensaje enviado a n8n - HTTP ${httpCode}`);
+        console.log(`Archivos procesados: ${uploadedFiles.length}`);
+        console.log('================================================================');
+
+        res.json({
+            success: true,
+            message: 'Mensaje recibido y enviado a n8n',
+            data: {
+                session_id: sessionId,
+                from: fromNumber,
+                mensaje: messageText,
+                pushName,
+                n8n_status: httpCode,
+                message_types: messageTypes,
+                message_count: messageCount,
+                files_uploaded: uploadedFiles.length,
+                files: uploadedFiles.map(f => ({
+                    index: f.index,
+                    type: f.type,
+                    filename: f.filename,
+                    size: f.size,
+                    mimetype: f.mimetype
+                }))
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ [webhook/trigger] Error:', error.message);
+
+        if (error.response) {
+            console.error('Response status:', error.response.status);
+            console.error('Response data:', error.response.data);
+        }
+
         res.status(500).json({
             success: false,
             error: error.message,
