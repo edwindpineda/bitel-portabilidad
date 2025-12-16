@@ -2,6 +2,10 @@ const TblContactoApiModel = require("../../models/tblContacto.model.js");
 const TblMensajeModel = require("../../models/tblMensaje.model.js");
 const TblMensajeVistoUsuarioModel = require("../../models/tblMensajeVistoUsuario.model.js");
 const logger = require('../../config/logger/loggerClient.js');
+const axios = require('axios');
+
+// URL del servidor WebSocket
+const WS_SERVER_URL = process.env.WS_SERVER_URL || 'http://localhost:8080';
 
 class ContactoController {
 
@@ -92,6 +96,24 @@ class ContactoController {
 
       const mensajeModel = new TblMensajeModel();
       const mensaje = await mensajeModel.create(idContacto, contenido.trim(), 'out');
+
+      // Notificar al WebSocket server para actualizar en tiempo real
+      try {
+        await axios.post(`${WS_SERVER_URL}/webhook/mensaje-entrante`, {
+          id_contacto: parseInt(idContacto),
+          mensaje: {
+            id: mensaje.id,
+            id_contacto: parseInt(idContacto),
+            contenido: mensaje.contenido,
+            direccion: 'salida',
+            tipo: 'text',
+            fecha_hora: mensaje.fecha_registro || new Date().toISOString()
+          }
+        }, { timeout: 5000 });
+      } catch (wsError) {
+        // No fallar si el WebSocket no está disponible
+        logger.warn(`[contacto.controller.js] No se pudo notificar al WebSocket: ${wsError.message}`);
+      }
 
       return res.status(201).json({ data: mensaje, msg: "Mensaje enviado correctamente" });
     }
