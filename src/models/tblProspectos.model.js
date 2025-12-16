@@ -190,11 +190,11 @@ class TblClienteRestModel {
         }
     }
 
-    async updateDatosProspecto(nombre_completo, dni, direccion, id_plan, celular, id) {
+    async updateDatosProspecto(nombre_completo, dni, direccion, id_plan, celular, id_tipificacion, id) {
         try {
             const [result] = await this.connection.execute(
-                'UPDATE prospecto SET nombre_completo = ?, dni = ?, direccion = ?, id_plan = ?, celular = ? WHERE id = ?',
-                [nombre_completo, dni, direccion, id_plan, celular, id]
+                'UPDATE prospecto SET nombre_completo = ?, dni = ?, direccion = ?, id_plan = ?, celular = ?, id_tipificacion = ? WHERE id = ?',
+                [nombre_completo, dni, direccion, id_plan, celular, id_tipificacion, id]
             );
 
             if (result.affectedRows === 0) {

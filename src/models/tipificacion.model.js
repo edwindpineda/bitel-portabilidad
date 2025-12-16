@@ -7,7 +7,7 @@ class TipificacionModel {
 
   async getAll() {
     const [rows] = await this.connection.execute(
-      `SELECT id, nombre, definicion, orden, color, fecha_registro, fecha_actualizacion
+      `SELECT id, nombre, definicion
        FROM tipificacion ORDER BY orden ASC, nombre ASC`
     );
     return rows;

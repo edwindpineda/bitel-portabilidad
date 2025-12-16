@@ -7,7 +7,7 @@ class PreguntaPerfilamientoModel {
 
   async getAll() {
     const [rows] = await this.connection.execute(
-      `SELECT id, pregunta, orden, estado_registro, fecha_registro, fecha_actualizacion
+      `SELECT id, pregunta, orden
        FROM pregunta_perfilamiento WHERE estado_registro = 1 ORDER BY orden ASC`
     );
     return rows;
