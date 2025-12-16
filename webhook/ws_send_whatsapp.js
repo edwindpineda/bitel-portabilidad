@@ -1,6 +1,12 @@
 const express = require('express');
 const axios = require('axios');
 const sharp = require('sharp');
+const https = require('https');
+
+// Agente HTTPS que ignora verificación SSL (como PHP cURL)
+const httpsAgent = new https.Agent({
+    rejectUnauthorized: false
+});
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -41,17 +47,12 @@ async function downloadFile(url, maxRetries = 2) {
                 responseType: 'arraybuffer',
                 timeout: 120000,
                 maxRedirects: 10,
+                httpsAgent,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
                     'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-                    'Referer': new URL(url).origin + '/',
-                    'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-                    'sec-ch-ua-mobile': '?0',
-                    'sec-ch-ua-platform': '"Windows"',
-                    'sec-fetch-dest': 'image',
-                    'sec-fetch-mode': 'no-cors',
-                    'sec-fetch-site': 'same-origin'
+                    'Referer': new URL(url).origin + '/'
                 }
             });
 
