@@ -1,6 +1,7 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const path = require('path');
 
 const messageProcessingRoutes = require('./routes/messageProcessing.route.js');
 const { responseHandler } = require('./middlewares/response.middleware.js');
@@ -34,6 +35,9 @@ app.use(helmet({
 
 // Middleware para parsing
 app.use(express.json());
+
+// Servir archivos estáticos desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Middleware para respuestas JSON consistentes
 app.use(responseHandler);

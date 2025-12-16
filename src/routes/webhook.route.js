@@ -168,11 +168,14 @@ async function downloadFile(url, maxRetries = 2) {
                 timeout: 120000,
                 maxRedirects: 10,
                 httpsAgent,
+                decompress: false,
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
-                    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-                    'Referer': new URL(url).origin + '/'
+                    'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+                    'Accept-Encoding': 'identity',
+                    'Connection': 'keep-alive',
+                    'Cache-Control': 'no-cache'
                 }
             });
 
