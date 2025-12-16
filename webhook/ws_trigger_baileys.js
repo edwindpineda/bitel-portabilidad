@@ -7,8 +7,8 @@ app.use(express.json());
 // Configuración
 const CONFIG = {
     PORT: process.env.WEBHOOK_PORT || 3030,
-    BITEL_API_URL: process.env.BITEL_API_URL || 'https://portabilidad-bitel.ai-you.io/api/assistant/message',
-    API_KEY: process.env.BITEL_API_KEY || '4798d8360969047c6072cb160fad77829288f528f6aa41d35c48134d0a30772a'
+    // URL del servicio ws_send_whatsapp que procesa y envía mensajes
+    SEND_WS_URL: process.env.SEND_WS_URL || 'https://portabilidad-bitel.ai-you.io/webhook/send'
 };
 
 // Middleware CORS
@@ -61,33 +61,32 @@ app.post('/webhook/whatsapp', async (req, res) => {
         console.log(`💬 Message: ${messageText}`);
         console.log(`👤 Push Name: ${pushName}`);
 
-        // Preparar payload para Bitel API
-        const bitelPayload = {
+        // Preparar payload para ws_send_whatsapp
+        const sendWsPayload = {
             phone: fromNumber,
             question: messageText
         };
 
-        // Enviar al backend de Bitel
-        const response = await axios.post(CONFIG.BITEL_API_URL, bitelPayload, {
+        // Enviar a ws_send_whatsapp que procesará con Bitel API y enviará por WhatsApp
+        console.log(`📡 Enviando a ws_send_whatsapp: ${CONFIG.SEND_WS_URL}`);
+        const response = await axios.post(CONFIG.SEND_WS_URL, sendWsPayload, {
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${CONFIG.API_KEY}`
+                'Content-Type': 'application/json'
             },
-            timeout: 60000 // 60 segundos timeout (el AI puede tardar)
+            timeout: 120000 // 120 segundos timeout (incluye procesamiento AI + envío WhatsApp)
         });
 
-        console.log('✅ Respuesta de Bitel API:', JSON.stringify(response.data, null, 2));
+        console.log('✅ Respuesta de ws_send_whatsapp:', JSON.stringify(response.data, null, 2));
 
         // Extraer respuesta
-        const bitelResponse = response.data;
-        const assistantAnswer = bitelResponse.data?.answer || bitelResponse.answer || 'Sin respuesta';
-        const status = bitelResponse.data?.status || bitelResponse.status || 'pending';
-        const imagenUrl = bitelResponse.data?.imagen_url || null;
-        const datosCliente = bitelResponse.data?.datos_cliente || null;
+        const wsResponse = response.data;
+        const assistantAnswer = wsResponse.data?.answer || 'Sin respuesta';
+        const status = wsResponse.data?.status || 'pending';
+        const imagenUrl = wsResponse.data?.imagen_url || null;
 
         console.log('=============================================');
 
-        // Respuesta para Baileys/WhatsApp
+        // Respuesta para Baileys (confirmación de que se procesó y envió)
         res.json({
             success: true,
             data: {
@@ -101,10 +100,9 @@ app.post('/webhook/whatsapp', async (req, res) => {
                 reply: assistantAnswer,
                 status,
                 imagen_url: imagenUrl,
-                datos_cliente: datosCliente,
-                // Metadata
-                shouldReply: true,
-                replyTo: fromNumber
+                // El mensaje ya fue enviado por ws_send_whatsapp
+                messageSent: true,
+                whatsapp_results: wsResponse.whatsapp_results || []
             }
         });
 
@@ -175,7 +173,7 @@ app.get('/health', (req, res) => {
 app.listen(CONFIG.PORT, () => {
     console.log(`🚀 Webhook WhatsApp corriendo en http://localhost:${CONFIG.PORT}`);
     console.log(`📡 Endpoint: POST /webhook/whatsapp`);
-    console.log(`🔗 Bitel API: ${CONFIG.BITEL_API_URL}`);
+    console.log(`🔗 Send WS: ${CONFIG.SEND_WS_URL}`);
 });
 
 module.exports = app;
