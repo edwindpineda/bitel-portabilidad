@@ -22,7 +22,7 @@ const CONFIG = {
     SESSION_ID: process.env.SESSION_ID || 'bitel',
     N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://bitel-n8n-bitel.xylure.easypanel.host/webhook/5263fbce-4ecc-4ef6-b18e-564ff29b255c/chat',
     SERVER_BASE_URL: process.env.SERVER_BASE_URL || 'https://portabilidad-bitel.ai-you.io',
-    WS_SERVER_URL: process.env.WS_SERVER_URL || 'http://localhost:8080'
+    WS_SERVER_URL: process.env.WS_SERVER_URL || 'https://bitel-websocket.xylure.easypanel.host'
 };
 
 /**

@@ -5,7 +5,7 @@ const logger = require('../../config/logger/loggerClient.js');
 const axios = require('axios');
 
 // URL del servidor WebSocket
-const WS_SERVER_URL = process.env.WS_SERVER_URL || 'http://localhost:8080';
+const WS_SERVER_URL = process.env.WS_SERVER_URL || 'https://bitel-websocket.xylure.easypanel.host';
 
 class ContactoController {
 
