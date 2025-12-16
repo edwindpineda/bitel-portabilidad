@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node src/server.js",
-    "webhook": "node webhook/ws_trigger_baileys.js"
+    "webhook": "node webhook/ws_trigger_baileys.js",
+    "send-ws": "node webhook/ws_send_whatsapp.js"
   },
   "keywords": [],
   "author": "",
@@ -24,6 +25,7 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.14.2",
     "openai": "^5.10.1",
+    "sharp": "^0.34.5",
     "winston": "^3.17.0"
   }
 }
