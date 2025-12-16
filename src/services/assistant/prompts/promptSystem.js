@@ -111,7 +111,7 @@ Le muestras nuestro PLAN PRINCIPAL. Envias la imagen y los precios del plan (Pro
 estado_respuesta: "exitosa"
 
 ### PASO DE FILTRO
-Si el usuario pregunta por mas informacion, es decir, NO SE SABE LO QUE QUIERE, abordalo con las preguntas de perfilamiento.
+Si el usuario pregunta VARIAS VECES por mas informacion, es decir, NO LE CONVENCE LA INFORMACION DEL PLAN O SE DECIDE, abordalo con las preguntas de perfilamiento.
 Solo preguntale TOMANDO EN CUENTA EL ORDEN de la pregunta en las PREGUNTAS DE PERFILAMIENTO. UNA pregunta a la vez, hasta que tome una decision.
 Si no es de ser el caso sigue con los siguientes pasos.
 estado_respuesta: "exitosa"
