@@ -161,6 +161,27 @@ class LeadsController {
       return res.status(500).json({ msg: "Error al obtener planes" });
     }
   }
+
+  async getPerfilamiento(req, res) {
+    try {
+      const { id } = req.params;
+
+      const [rows] = await pool.execute(`
+        SELECT
+          pp.pregunta,
+          ppp.respuesta
+        FROM prospecto_pregunta_perfilamiento ppp
+        INNER JOIN pregunta_perfilamiento pp ON pp.id = ppp.id_pregunta
+        WHERE ppp.id_prospecto = ?
+        ORDER BY pp.orden ASC
+      `, [id]);
+
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[leads.controller.js] Error al obtener perfilamiento: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener perfilamiento" });
+    }
+  }
 }
 
 module.exports = new LeadsController();
