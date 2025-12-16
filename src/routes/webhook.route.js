@@ -762,7 +762,10 @@ router.post('/trigger', async (req, res) => {
 
         // Obtener ID del contacto y notificar al WebSocket para actualización en tiempo real
         const idContacto = await getContactoIdByCelular(fromNumber);
+        console.log(`🔍 Buscando contacto para celular ${fromNumber}: idContacto = ${idContacto}`);
+
         if (idContacto && messageText) {
+            console.log(`📡 Intentando notificar WebSocket para contacto ${idContacto}...`);
             await notifyWebSocket(idContacto, {
                 id: messageId || `msg_${Date.now()}`,
                 id_contacto: idContacto,
@@ -771,6 +774,8 @@ router.post('/trigger', async (req, res) => {
                 tipo: messageType || 'text',
                 fecha_hora: new Date(timestamp).toISOString()
             });
+        } else {
+            console.log(`⚠️ No se notificará WebSocket: idContacto=${idContacto}, messageText=${messageText ? 'presente' : 'vacío'}`);
         }
 
         // Procesar archivos del buffer si existen
