@@ -5,6 +5,7 @@ const TblProspectoModel = require("../models/tblProspectos.model.js");
 const TblPlanesTarifariosModel = require("../models/tblPlanesTarifarios.model.js");
 const TblAuditoriaApiModel = require("../models/tblAuditoriaApi.model.js");
 const TblEstadoModel = require("../models/tblEstado.model.js");
+const TblMensajeModel = require("../models/tblMensaje.model.js");
 const logger = require('../config/logger/loggerClient');
 
 class MessageProcessingController {
@@ -52,7 +53,7 @@ class MessageProcessingController {
             let datosCliente = null;
             const imagen_url = response?.imagen?.replace(/\s+/g, '') || null;
 
-            logger.info(`[messageProcessing.controller.js] Response agente: ${JSON.stringify(response)}`);
+            logger.info(`[messageProcessing.controller.js] Response agente: ${JSON.stringify(response.datos_cliente)}`);
 
             // // Verificar el valor del contador de contacto
             // const maxCountContact = parseInt(process.env.MAX_COUNT_VALUE);
@@ -108,6 +109,8 @@ class MessageProcessingController {
 
             // Registrar en auditoria_api
             const auditoriaApiModel = new TblAuditoriaApiModel();
+            const mensajeModel = new TblMensajeModel();
+
             await auditoriaApiModel.insert({
                 phone,
                 question,
@@ -116,6 +119,8 @@ class MessageProcessingController {
                 id_cliente_rest: prospecto.id,
                 respuesta_api: { status, answer, datos_cliente: datosCliente }
             });
+
+            await mensajeModel.create(contact, answer);
 
             // Construir respuesta según el status
             const responseData = { status, answer, imagen_url };
@@ -135,6 +140,7 @@ class MessageProcessingController {
                     datosCliente.direccion || null,
                     id_plan || null,
                     datosCliente.numero_celular || null,
+                    datosCliente.id_tipificacion || null,
                     prospecto.id
                 )
             }

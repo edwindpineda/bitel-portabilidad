@@ -3,6 +3,8 @@ const { promptUser } = require("./prompts/promptUser");
 const { promptAutocorrector } = require("./prompts/autocorrector");
 const TblPlanesTarifariosModel = require("../../models/tblPlanesTarifarios.model.js");
 const TblFaqPortabilidadModel = require("../../models/tblFaqPortabilidad.model.js");
+const TblTipicacionModel = require("../../models/tipificacion.model.js");
+const TblPregPerfilamientoModel = require("../../models/preguntaPerfilamiento.model.js");
 
 class BuildPromptService {
 
@@ -107,6 +109,60 @@ class BuildPromptService {
     }
   }
 
+  async getTipicaciones() {
+    try {
+      const tipificacionModel = new TblTipicacionModel();
+      const tipificacion = await tipificacionModel.getAll();
+      let info = "";
+
+      if (!tipificacion || tipificacion.length === 0) {
+        return "No hay tipicaciones actualmente";
+      }
+
+      info += "**Tipo de tificaciones**\n\n";
+      const infoFormatted = tipificacion.map(tipi => {
+
+        info += `- ID: ${tipi.id}\n`;
+        info += `- Nombre: ${tipi.nombre}\n`;
+        info += `- Definicion: ${tipi.definicion}\n`;
+
+        return info;
+      })
+
+      return infoFormatted;
+    } catch (err) {
+      console.error(`[BuildPromptService.getTipicaciones] ${err.message}`);
+      return "Error al obtener tipicaciones.";
+    }
+  }
+
+  async getPreguntasPerfilamiento() {
+    try {
+      const preguntasModel = new TblPregPerfilamientoModel();
+      const preguntas = await preguntasModel.getAll();
+      let info = "";
+
+      if (!preguntas || preguntas.length === 0) {
+        return "No hay preguntas actualmente";
+      }
+
+      info += "**Preguntas de prefilamiento**\n\n";
+      const infoFormatted = preguntas.map(preguntas => {
+
+        info += `- ID: ${preguntas.id}\n`;
+        info += `- Nombre: ${preguntas.pregunta}\n`;
+        info += `- Orden: ${preguntas.orden}`;
+
+        return info;
+      })
+      
+      return infoFormatted;
+    } catch (err) {
+      console.error(`[BuildPromptService.getPreguntasPerfilamiento] ${err.message}`);
+      return "Error al obtener tipicaciones.";
+    }
+  }
+
   // Construir el prompt para el modelo de IA
   async buildSystemPrompt({
     fqas
@@ -121,12 +177,18 @@ class BuildPromptService {
       // Obtener FAQs de portabilidad de la base de datos
       const faqsPortabilidad = await this.getFaqsPortabilidadFormatted();
 
+      const tipificaciones = await this.getTipicaciones();
+
+      const preguntas = await this.getPreguntasPerfilamiento();
+
       // Crear un objeto con las variables a reemplazar en el prompt
       const replacements = {
         "{{fqas}}": fqas,
         "{{plan_principal}}": planPrincipal,
         "{{planes_tarifarios}}": planesTarifarios,
-        "{{faqs_portabilidad}}": faqsPortabilidad
+        "{{faqs_portabilidad}}": faqsPortabilidad,
+        "{{Tipo_tipificaciones}}": tipificaciones,
+        "{{preguntas_perfilamiento}}": preguntas
       };
 
       // Reemplazar las variables en el prompt
