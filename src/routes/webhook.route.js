@@ -672,6 +672,21 @@ router.post('/send-whatsapp', async (req, res) => {
         });
 
         console.log(`✅ Mensaje enviado correctamente`);
+
+        // Notificar al WebSocket para actualización en tiempo real (mensaje saliente del bot)
+        const idContacto = await getContactoIdByCelular(phone);
+        if (idContacto && message) {
+            console.log(`📡 Notificando WebSocket para mensaje saliente del bot, contacto ${idContacto}...`);
+            await notifyWebSocket(idContacto, {
+                id: response.data?.messageId || response.data?.key?.id || `msg_${Date.now()}`,
+                id_contacto: idContacto,
+                contenido: message,
+                direccion: 'out',  // 'out' para mensajes salientes del bot/asistente
+                tipo: type || 'text',
+                fecha_hora: new Date().toISOString()
+            });
+        }
+
         console.log('======================================================');
 
         res.json({
