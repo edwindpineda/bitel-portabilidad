@@ -105,7 +105,7 @@ class ContactoController {
             id: mensaje.id,
             id_contacto: parseInt(idContacto),
             contenido: mensaje.contenido,
-            direccion: 'salida',
+            direccion: 'out',  // 'out' para mensajes salientes (del asesor/bot)
             tipo: 'text',
             fecha_hora: mensaje.fecha_registro || new Date().toISOString()
           }

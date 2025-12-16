@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const https = require('https');
 const { isBotActivo } = require('../services/assistant/ws_contacto.js');
+const { pool } = require('../config/dbConnection.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -20,8 +21,42 @@ const CONFIG = {
     BITEL_API_KEY: process.env.USER_API_KEY || '4798d8360969047c6072cb160fad77829288f528f6aa41d35c48134d0a30772a',
     SESSION_ID: process.env.SESSION_ID || 'bitel',
     N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://bitel-n8n-bitel.xylure.easypanel.host/webhook/5263fbce-4ecc-4ef6-b18e-564ff29b255c/chat',
-    SERVER_BASE_URL: process.env.SERVER_BASE_URL || 'https://portabilidad-bitel.ai-you.io'
+    SERVER_BASE_URL: process.env.SERVER_BASE_URL || 'https://portabilidad-bitel.ai-you.io',
+    WS_SERVER_URL: process.env.WS_SERVER_URL || 'http://localhost:8080'
 };
+
+/**
+ * Obtiene el ID del contacto por número de celular
+ */
+async function getContactoIdByCelular(celular) {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT id FROM contacto WHERE celular = ?',
+            [celular]
+        );
+        return rows.length > 0 ? rows[0].id : null;
+    } catch (error) {
+        console.error(`[webhook] Error al obtener contacto: ${error.message}`);
+        return null;
+    }
+}
+
+/**
+ * Notifica al WebSocket server sobre un nuevo mensaje
+ */
+async function notifyWebSocket(idContacto, mensaje) {
+    if (!idContacto) return;
+
+    try {
+        await axios.post(`${CONFIG.WS_SERVER_URL}/webhook/mensaje-entrante`, {
+            id_contacto: idContacto,
+            mensaje: mensaje
+        }, { timeout: 5000 });
+        console.log(`📡 WebSocket notificado para contacto ${idContacto}`);
+    } catch (error) {
+        console.warn(`⚠️ No se pudo notificar al WebSocket: ${error.message}`);
+    }
+}
 
 /**
  * Convierte URL relativa a absoluta
@@ -724,6 +759,19 @@ router.post('/trigger', async (req, res) => {
         console.log(`Message Types: ${messageTypes.join(', ')}`);
         console.log(`Message Count: ${messageCount}`);
         console.log(`Buffer Items: ${bufferData.length}`);
+
+        // Obtener ID del contacto y notificar al WebSocket para actualización en tiempo real
+        const idContacto = await getContactoIdByCelular(fromNumber);
+        if (idContacto && messageText) {
+            await notifyWebSocket(idContacto, {
+                id: messageId || `msg_${Date.now()}`,
+                id_contacto: idContacto,
+                contenido: messageText,
+                direccion: 'in',  // 'in' para mensajes entrantes del cliente
+                tipo: messageType || 'text',
+                fecha_hora: new Date(timestamp).toISOString()
+            });
+        }
 
         // Procesar archivos del buffer si existen
         const uploadedFiles = processBufferFiles(bufferData, sessionId, fromNumber);
