@@ -9,10 +9,13 @@ class LeadsController {
       // Obtener info del usuario autenticado
       const { userId, rolId } = req.user || {};
 
+      logger.info(`[leads.controller.js] getLeads - userId: ${userId}, rolId: ${rolId}`);
+
       // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
       let id_asesor = null;
-      if (rolId && rolId >= 3) {
+      if (rolId && rolId >= 3 && userId) {
         id_asesor = userId;
+        logger.info(`[leads.controller.js] Aplicando filtro por id_asesor: ${id_asesor}`);
       }
 
       const leads = await prospectoModel.getAllByTipoUsuario('user', id_asesor);

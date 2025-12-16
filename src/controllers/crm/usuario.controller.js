@@ -15,9 +15,10 @@ class UsuarioController {
       if (usuario) {
 
         const token = JWTService.generate({
-          id: usuario.id,
+          userId: usuario.id,
           username: usuario.username,
           rolId: usuario.id_rol,
+          rolNombre: usuario.rol_nombre
         });
 
         // Obtener módulos del rol del usuario

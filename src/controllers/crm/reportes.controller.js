@@ -12,7 +12,7 @@ class ReportesCrmController {
       // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
       let asesorCondition = '';
       const asesorParams = [];
-      if (rolId && rolId >= 3) {
+      if (rolId && rolId >= 3 && userId) {
         asesorCondition = ' AND p.id_asesor = ?';
         asesorParams.push(userId);
       }
@@ -100,7 +100,7 @@ class ReportesCrmController {
       // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
       let asesorCondition = '';
       const asesorParams = [];
-      if (rolId && rolId >= 3) {
+      if (rolId && rolId >= 3 && userId) {
         asesorCondition = ' AND p.id_asesor = ?';
         asesorParams.push(userId);
       }
@@ -152,7 +152,7 @@ class ReportesCrmController {
         FROM estado e
         LEFT JOIN prospecto p ON p.id_estado = e.id AND p.tipo_usuario = 'user'`;
 
-      if (rolId && rolId >= 3) {
+      if (rolId && rolId >= 3 && userId) {
         pipelineQuery += ` AND p.id_asesor = ?`;
       }
 

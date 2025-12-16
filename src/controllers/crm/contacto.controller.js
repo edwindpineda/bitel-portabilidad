@@ -13,7 +13,7 @@ class ContactoController {
 
       // Si el rol es >= 3, filtrar solo los contactos de prospectos asignados a este asesor
       let id_asesor = null;
-      if (rolId && rolId >= 3) {
+      if (rolId && rolId >= 3 && userId) {
         id_asesor = userId;
       }
 
@@ -54,7 +54,7 @@ class ContactoController {
 
       // Si el rol es >= 3, filtrar solo los contactos de prospectos asignados a este asesor
       let id_asesor = null;
-      if (rolId && rolId >= 3) {
+      if (rolId && rolId >= 3 && userId) {
         id_asesor = userId;
       }
 

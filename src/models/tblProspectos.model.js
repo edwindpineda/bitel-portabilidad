@@ -1,4 +1,5 @@
 const { pool } = require("../config/dbConnection.js");
+const logger = require('../config/logger/loggerClient.js');
 
 class TblClienteRestModel {
 
@@ -16,6 +17,8 @@ class TblClienteRestModel {
     }
 
     async getAllByTipoUsuario(tipo_usuario = 'user', id_asesor = null) {
+        logger.info(`[tblProspectos.model.js] getAllByTipoUsuario - tipo_usuario: ${tipo_usuario}, id_asesor: ${id_asesor}`);
+
         let query = `SELECT p.*,
                     e.nombre as estado_nombre,
                     e.color as estado_color,
@@ -38,11 +41,18 @@ class TblClienteRestModel {
         if (id_asesor !== null) {
             query += ` AND p.id_asesor = ?`;
             params.push(id_asesor);
+            logger.info(`[tblProspectos.model.js] Aplicando filtro id_asesor = ${id_asesor}`);
+        } else {
+            logger.info(`[tblProspectos.model.js] SIN filtro de id_asesor (mostrando todos)`);
         }
 
         query += ` ORDER BY p.created_at DESC`;
 
+        logger.info(`[tblProspectos.model.js] Query final: ${query}`);
+        logger.info(`[tblProspectos.model.js] Params: ${JSON.stringify(params)}`);
+
         const [rows] = await this.connection.execute(query, params);
+        logger.info(`[tblProspectos.model.js] Resultados encontrados: ${rows.length}`);
         return rows;
     }
 
