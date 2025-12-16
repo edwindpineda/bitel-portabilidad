@@ -426,16 +426,37 @@ router.post('/whatsapp', async (req, res) => {
  * POST /webhook/send-whatsapp
  * Endpoint para n8n - Envía mensaje directo a WhatsApp
  *
- * Payload:
- * {
- *   "phone": "51999999999",
- *   "message": "Tu mensaje aquí",
- *   "image_url": "https://..." (opcional)
- * }
+ * Tipos soportados: text, image, document, audio, video
+ *
+ * Payload según tipo:
+ *
+ * Texto:
+ * { "phone": "51999999999", "type": "text", "message": "Hola" }
+ *
+ * Imagen:
+ * { "phone": "51999999999", "type": "image", "image_url": "https://...", "message": "Caption opcional" }
+ *
+ * Documento:
+ * { "phone": "51999999999", "type": "document", "document_url": "https://...", "filename": "archivo.pdf", "message": "opcional" }
+ *
+ * Audio:
+ * { "phone": "51999999999", "type": "audio", "audio_url": "https://..." }
+ *
+ * Video:
+ * { "phone": "51999999999", "type": "video", "video_url": "https://...", "message": "Caption opcional" }
  */
 router.post('/send-whatsapp', async (req, res) => {
     try {
-        const { phone, message, image_url } = req.body;
+        const {
+            phone,
+            message,
+            type = 'text',
+            image_url,
+            document_url,
+            filename,
+            audio_url,
+            video_url
+        } = req.body;
 
         if (!phone) {
             return res.status(400).json({
@@ -444,19 +465,152 @@ router.post('/send-whatsapp', async (req, res) => {
             });
         }
 
-        if (!message && !image_url) {
-            return res.status(400).json({
-                success: false,
-                error: 'Se requiere mensaje (message) o imagen (image_url)'
-            });
+        // Validaciones según tipo
+        switch (type) {
+            case 'text':
+                if (!message) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Mensaje requerido para tipo texto'
+                    });
+                }
+                break;
+            case 'image':
+                if (!image_url) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'URL de imagen requerida (image_url)'
+                    });
+                }
+                break;
+            case 'document':
+                if (!document_url) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'URL de documento requerida (document_url)'
+                    });
+                }
+                if (!filename) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Nombre de archivo requerido (filename)'
+                    });
+                }
+                break;
+            case 'audio':
+                if (!audio_url) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'URL de audio requerida (audio_url)'
+                    });
+                }
+                break;
+            case 'video':
+                if (!video_url) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'URL de video requerida (video_url)'
+                    });
+                }
+                break;
+            default:
+                return res.status(400).json({
+                    success: false,
+                    error: 'Tipo no válido. Use: text, image, document, audio, video'
+                });
         }
 
         console.log('========== [webhook/send-whatsapp] ENVIANDO ==========');
         console.log(`📱 Phone: ${phone}`);
+        console.log(`📝 Type: ${type}`);
         console.log(`💬 Message: ${message ? message.substring(0, 50) + '...' : 'Sin texto'}`);
-        console.log(`🖼️ Image: ${image_url || 'Sin imagen'}`);
 
-        const results = await sendToBaileys(CONFIG.SESSION_ID, phone, message, image_url);
+        const baileysUrl = `${CONFIG.BAILEYS_URL}/session/${CONFIG.SESSION_ID}/send`;
+        let payload = { phone };
+        let mediaUrl = null;
+
+        switch (type) {
+            case 'text':
+                payload.message = message;
+                break;
+
+            case 'image':
+                mediaUrl = image_url;
+                console.log(`🖼️ Descargando imagen: ${image_url}`);
+                const imageDownload = await downloadFile(image_url);
+                if (imageDownload.error) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'No se pudo descargar la imagen',
+                        details: imageDownload
+                    });
+                }
+                const compressedImage = await compressImage(imageDownload.data);
+                payload.media = compressedImage.data.toString('base64');
+                payload.mimetype = compressedImage.contentType;
+                payload.message = message || '';
+                break;
+
+            case 'document':
+                mediaUrl = document_url;
+                console.log(`📄 Descargando documento: ${document_url}`);
+                const docDownload = await downloadFile(document_url);
+                if (docDownload.error) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'No se pudo descargar el documento',
+                        details: docDownload
+                    });
+                }
+                payload.media = docDownload.data.toString('base64');
+                payload.mimetype = docDownload.contentType || 'application/pdf';
+                payload.mediaType = 'document';
+                payload.filename = filename;
+                payload.message = message || '';
+                break;
+
+            case 'audio':
+                mediaUrl = audio_url;
+                console.log(`🎵 Descargando audio: ${audio_url}`);
+                const audioDownload = await downloadFile(audio_url);
+                if (audioDownload.error) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'No se pudo descargar el audio',
+                        details: audioDownload
+                    });
+                }
+                payload.media = audioDownload.data.toString('base64');
+                payload.mimetype = audioDownload.contentType || 'audio/mpeg';
+                payload.message = '';
+                break;
+
+            case 'video':
+                mediaUrl = video_url;
+                console.log(`🎬 Descargando video: ${video_url}`);
+                const videoDownload = await downloadFile(video_url);
+                if (videoDownload.error) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'No se pudo descargar el video',
+                        details: videoDownload
+                    });
+                }
+                payload.media = videoDownload.data.toString('base64');
+                payload.mimetype = videoDownload.contentType || 'video/mp4';
+                payload.message = message || '';
+                break;
+        }
+
+        // Enviar a Baileys
+        console.log(`📡 Enviando a Baileys: ${baileysUrl}`);
+        const response = await axios.post(baileysUrl, payload, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${CONFIG.AUTH_TOKEN}`
+            },
+            timeout: 60000
+        });
 
         console.log(`✅ Mensaje enviado correctamente`);
         console.log('======================================================');
@@ -466,10 +620,11 @@ router.post('/send-whatsapp', async (req, res) => {
             message: 'Mensaje enviado correctamente',
             data: {
                 phone,
+                type,
                 message_sent: message || null,
-                image_sent: !!image_url
+                media_url: mediaUrl
             },
-            whatsapp_results: results
+            response: response.data
         });
 
     } catch (error) {
