@@ -27,14 +27,27 @@ class MessageProcessingController {
             const auditoriaApiModel = new TblAuditoriaApiModel();
             const mensajeModel = new TblMensajeModel();
             const usuarioModel = new TblUsuarioModel();
-
+            
             
             // Verificar si prospecto esta registrado por medio del celular.
             let prospecto = await prospectoModel.selectByCelular(phone);
             
             if (!prospecto) {
+                const asesores = await usuarioModel.getByRol(3);
+                const ids = asesores.map(asesores => asesores.id);
+                const conteoProspectos = await prospectoModel.getAsignacionesAsesor(userType);
+                let id_asesor = "";
+
+                if (conteoProspectos) {
+                    if (conteoProspectos.id_asesor) {
+                        const indice = (ids.indexOf(conteoProspectos.id_asesor) + 1) % ids.length;
+                        id_asesor = ids[indice]; 
+                    } else {
+                        id_asesor = ids[0];
+                    }
+                }
                 // Registar prospecto
-                prospecto = await prospectoModel.createProspecto(userType, 1, phone);
+                prospecto = await prospectoModel.createProspecto(userType, 1, phone, id_asesor);
             }
             
             // Verificar si existe el contacto

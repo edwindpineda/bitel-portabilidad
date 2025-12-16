@@ -112,11 +112,11 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<number>} - ID del registro creado
      */
-    async createProspecto(tipo_usuario, id_estado) {
+    async createProspecto(tipo_usuario, id_estado, phone, id_asesor) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO prospecto (tipo_usuario, id_estado) VALUES (?, ?)',
-                [tipo_usuario, id_estado]
+                'INSERT INTO prospecto (tipo_usuario, id_estado, celular, id_asesor) VALUES (?, ?, ?, ?)',
+                [tipo_usuario, id_estado, phone, id_asesor]
             );
 
                 const [rows] = await this.connection.execute(
@@ -126,7 +126,7 @@ class TblClienteRestModel {
 
             return rows[0];
         } catch (error) {
-            throw new Error(`Error al crear consumo: ${error.message}`);
+            throw new Error(`Error al crear prospecto: ${error.message}`);
         }
     }
 
@@ -264,15 +264,15 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<Array>} - Array de registros de consumo
      */
-    async getAsignacionesAsesor(id_asesor) {
+    async getAsignacionesAsesor(tipo_usuario) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT COUNT(id_asesor) as conteo, id_asesor FROM prospecto WHERE tipo_usuario = "user" AND id_asesor = ?',
-                [id_asesor]
+                'SELECT id_asesor FROM prospecto WHERE tipo_usuario = ? ORDER BY created_at DESC LIMIT 1',
+                [tipo_usuario]
             );
-            return rows;
+            return rows.length > 0 ? rows[0] : null;
         } catch (error) {
-            throw new Error(`Error al obtener consumo por tipo: ${error.message}`);
+            throw new Error(`Error al obtener asignaciones por tipo: ${error.message}`);
         }
     }
 

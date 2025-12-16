@@ -35,7 +35,7 @@ class TblUsuarioModel {
          LEFT JOIN sucursal s ON u.id_sucursal = s.id
          LEFT JOIN usuario p ON u.id_padre = p.id
          WHERE u.id_rol = ? AND u.estado_registro = 1
-         ORDER BY u.username`,
+         ORDER BY u.id`,
         [idRol]
       );
       return rows;
