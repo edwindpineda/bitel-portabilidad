@@ -264,11 +264,11 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<Array>} - Array de registros de consumo
      */
-    async getAllConsumoByTipo(tipo_usuario) {
+    async getAsignacionesAsesor(id_asesor) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT fecha_consumo, count_consumo FROM prospecto WHERE tipo_usuario = ?',
-                [tipo_usuario]
+                'SELECT COUNT(id_asesor) as conteo, id_asesor FROM prospecto WHERE tipo_usuario = "user" AND id_asesor = ?',
+                [id_asesor]
             );
             return rows;
         } catch (error) {
