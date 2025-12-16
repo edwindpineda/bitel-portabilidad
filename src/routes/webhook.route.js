@@ -466,7 +466,8 @@ router.post('/trigger', async (req, res) => {
 
         // Extraer datos del mensaje
         const sessionId = messageData.sessionId || messageData.EmpresaId || null;
-        const fromNumber = messageData.fromNumber || messageData.from?.replace('@s.whatsapp.net', '') || null;
+        // Limpiar número: remover @s.whatsapp.net, @lid, o cualquier sufijo @xxx
+        const fromNumber = messageData.fromNumber || messageData.from?.replace(/@.*$/, '') || null;
         const messageText = messageData.messageText || messageData.message?.conversation || messageData.message?.extendedTextMessage?.text || '';
         const messageTypes = messageData.messageTypes || ['text'];
         const messageCount = messageData.messageCount || 1;
