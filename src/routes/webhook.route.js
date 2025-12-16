@@ -787,4 +787,53 @@ router.post('/trigger', async (req, res) => {
     }
 });
 
+/**
+ * GET /webhook/test-download
+ * Endpoint de diagnóstico para probar descarga de archivos
+ */
+router.get('/test-download', async (req, res) => {
+    const testUrl = req.query.url || 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png';
+
+    console.log(`🧪 [test-download] Probando descarga: ${testUrl}`);
+
+    try {
+        const response = await axios.get(testUrl, {
+            responseType: 'arraybuffer',
+            timeout: 30000,
+            maxRedirects: 10,
+            httpsAgent,
+            decompress: false,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+                'Accept-Encoding': 'identity',
+                'Connection': 'keep-alive',
+                'Cache-Control': 'no-cache'
+            }
+        });
+
+        res.json({
+            success: true,
+            url: testUrl,
+            status: response.status,
+            contentType: response.headers['content-type'],
+            size: response.data.byteLength,
+            sizeKB: (response.data.byteLength / 1024).toFixed(2),
+            firstBytes: Buffer.from(response.data).slice(0, 50).toString('hex')
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            url: testUrl,
+            error: error.message,
+            code: error.code,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            responseHeaders: error.response?.headers,
+            responseData: error.response?.data ? Buffer.from(error.response.data).slice(0, 500).toString() : null
+        });
+    }
+});
+
 module.exports = router;
