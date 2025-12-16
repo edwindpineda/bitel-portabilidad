@@ -6,6 +6,7 @@ const TblPlanesTarifariosModel = require("../models/tblPlanesTarifarios.model.js
 const TblAuditoriaApiModel = require("../models/tblAuditoriaApi.model.js");
 const TblEstadoModel = require("../models/tblEstado.model.js");
 const TblMensajeModel = require("../models/tblMensaje.model.js");
+const TblUsuarioModel = require("../models/tblUsuario.model.js");
 const logger = require('../config/logger/loggerClient');
 
 class MessageProcessingController {
@@ -23,23 +24,29 @@ class MessageProcessingController {
             const estadoModel = new TblEstadoModel();
             const planesModel = new TblPlanesTarifariosModel();
             const contactModel = new TblContactoModel();
+            const auditoriaApiModel = new TblAuditoriaApiModel();
+            const mensajeModel = new TblMensajeModel();
+            const usuarioModel = new TblUsuarioModel();
 
+            
             // Verificar si prospecto esta registrado por medio del celular.
             let prospecto = await prospectoModel.selectByCelular(phone);
-
+            
             if (!prospecto) {
                 // Registar prospecto
                 prospecto = await prospectoModel.createProspecto(userType, 1, phone);
             }
-
+            
             // Verificar si existe el contacto
             let contact = await contactModel.getByCelular(phone);
-
+            
             if (!contact) {
                 // Registrar contacto
                 contact = await contactModel.create(phone, prospecto.id);
             }
-
+            
+            await mensajeModel.create(contact, question, "in");
+            
             // Asistente
             const response = await AssistantService.runProcess({
                 contactId: contact,
@@ -106,10 +113,6 @@ class MessageProcessingController {
             if (prospecto.id_estado !== id_estado && id_estado) {
                 await prospectoModel.updateEstado(prospecto.id, id_estado);
             }
-
-            // Registrar en auditoria_api
-            const auditoriaApiModel = new TblAuditoriaApiModel();
-            const mensajeModel = new TblMensajeModel();
 
             await auditoriaApiModel.insert({
                 phone,
