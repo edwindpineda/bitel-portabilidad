@@ -42,17 +42,13 @@ class ReportesCrmController {
       `, params);
       const totalLeads = totalLeadsResult[0]?.total || 0;
 
-      // 2. Contactados (prospectos con más de 2 mensajes)
+      // 2. Contactados (prospectos que tienen al menos un mensaje)
       const [contactadosResult] = await pool.execute(`
-        SELECT COUNT(*) as total FROM (
-          SELECT p.id
-          FROM prospecto p
-          INNER JOIN contacto c ON c.id_prospecto = p.id
-          INNER JOIN mensaje m ON m.id_contacto = c.id
-          WHERE p.tipo_usuario = 'user'${asesorCondition}${dateCondition}
-          GROUP BY p.id
-          HAVING COUNT(m.id) > 2
-        ) as contactados_sub
+        SELECT COUNT(DISTINCT p.id) as total
+        FROM prospecto p
+        INNER JOIN contacto c ON c.id_prospecto = p.id
+        INNER JOIN mensaje m ON m.id_contacto = c.id
+        WHERE p.tipo_usuario = 'user'${asesorCondition}${dateCondition}
       `, params);
       const contactados = contactadosResult[0]?.total || 0;
 
@@ -132,17 +128,13 @@ class ReportesCrmController {
       `, asesorParams);
       const leadsSemana = leadsSemanasResult[0]?.total || 0;
 
-      // 4. Contactados (prospectos con mas de 2 mensajes)
+      // 4. Contactados (prospectos que tienen al menos un mensaje)
       const [contactadosResult] = await pool.execute(`
-        SELECT COUNT(*) as total FROM (
-          SELECT p.id
-          FROM prospecto p
-          INNER JOIN contacto c ON c.id_prospecto = p.id
-          INNER JOIN mensaje m ON m.id_contacto = c.id
-          WHERE p.tipo_usuario = 'user'${asesorCondition}
-          GROUP BY p.id
-          HAVING COUNT(m.id) > 2
-        ) as contactados_sub
+        SELECT COUNT(DISTINCT p.id) as total
+        FROM prospecto p
+        INNER JOIN contacto c ON c.id_prospecto = p.id
+        INNER JOIN mensaje m ON m.id_contacto = c.id
+        WHERE p.tipo_usuario = 'user'${asesorCondition}
       `, asesorParams);
       const contactados = contactadosResult[0]?.total || 0;
 

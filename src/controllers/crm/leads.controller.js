@@ -117,6 +117,50 @@ class LeadsController {
       return res.status(500).json({ msg: "Error al asignar asesores" });
     }
   }
+
+  async updateLead(req, res) {
+    try {
+      const { id } = req.params;
+      const prospectoModel = new ProspectoModel();
+
+      const lead = await prospectoModel.getById(id);
+      if (!lead) {
+        return res.status(404).json({ msg: "Lead no encontrado" });
+      }
+
+      await prospectoModel.updateProspecto(id, req.body);
+      logger.info(`[leads.controller.js] Lead ${id} actualizado correctamente`);
+
+      return res.status(200).json({ msg: "Lead actualizado correctamente" });
+    } catch (error) {
+      logger.error(`[leads.controller.js] Error al actualizar lead: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar lead" });
+    }
+  }
+
+  async getProveedores(req, res) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT id, nombre FROM proveedor ORDER BY nombre'
+      );
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[leads.controller.js] Error al obtener proveedores: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener proveedores" });
+    }
+  }
+
+  async getPlanes(req, res) {
+    try {
+      const [rows] = await pool.execute(
+        'SELECT id, nombre FROM planes_tarifarios ORDER BY nombre'
+      );
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[leads.controller.js] Error al obtener planes: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener planes" });
+    }
+  }
 }
 
 module.exports = new LeadsController();

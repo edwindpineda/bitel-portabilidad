@@ -40,23 +40,28 @@ class TblContactoModel {
         }
     }
 
-    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null) {
+    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null, userId = null) {
         try {
             let query = `SELECT
                     c.id,
                     c.celular,
+                    c.bot_activo,
                     p.nombre_completo,
                     e.nombre as estado_nombre,
                     e.color as estado_color,
                     t.nombre as tipificacion_nombre,
                     t.color as tipificacion_color,
-                    (SELECT MAX(m.fecha_registro) FROM mensaje m WHERE m.id_contacto = c.id) as ultimo_mensaje
+                    (SELECT MAX(m.fecha_registro) FROM mensaje m WHERE m.id_contacto = c.id) as ultimo_mensaje,
+                    (SELECT MAX(m2.id) FROM mensaje m2 WHERE m2.id_contacto = c.id AND m2.estado_registro = 1) as ultimo_mensaje_id,
+                    (SELECT mvu.id_mensaje FROM mensaje_visto_usuario mvu WHERE mvu.id_contacto = c.id AND mvu.id_usuario = ?) as ultimo_visto_id,
+                    (SELECT COUNT(*) FROM mensaje m3 WHERE m3.id_contacto = c.id AND m3.estado_registro = 1
+                        AND m3.id > COALESCE((SELECT mvu2.id_mensaje FROM mensaje_visto_usuario mvu2 WHERE mvu2.id_contacto = c.id AND mvu2.id_usuario = ?), 0)) as mensajes_no_leidos
                 FROM contacto c
                 LEFT JOIN prospecto p ON p.id = c.id_prospecto
                 LEFT JOIN estado e ON e.id = p.id_estado
                 LEFT JOIN tipificacion t ON t.id = p.id_tipificacion`;
 
-            const params = [];
+            const params = [userId || 0, userId || 0];
             const conditions = [];
 
             if (id_asesor !== null) {
@@ -82,7 +87,12 @@ class TblContactoModel {
             params.push(offset);
 
             const [rows] = await this.connection.execute(query, params);
-            return rows;
+
+            // Agregar indicador de no leidos
+            return rows.map(row => ({
+                ...row,
+                tiene_no_leidos: row.ultimo_mensaje_id && (!row.ultimo_visto_id || row.ultimo_mensaje_id > row.ultimo_visto_id)
+            }));
         } catch (error) {
             throw new Error(`Error al obtener contactos: ${error.message}`);
         }
@@ -120,7 +130,7 @@ class TblContactoModel {
         }
     }
 
-    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null) {
+    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null, userId = null) {
         try {
             const searchTerm = `%${query}%`;
             const offsetNum = parseInt(offset, 10) || 0;
@@ -128,19 +138,24 @@ class TblContactoModel {
             let sqlQuery = `SELECT
                     c.id,
                     c.celular,
+                    c.bot_activo,
                     p.nombre_completo,
                     e.nombre as estado_nombre,
                     e.color as estado_color,
                     t.nombre as tipificacion_nombre,
                     t.color as tipificacion_color,
-                    (SELECT MAX(m.fecha_registro) FROM mensaje m WHERE m.id_contacto = c.id) as ultimo_mensaje
+                    (SELECT MAX(m.fecha_registro) FROM mensaje m WHERE m.id_contacto = c.id) as ultimo_mensaje,
+                    (SELECT MAX(m2.id) FROM mensaje m2 WHERE m2.id_contacto = c.id AND m2.estado_registro = 1) as ultimo_mensaje_id,
+                    (SELECT mvu.id_mensaje FROM mensaje_visto_usuario mvu WHERE mvu.id_contacto = c.id AND mvu.id_usuario = ?) as ultimo_visto_id,
+                    (SELECT COUNT(*) FROM mensaje m3 WHERE m3.id_contacto = c.id AND m3.estado_registro = 1
+                        AND m3.id > COALESCE((SELECT mvu2.id_mensaje FROM mensaje_visto_usuario mvu2 WHERE mvu2.id_contacto = c.id AND mvu2.id_usuario = ?), 0)) as mensajes_no_leidos
                 FROM contacto c
                 LEFT JOIN prospecto p ON p.id = c.id_prospecto
                 LEFT JOIN estado e ON e.id = p.id_estado
                 LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
                 WHERE (c.celular LIKE ? OR p.nombre_completo LIKE ?)`;
 
-            const params = [searchTerm, searchTerm];
+            const params = [userId || 0, userId || 0, searchTerm, searchTerm];
 
             if (id_asesor !== null) {
                 sqlQuery += ` AND p.id_asesor = ?`;
@@ -161,7 +176,12 @@ class TblContactoModel {
             params.push(offsetNum);
 
             const [rows] = await this.connection.query(sqlQuery, params);
-            return rows;
+
+            // Agregar indicador de no leidos
+            return rows.map(row => ({
+                ...row,
+                tiene_no_leidos: row.ultimo_mensaje_id && (!row.ultimo_visto_id || row.ultimo_mensaje_id > row.ultimo_visto_id)
+            }));
         } catch (error) {
             throw new Error(`Error al buscar contactos: ${error.message}`);
         }
@@ -303,7 +323,27 @@ class TblContactoModel {
         }
     }
 
-    
+    async toggleBotActivo(id) {
+        try {
+            const [result] = await this.connection.execute(
+                'UPDATE contacto SET bot_activo = IF(bot_activo = 1, 0, 1) WHERE id = ?',
+                [id]
+            );
+
+            if (result.affectedRows === 0) {
+                throw new Error('Contacto no encontrado');
+            }
+
+            const [rows] = await this.connection.execute(
+                'SELECT bot_activo FROM contacto WHERE id = ?',
+                [id]
+            );
+
+            return rows[0]?.bot_activo;
+        } catch (error) {
+            throw new Error(`Error al cambiar estado del bot: ${error.message}`);
+        }
+    }
 }
 
 module.exports = TblContactoModel;

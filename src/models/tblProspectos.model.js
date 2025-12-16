@@ -208,6 +208,57 @@ class TblClienteRestModel {
         }
     }
 
+    async updateProspecto(id, data) {
+        try {
+            const {
+                nombre_completo,
+                dni,
+                celular,
+                direccion,
+                id_estado,
+                id_provedor,
+                id_plan,
+                id_tipificacion,
+                id_asesor
+            } = data;
+
+            const [result] = await this.connection.execute(
+                `UPDATE prospecto SET
+                    nombre_completo = ?,
+                    dni = ?,
+                    celular = ?,
+                    direccion = ?,
+                    id_estado = ?,
+                    id_provedor = ?,
+                    id_plan = ?,
+                    id_tipificacion = ?,
+                    id_asesor = ?
+                WHERE id = ?`,
+                [
+                    nombre_completo || null,
+                    dni || null,
+                    celular || null,
+                    direccion || null,
+                    id_estado || null,
+                    id_provedor || null,
+                    id_plan || null,
+                    id_tipificacion || null,
+                    id_asesor || null,
+                    id
+                ]
+            );
+
+            if (result.affectedRows === 0) {
+                throw new Error('Prospecto no encontrado');
+            }
+
+            return true;
+        } catch (error) {
+            logger.error(`[tblProspectos.model.js] Error al actualizar prospecto: ${error.message}`);
+            throw new Error(`Error al actualizar prospecto: ${error.message}`);
+        }
+    }
+
     /**
      * Obtiene todos los registros de consumo por tipo de usuario
      * @param {string} tipo_usuario - Tipo de usuario

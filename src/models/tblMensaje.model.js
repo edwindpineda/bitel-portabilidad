@@ -26,6 +26,33 @@ class TblMensajeModel {
             throw new Error(`Error al obtener mensajes del contacto: ${error.message}`);
         }
     }
+
+    /**
+     * Crea un nuevo mensaje para un contacto
+     * @param {number} idContacto - ID del contacto
+     * @param {string} contenido - Contenido del mensaje
+     * @param {string} direccion - Direccion del mensaje ('in' o 'out')
+     * @returns {Promise<Object>} - Mensaje creado
+     */
+    async create(idContacto, contenido, direccion = 'out') {
+        try {
+            const [result] = await this.connection.execute(
+                `INSERT INTO mensaje (id_contacto, direccion, tipo_mensaje, contenido, fecha_hora, fecha_registro, estado_registro)
+                 VALUES (?, ?, 'text', ?, NOW(), NOW(), 1)`,
+                [idContacto, direccion, contenido]
+            );
+
+            return {
+                id: result.insertId,
+                id_contacto: idContacto,
+                direccion,
+                contenido,
+                fecha_registro: new Date()
+            };
+        } catch (error) {
+            throw new Error(`Error al crear mensaje: ${error.message}`);
+        }
+    }
 }
 
 module.exports = TblMensajeModel;
