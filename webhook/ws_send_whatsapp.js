@@ -17,7 +17,17 @@ const CONFIG = {
     PORT: process.env.SEND_WS_PORT || 3031,
     BAILEYS_URL: process.env.BAILEYS_URL || 'https://bitel-baileys.xylure.easypanel.host',
     AUTH_TOKEN: process.env.BAILEYS_AUTH_TOKEN || 'f39a8c1d7b264fb19ce2a1d0b7441e98c4f7ba3ef1cd9a0e5d2c8f03b7a5e961',
-    SESSION_ID: process.env.SESSION_ID || 'bitel'
+    SESSION_ID: process.env.SESSION_ID || 'bitel',
+    SERVER_BASE_URL: process.env.SERVER_BASE_URL || 'https://portabilidad-bitel.ai-you.io'
+};
+
+/**
+ * Convierte URL relativa a absoluta
+ */
+const getAbsoluteUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${CONFIG.SERVER_BASE_URL}${url}`;
 };
 
 // Middleware CORS
@@ -121,8 +131,9 @@ async function sendToBaileys(id_empresa, phone, message, imageUrl = null) {
     const results = [];
 
     if (imageUrl) {
-        console.log(`🖼️ Descargando imagen: ${imageUrl}`);
-        const downloaded = await downloadFile(imageUrl);
+        const absoluteImageUrl = getAbsoluteUrl(imageUrl);
+        console.log(`🖼️ Descargando imagen: ${absoluteImageUrl}`);
+        const downloaded = await downloadFile(absoluteImageUrl);
 
         if (!downloaded.error) {
             const compressed = await compressImage(downloaded.data);

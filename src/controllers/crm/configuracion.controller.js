@@ -514,8 +514,13 @@ class ConfiguracionController {
 
   async createPlanTarifario(req, res) {
     try {
-      const { nombre, precio_regular, precio_promocional, descripcion, principal } = req.body;
+      const { nombre, descripcion } = req.body;
       let { imagen_url } = req.body;
+
+      // Convertir tipos de FormData (llegan como strings)
+      const precio_regular = req.body.precio_regular ? parseFloat(req.body.precio_regular) : null;
+      const precio_promocional = req.body.precio_promocional ? parseFloat(req.body.precio_promocional) : null;
+      const principal = req.body.principal === '1' || req.body.principal === 1 ? 1 : 0;
 
       if (!nombre || !precio_regular) {
         return res.status(400).json({ msg: "El nombre y precio regular son requeridos" });
@@ -539,8 +544,13 @@ class ConfiguracionController {
   async updatePlanTarifario(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, precio_regular, precio_promocional, descripcion, principal } = req.body;
+      const { nombre, descripcion } = req.body;
       let { imagen_url } = req.body;
+
+      // Convertir tipos de FormData (llegan como strings)
+      const precio_regular = req.body.precio_regular ? parseFloat(req.body.precio_regular) : null;
+      const precio_promocional = req.body.precio_promocional ? parseFloat(req.body.precio_promocional) : null;
+      const principal = req.body.principal === '1' || req.body.principal === 1 ? 1 : 0;
 
       if (!nombre || !precio_regular) {
         return res.status(400).json({ msg: "El nombre y precio regular son requeridos" });

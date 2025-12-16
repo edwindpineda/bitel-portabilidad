@@ -18,7 +18,17 @@ const CONFIG = {
     AUTH_TOKEN: process.env.BAILEYS_AUTH_TOKEN || 'f39a8c1d7b264fb19ce2a1d0b7441e98c4f7ba3ef1cd9a0e5d2c8f03b7a5e961',
     BITEL_API_KEY: process.env.USER_API_KEY || '4798d8360969047c6072cb160fad77829288f528f6aa41d35c48134d0a30772a',
     SESSION_ID: process.env.SESSION_ID || 'bitel',
-    N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://bitel-n8n-bitel.xylure.easypanel.host/webhook/5263fbce-4ecc-4ef6-b18e-564ff29b255c/chat'
+    N8N_WEBHOOK_URL: process.env.N8N_WEBHOOK_URL || 'https://bitel-n8n-bitel.xylure.easypanel.host/webhook/5263fbce-4ecc-4ef6-b18e-564ff29b255c/chat',
+    SERVER_BASE_URL: process.env.SERVER_BASE_URL || 'https://portabilidad-bitel.ai-you.io'
+};
+
+/**
+ * Convierte URL relativa a absoluta
+ */
+const getAbsoluteUrl = (url) => {
+    if (!url) return null;
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    return `${CONFIG.SERVER_BASE_URL}${url}`;
 };
 
 /**
@@ -241,8 +251,9 @@ async function sendToBaileys(id_empresa, phone, message, imageUrl = null) {
     const results = [];
 
     if (imageUrl) {
-        console.log(`🖼️ Descargando imagen: ${imageUrl}`);
-        const downloaded = await downloadFile(imageUrl);
+        const absoluteImageUrl = getAbsoluteUrl(imageUrl);
+        console.log(`🖼️ Descargando imagen: ${absoluteImageUrl}`);
+        const downloaded = await downloadFile(absoluteImageUrl);
 
         if (!downloaded.error) {
             const compressed = await compressImage(downloaded.data);
@@ -547,9 +558,9 @@ router.post('/send-whatsapp', async (req, res) => {
                 break;
 
             case 'image':
-                mediaUrl = image_url;
-                console.log(`🖼️ Descargando imagen: ${image_url}`);
-                const imageDownload = await downloadFile(image_url);
+                mediaUrl = getAbsoluteUrl(image_url);
+                console.log(`🖼️ Descargando imagen: ${mediaUrl}`);
+                const imageDownload = await downloadFile(mediaUrl);
                 if (imageDownload.error) {
                     return res.status(400).json({
                         success: false,
@@ -564,9 +575,9 @@ router.post('/send-whatsapp', async (req, res) => {
                 break;
 
             case 'document':
-                mediaUrl = document_url;
-                console.log(`📄 Descargando documento: ${document_url}`);
-                const docDownload = await downloadFile(document_url);
+                mediaUrl = getAbsoluteUrl(document_url);
+                console.log(`📄 Descargando documento: ${mediaUrl}`);
+                const docDownload = await downloadFile(mediaUrl);
                 if (docDownload.error) {
                     return res.status(400).json({
                         success: false,
@@ -582,9 +593,9 @@ router.post('/send-whatsapp', async (req, res) => {
                 break;
 
             case 'audio':
-                mediaUrl = audio_url;
-                console.log(`🎵 Descargando audio: ${audio_url}`);
-                const audioDownload = await downloadFile(audio_url);
+                mediaUrl = getAbsoluteUrl(audio_url);
+                console.log(`🎵 Descargando audio: ${mediaUrl}`);
+                const audioDownload = await downloadFile(mediaUrl);
                 if (audioDownload.error) {
                     return res.status(400).json({
                         success: false,
@@ -598,9 +609,9 @@ router.post('/send-whatsapp', async (req, res) => {
                 break;
 
             case 'video':
-                mediaUrl = video_url;
-                console.log(`🎬 Descargando video: ${video_url}`);
-                const videoDownload = await downloadFile(video_url);
+                mediaUrl = getAbsoluteUrl(video_url);
+                console.log(`🎬 Descargando video: ${mediaUrl}`);
+                const videoDownload = await downloadFile(mediaUrl);
                 if (videoDownload.error) {
                     return res.status(400).json({
                         success: false,
