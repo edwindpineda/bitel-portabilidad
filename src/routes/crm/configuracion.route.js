@@ -1,7 +1,49 @@
 const { Router } = require("express");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
 const ConfiguracionController = require("../../controllers/crm/configuracion.controller.js");
 
 const router = Router();
+
+// Configuración de Multer para subida de imágenes de planes tarifarios
+const uploadDir = path.join(__dirname, "../../../uploads/plan_tarifario");
+
+// Crear directorio si no existe
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storagePlanTarifario = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+        const now = new Date();
+        const timestamp = now.getFullYear().toString() +
+            (now.getMonth() + 1).toString().padStart(2, '0') +
+            now.getDate().toString().padStart(2, '0') +
+            now.getHours().toString().padStart(2, '0') +
+            now.getMinutes().toString().padStart(2, '0') +
+            now.getSeconds().toString().padStart(2, '0');
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `plan_${timestamp}${ext}`);
+    }
+});
+
+const uploadPlanTarifario = multer({
+    storage: storagePlanTarifario,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB máximo
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /jpeg|jpg|png|gif|webp/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        const mimetype = allowedTypes.test(file.mimetype);
+        if (extname && mimetype) {
+            return cb(null, true);
+        }
+        cb(new Error("Solo se permiten imágenes (jpeg, jpg, png, gif, webp)"));
+    }
+});
 
 // Rutas de Roles
 router.get("/roles", ConfiguracionController.getRoles);
@@ -43,8 +85,8 @@ router.delete("/proveedores/:id", ConfiguracionController.deleteProveedor);
 // Rutas de Planes Tarifarios
 router.get("/planes-tarifarios", ConfiguracionController.getPlanesTarifarios);
 router.get("/planes-tarifarios/:id", ConfiguracionController.getPlanTarifarioById);
-router.post("/planes-tarifarios", ConfiguracionController.createPlanTarifario);
-router.put("/planes-tarifarios/:id", ConfiguracionController.updatePlanTarifario);
+router.post("/planes-tarifarios", uploadPlanTarifario.single('imagen'), ConfiguracionController.createPlanTarifario);
+router.put("/planes-tarifarios/:id", uploadPlanTarifario.single('imagen'), ConfiguracionController.updatePlanTarifario);
 router.delete("/planes-tarifarios/:id", ConfiguracionController.deletePlanTarifario);
 
 // Rutas de Preguntas Frecuentes

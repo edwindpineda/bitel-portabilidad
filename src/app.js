@@ -39,6 +39,9 @@ app.use(express.json());
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+// Servir archivos subidos (uploads)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
 // Middleware para respuestas JSON consistentes
 app.use(responseHandler);
 

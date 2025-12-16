@@ -514,16 +514,22 @@ class ConfiguracionController {
 
   async createPlanTarifario(req, res) {
     try {
-      const { nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url } = req.body;
+      const { nombre, precio_regular, precio_promocional, descripcion, principal } = req.body;
+      let { imagen_url } = req.body;
 
       if (!nombre || !precio_regular) {
         return res.status(400).json({ msg: "El nombre y precio regular son requeridos" });
       }
 
+      // Si se subió una imagen, usar la ruta del archivo
+      if (req.file) {
+        imagen_url = `/uploads/plan_tarifario/${req.file.filename}`;
+      }
+
       const planModel = new PlanesTarifariosModel();
       const id = await planModel.create({ nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url });
 
-      return res.status(201).json({ msg: "Plan tarifario creado exitosamente", data: { id } });
+      return res.status(201).json({ msg: "Plan tarifario creado exitosamente", data: { id, imagen_url } });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al crear plan tarifario: ${error.message}`);
       return res.status(500).json({ msg: "Error al crear plan tarifario" });
@@ -533,16 +539,22 @@ class ConfiguracionController {
   async updatePlanTarifario(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url } = req.body;
+      const { nombre, precio_regular, precio_promocional, descripcion, principal } = req.body;
+      let { imagen_url } = req.body;
 
       if (!nombre || !precio_regular) {
         return res.status(400).json({ msg: "El nombre y precio regular son requeridos" });
       }
 
+      // Si se subió una nueva imagen, usar la ruta del archivo
+      if (req.file) {
+        imagen_url = `/uploads/plan_tarifario/${req.file.filename}`;
+      }
+
       const planModel = new PlanesTarifariosModel();
       await planModel.update(id, { nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url });
 
-      return res.status(200).json({ msg: "Plan tarifario actualizado exitosamente" });
+      return res.status(200).json({ msg: "Plan tarifario actualizado exitosamente", data: { imagen_url } });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al actualizar plan tarifario: ${error.message}`);
       return res.status(500).json({ msg: "Error al actualizar plan tarifario" });
