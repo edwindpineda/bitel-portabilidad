@@ -28,24 +28,25 @@ class MessageProcessingController {
             const mensajeModel = new TblMensajeModel();
             const usuarioModel = new TblUsuarioModel();
 
-            await mensajeModel.create(contact, answer, "in");
-
+            
             // Verificar si prospecto esta registrado por medio del celular.
             let prospecto = await prospectoModel.selectByCelular(phone);
-
+            
             if (!prospecto) {
                 // Registar prospecto
                 prospecto = await prospectoModel.createProspecto(userType, 1, phone);
             }
-
+            
             // Verificar si existe el contacto
             let contact = await contactModel.getByCelular(phone);
-
+            
             if (!contact) {
                 // Registrar contacto
                 contact = await contactModel.create(phone, prospecto.id);
             }
-
+            
+            await mensajeModel.create(contact, question, "in");
+            
             // Asistente
             const response = await AssistantService.runProcess({
                 contactId: contact,
