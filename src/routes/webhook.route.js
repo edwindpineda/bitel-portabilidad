@@ -849,11 +849,12 @@ router.get('/test-download', async (req, res) => {
 });
 
 /**
- * GET /webhook/bot-activo/:celular
+ * GET /webhook/bot-activo
  * Verifica si un contacto tiene el bot activo
+ * Query param: celular
  */
-router.get('/bot-activo/:celular', async (req, res) => {
-    const { celular } = req.params;
+router.get('/bot-activo', async (req, res) => {
+    const celular = req.query.celular;
 
     if (!celular) {
         return res.status(400).json({
