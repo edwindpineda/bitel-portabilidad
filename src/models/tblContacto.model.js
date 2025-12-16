@@ -40,7 +40,7 @@ class TblContactoModel {
         }
     }
 
-    async getAll(offset, id_asesor = null) {
+    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null) {
         try {
             let query = `SELECT
                     c.id,
@@ -57,10 +57,25 @@ class TblContactoModel {
                 LEFT JOIN tipificacion t ON t.id = p.id_tipificacion`;
 
             const params = [];
+            const conditions = [];
 
             if (id_asesor !== null) {
-                query += ` WHERE p.id_asesor = ?`;
+                conditions.push(`p.id_asesor = ?`);
                 params.push(id_asesor);
+            }
+
+            if (id_estado !== null) {
+                conditions.push(`p.id_estado = ?`);
+                params.push(id_estado);
+            }
+
+            if (id_tipificacion !== null) {
+                conditions.push(`p.id_tipificacion = ?`);
+                params.push(id_tipificacion);
+            }
+
+            if (conditions.length > 0) {
+                query += ` WHERE ` + conditions.join(' AND ');
             }
 
             query += ` ORDER BY ultimo_mensaje DESC, c.id DESC LIMIT 20 OFFSET ?`;
@@ -73,14 +88,29 @@ class TblContactoModel {
         }
     }
 
-    async getTotal(id_asesor = null) {
+    async getTotal(id_asesor = null, id_estado = null, id_tipificacion = null) {
         try {
-            let query = 'SELECT COUNT(*) as total FROM contacto c';
+            let query = 'SELECT COUNT(*) as total FROM contacto c LEFT JOIN prospecto p ON p.id = c.id_prospecto';
             const params = [];
+            const conditions = [];
 
             if (id_asesor !== null) {
-                query += ' LEFT JOIN prospecto p ON p.id = c.id_prospecto WHERE p.id_asesor = ?';
+                conditions.push('p.id_asesor = ?');
                 params.push(id_asesor);
+            }
+
+            if (id_estado !== null) {
+                conditions.push('p.id_estado = ?');
+                params.push(id_estado);
+            }
+
+            if (id_tipificacion !== null) {
+                conditions.push('p.id_tipificacion = ?');
+                params.push(id_tipificacion);
+            }
+
+            if (conditions.length > 0) {
+                query += ' WHERE ' + conditions.join(' AND ');
             }
 
             const [rows] = await this.connection.execute(query, params);
@@ -90,7 +120,7 @@ class TblContactoModel {
         }
     }
 
-    async search(query, offset = 0, id_asesor = null) {
+    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null) {
         try {
             const searchTerm = `%${query}%`;
             const offsetNum = parseInt(offset, 10) || 0;
@@ -117,6 +147,16 @@ class TblContactoModel {
                 params.push(id_asesor);
             }
 
+            if (id_estado !== null) {
+                sqlQuery += ` AND p.id_estado = ?`;
+                params.push(id_estado);
+            }
+
+            if (id_tipificacion !== null) {
+                sqlQuery += ` AND p.id_tipificacion = ?`;
+                params.push(id_tipificacion);
+            }
+
             sqlQuery += ` ORDER BY ultimo_mensaje DESC, c.id DESC LIMIT 20 OFFSET ?`;
             params.push(offsetNum);
 
@@ -127,7 +167,7 @@ class TblContactoModel {
         }
     }
 
-    async getSearchTotal(query, id_asesor = null) {
+    async getSearchTotal(query, id_asesor = null, id_estado = null, id_tipificacion = null) {
         try {
             const searchTerm = `%${query}%`;
 
@@ -141,6 +181,16 @@ class TblContactoModel {
             if (id_asesor !== null) {
                 sqlQuery += ` AND p.id_asesor = ?`;
                 params.push(id_asesor);
+            }
+
+            if (id_estado !== null) {
+                sqlQuery += ` AND p.id_estado = ?`;
+                params.push(id_estado);
+            }
+
+            if (id_tipificacion !== null) {
+                sqlQuery += ` AND p.id_tipificacion = ?`;
+                params.push(id_tipificacion);
             }
 
             const [rows] = await this.connection.execute(sqlQuery, params);

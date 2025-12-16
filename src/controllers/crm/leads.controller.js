@@ -1,4 +1,5 @@
 const ProspectoModel = require("../../models/tblProspectos.model.js");
+const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
 
 class LeadsController {
@@ -11,14 +12,7 @@ class LeadsController {
 
       logger.info(`[leads.controller.js] getLeads - userId: ${userId}, rolId: ${rolId}`);
 
-      // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
-      let id_asesor = null;
-      if (rolId && rolId >= 3 && userId) {
-        id_asesor = userId;
-        logger.info(`[leads.controller.js] Aplicando filtro por id_asesor: ${id_asesor}`);
-      }
-
-      const leads = await prospectoModel.getAllByTipoUsuario('user', id_asesor);
+      const leads = await prospectoModel.getAllByTipoUsuario('user', userId, rolId);
       return res.status(200).json({ data: leads });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener leads: ${error.message}`);
@@ -59,6 +53,68 @@ class LeadsController {
     } catch (error) {
       logger.error(`[leads.controller.js] Error al asignar asesor: ${error.message}`);
       return res.status(500).json({ msg: "Error al asignar asesor" });
+    }
+  }
+
+  async getAsesores(req, res) {
+    try {
+      const { userId, rolId } = req.user || {};
+
+      // Convertir rolId a número para comparación segura
+      const rolIdNum = parseInt(rolId, 10);
+
+      logger.info(`[leads.controller.js] getAsesores - userId: ${userId}, rolId: ${rolId}, rolIdNum: ${rolIdNum}`);
+
+      let query = '';
+      let params = [];
+
+      if (rolIdNum === 1) {
+        // Rol 1 (admin): ver todos los asesores (id_rol = 3)
+        query = `SELECT id, username, email FROM usuario WHERE id_rol = 3 AND estado_registro = 1`;
+      } else if (rolIdNum === 2) {
+        // Rol 2 (supervisor): ver solo asesores con id_padre = userId del logueado
+        query = `SELECT id, username, email FROM usuario WHERE id_rol = 3 AND id_padre = ? AND estado_registro = 1`;
+        params = [userId];
+      } else {
+        // Otros roles no pueden ver asesores
+        logger.info(`[leads.controller.js] getAsesores - Rol ${rolIdNum} no tiene permisos para ver asesores`);
+        return res.status(200).json({ data: [] });
+      }
+
+      logger.info(`[leads.controller.js] getAsesores - Query: ${query}`);
+      const [rows] = await pool.execute(query, params);
+      logger.info(`[leads.controller.js] getAsesores - Asesores encontrados: ${rows.length}`);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[leads.controller.js] Error al obtener asesores: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener asesores" });
+    }
+  }
+
+  async bulkAssignAsesor(req, res) {
+    try {
+      const { lead_ids, id_asesor } = req.body;
+
+      if (!lead_ids || !Array.isArray(lead_ids) || lead_ids.length === 0) {
+        return res.status(400).json({ msg: "Debe seleccionar al menos un lead" });
+      }
+
+      if (!id_asesor) {
+        return res.status(400).json({ msg: "Debe seleccionar un asesor" });
+      }
+
+      const prospectoModel = new ProspectoModel();
+
+      // Actualizar cada lead
+      for (const leadId of lead_ids) {
+        await prospectoModel.updateAsesor(leadId, id_asesor);
+      }
+
+      logger.info(`[leads.controller.js] Asignación masiva: ${lead_ids.length} leads asignados al asesor ${id_asesor}`);
+      return res.status(200).json({ msg: `${lead_ids.length} leads asignados correctamente` });
+    } catch (error) {
+      logger.error(`[leads.controller.js] Error en asignación masiva: ${error.message}`);
+      return res.status(500).json({ msg: "Error al asignar asesores" });
     }
   }
 }

@@ -16,8 +16,8 @@ class TblClienteRestModel {
         return rows[0];
     }
 
-    async getAllByTipoUsuario(tipo_usuario = 'user', id_asesor = null) {
-        logger.info(`[tblProspectos.model.js] getAllByTipoUsuario - tipo_usuario: ${tipo_usuario}, id_asesor: ${id_asesor}`);
+    async getAllByTipoUsuario(tipo_usuario = 'user', userId = null, rolId = null) {
+        logger.info(`[tblProspectos.model.js] getAllByTipoUsuario - tipo_usuario: ${tipo_usuario}, userId: ${userId}, rolId: ${rolId}`);
 
         let query = `SELECT p.*,
                     e.nombre as estado_nombre,
@@ -26,24 +26,26 @@ class TblClienteRestModel {
                     pt.nombre as plan_nombre,
                     t.nombre as tipificacion_nombre,
                     t.color as tipificacion_color,
-                    c.celular as contacto_celular
+                    c.celular as contacto_celular,
+                    u.username as asesor_nombre
              FROM prospecto p
              LEFT JOIN estado e ON p.id_estado = e.id
              LEFT JOIN proveedor pv ON p.id_provedor = pv.id
              LEFT JOIN planes_tarifarios pt ON p.id_plan = pt.id
              LEFT JOIN tipificacion t ON p.id_tipificacion = t.id
              LEFT JOIN contacto c ON c.id_prospecto = p.id
+             LEFT JOIN usuario u ON p.id_asesor = u.id
              WHERE p.tipo_usuario = ?`;
 
         const params = [tipo_usuario];
 
-        // Si se proporciona id_asesor, filtrar por ese asesor
-        if (id_asesor !== null) {
+        // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
+        if (rolId && rolId >= 3 && userId) {
             query += ` AND p.id_asesor = ?`;
-            params.push(id_asesor);
-            logger.info(`[tblProspectos.model.js] Aplicando filtro id_asesor = ${id_asesor}`);
+            params.push(userId);
+            logger.info(`[tblProspectos.model.js] Aplicando filtro id_asesor = ${userId} (rolId: ${rolId})`);
         } else {
-            logger.info(`[tblProspectos.model.js] SIN filtro de id_asesor (mostrando todos)`);
+            logger.info(`[tblProspectos.model.js] SIN filtro de id_asesor (rolId: ${rolId} - mostrando todos)`);
         }
 
         query += ` ORDER BY p.created_at DESC`;
