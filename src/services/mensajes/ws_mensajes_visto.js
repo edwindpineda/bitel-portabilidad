@@ -13,13 +13,15 @@ async function getMensajesEnVisto(filtros = {}) {
 
         let query = `
             SELECT 
-        ultimos_mensajes.id_contacto,
-        ultimos_mensajes.respuesta_ia,
-        COUNT(*) as total_conversaciones_fallidas
-    FROM (
+    ultimos_mensajes.id_contacto,
+    ultimos_mensajes.respuesta_ia,
+    p.id_estado,
+    COUNT(*) as total_conversaciones_fallidas
+FROM (
     SELECT 
         c.id as id_contacto,
         m2.contenido as respuesta_ia,
+        c.id_prospecto,  -- Asumo que el campo se llama id_prospecto
         ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY m2.fecha_hora DESC) as row_num
     FROM mensaje m1
     INNER JOIN mensaje m2 ON m1.wid_mensaje = m2.wid_mensaje
@@ -30,23 +32,10 @@ async function getMensajesEnVisto(filtros = {}) {
     WHERE m1.wid_mensaje IS NOT NULL
       AND m2.fecha_hora >= DATE_SUB(NOW(), INTERVAL 7 DAY)
 ) AS ultimos_mensajes
+INNER JOIN prospecto p ON ultimos_mensajes.id_prospecto = p.id
 WHERE ultimos_mensajes.row_num = 1
-  AND (
-    ultimos_mensajes.respuesta_ia NOT LIKE '%adiós%' 
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%hasta luego%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%nos vemos%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%gracias por contactar%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%que tengas buen día%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%Cita confirmada%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%confirmamos tu cita%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%reserva confirmada%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%agendamos tu cita%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%nos vemos el%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%te esperamos%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%confirmado%'
-    AND ultimos_mensajes.respuesta_ia NOT LIKE '%éxito%'
-  )
-GROUP BY ultimos_mensajes.id_contacto, ultimos_mensajes.respuesta_ia
+  AND p.id_estado IN (1, 5)  -- Solo estados 1 y 5
+GROUP BY ultimos_mensajes.id_contacto, ultimos_mensajes.respuesta_ia, p.id_estado
 ORDER BY total_conversaciones_fallidas DESC;
         `;
 
