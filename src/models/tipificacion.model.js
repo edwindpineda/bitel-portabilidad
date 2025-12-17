@@ -8,6 +8,14 @@ class TipificacionModel {
   async getAll() {
     const [rows] = await this.connection.execute(
       `SELECT *
+       FROM tipificacion ORDER BY orden ASC, nombre ASC`
+    );
+    return rows;
+  }
+
+  async getAllForBot() {
+    const [rows] = await this.connection.execute(
+      `SELECT *
        FROM tipificacion WHERE flag_bot = 1 ORDER BY orden ASC, nombre ASC`
     );
     return rows;

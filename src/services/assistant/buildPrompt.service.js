@@ -112,7 +112,7 @@ class BuildPromptService {
   async getTipicaciones() {
     try {
       const tipificacionModel = new TblTipicacionModel();
-      const tipificacion = await tipificacionModel.getAll();
+      const tipificacion = await tipificacionModel.getAllForBot();
       let info = "";
 
       if (!tipificacion || tipificacion.length === 0) {
