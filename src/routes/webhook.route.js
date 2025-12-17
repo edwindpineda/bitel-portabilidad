@@ -7,6 +7,7 @@ const https = require('https');
 const { isBotActivo } = require('../services/assistant/ws_contacto.js');
 const { pool } = require('../config/dbConnection.js');
 const { getMensajesEnVisto } = require('../services/mensajes/ws_mensajes_visto.js');
+const { getArgumentosVenta, getArgumentoVentaById, createArgumentoVenta, updateArgumentoVenta, deleteArgumentoVenta } = require('../services/mensajes/ws_argumentos_ventas.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -975,6 +976,158 @@ router.get('/mensajes-en-visto', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [webhook/mensajes-en-visto] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /webhook/argumentos-venta
+ * Obtiene todos los argumentos de venta activos
+ * Para uso en n8n
+ *
+ * Query params opcionales:
+ *   - id: obtener argumento específico
+ *   - estado_registro: filtrar por estado (default 1 = activo)
+ *   - limit: límite de resultados (default 100)
+ */
+router.get('/argumentos-venta', async (req, res) => {
+    try {
+        const { id, estado_registro, limit } = req.query;
+
+        const filtros = {};
+        if (id) filtros.id = parseInt(id, 10);
+        if (estado_registro) filtros.estado_registro = parseInt(estado_registro, 10);
+        if (limit) filtros.limit = parseInt(limit, 10);
+
+        console.log('========== [webhook/argumentos-venta] GET ==========');
+        console.log('Filtros:', filtros);
+
+        const resultado = await getArgumentosVenta(filtros);
+
+        console.log(`✅ Encontrados ${resultado.total} argumentos`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/argumentos-venta] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /webhook/argumentos-venta/:id
+ * Obtiene un argumento de venta por ID
+ */
+router.get('/argumentos-venta/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log(`========== [webhook/argumentos-venta/${id}] GET ==========`);
+
+        const resultado = await getArgumentoVentaById(parseInt(id, 10));
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/argumentos-venta/:id] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /webhook/argumentos-venta
+ * Crea un nuevo argumento de venta
+ * Body: { titulo, argumento }
+ */
+router.post('/argumentos-venta', async (req, res) => {
+    try {
+        const { titulo, argumento } = req.body;
+
+        console.log('========== [webhook/argumentos-venta] POST ==========');
+        console.log('Titulo:', titulo);
+
+        const resultado = await createArgumentoVenta(titulo, argumento);
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Argumento creado con ID ${resultado.id}`);
+
+        res.status(201).json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/argumentos-venta] POST Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * PUT /webhook/argumentos-venta/:id
+ * Actualiza un argumento de venta
+ * Body: { titulo?, argumento?, estado_registro? }
+ */
+router.put('/argumentos-venta/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const datos = req.body;
+
+        console.log(`========== [webhook/argumentos-venta/${id}] PUT ==========`);
+        console.log('Datos:', datos);
+
+        const resultado = await updateArgumentoVenta(parseInt(id, 10), datos);
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Argumento ${id} actualizado`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/argumentos-venta/:id] PUT Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /webhook/argumentos-venta/:id
+ * Elimina (soft delete) un argumento de venta
+ */
+router.delete('/argumentos-venta/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log(`========== [webhook/argumentos-venta/${id}] DELETE ==========`);
+
+        const resultado = await deleteArgumentoVenta(parseInt(id, 10));
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Argumento ${id} eliminado`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/argumentos-venta/:id] DELETE Error:', error.message);
         res.status(500).json({
             success: false,
             error: error.message
