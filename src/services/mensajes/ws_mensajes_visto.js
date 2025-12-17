@@ -34,7 +34,7 @@ FROM (
     INNER JOIN contacto c ON m1.id_contacto = c.id
                      AND m2.id_contacto = c.id
     WHERE m1.wid_mensaje IS NOT NULL
-      
+        AND m2.fecha_hora >= DATE_SUB(NOW(), INTERVAL 2 DAY)
 ) AS ultimos_mensajes
 INNER JOIN prospecto p ON ultimos_mensajes.id_prospecto = p.id
 WHERE ultimos_mensajes.row_num = 1
