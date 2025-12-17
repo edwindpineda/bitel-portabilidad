@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const https = require('https');
 const { isBotActivo } = require('../services/assistant/ws_contacto.js');
 const { pool } = require('../config/dbConnection.js');
+const { getMensajesEnVisto } = require('../services/mensajes/ws_mensajes_visto.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -939,6 +940,41 @@ router.get('/bot-activo', async (req, res) => {
             ...result
         });
     } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /webhook/mensajes-en-visto
+ * Obtiene conversaciones fallidas (donde la última respuesta de la IA no es una despedida)
+ * Para uso en n8n
+ *
+ * Query params opcionales:
+ *   - id_contacto: filtrar por contacto específico
+ *   - limit: límite de resultados (default 100)
+ */
+router.get('/mensajes-en-visto', async (req, res) => {
+    try {
+        const { id_contacto, limit } = req.query;
+
+        const filtros = {};
+        if (id_contacto) filtros.id_contacto = parseInt(id_contacto, 10);
+        if (limit) filtros.limit = parseInt(limit, 10);
+
+        console.log('========== [webhook/mensajes-en-visto] ==========');
+        console.log('Filtros:', filtros);
+
+        const resultado = await getMensajesEnVisto(filtros);
+
+        console.log(`✅ Encontrados ${resultado.cantidad_mensajes} registros`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/mensajes-en-visto] Error:', error.message);
         res.status(500).json({
             success: false,
             error: error.message
