@@ -16,6 +16,7 @@ async function getMensajesEnVisto(filtros = {}) {
     ultimos_mensajes.id_contacto,
     ultimos_mensajes.respuesta_ia,
     ultimos_mensajes.fecha_ia,
+    ultimos_mensajes.celular_contacto,
     p.id_estado,
     COUNT(*) as total_conversaciones_fallidas
 FROM (
@@ -24,6 +25,7 @@ FROM (
         m2.contenido as respuesta_ia,
         m2.fecha_hora as fecha_ia,
         c.id_prospecto,  -- Asumo que el campo se llama id_prospecto
+        c.celular as celular_contacto,
         ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY m2.fecha_hora DESC) as row_num
     FROM mensaje m1
     INNER JOIN mensaje m2 ON m1.wid_mensaje = m2.wid_mensaje

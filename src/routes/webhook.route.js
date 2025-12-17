@@ -19,6 +19,14 @@ const {
     updatePeriodicidadRecordatorio,
     deletePeriodicidadRecordatorio
 } = require('../services/mensajes/ws_argumentos_ventas.js');
+const {
+    getContactoRecordatorios,
+    getRecordatorioByContactoId,
+    incrementarRecordatorio,
+    resetearRecordatorio,
+    actualizarLimiteRecordatorio,
+    deleteRecordatorio
+} = require('../services/mensajes/ws_recordatorios.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -1281,6 +1289,194 @@ router.delete('/periodicidad-recordatorio/:id', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [webhook/periodicidad-recordatorio/:id] DELETE Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ==================== CONTACTO RECORDATORIOS ====================
+
+/**
+ * GET /webhook/contacto-recordatorios
+ * Obtiene todos los recordatorios de contactos activos
+ * Query params opcionales:
+ *   - id_contacto: filtrar por contacto específico
+ */
+router.get('/contacto-recordatorios', async (req, res) => {
+    try {
+        const { id_contacto } = req.query;
+
+        console.log('========== [webhook/contacto-recordatorios] GET ==========');
+
+        const filtros = {};
+        if (id_contacto) filtros.id_contacto = parseInt(id_contacto, 10);
+
+        const resultado = await getContactoRecordatorios(filtros);
+
+        console.log(`✅ Encontrados ${resultado.total} recordatorios`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/contacto-recordatorios] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /webhook/contacto-recordatorios/:id_contacto
+ * Obtiene el recordatorio de un contacto específico
+ */
+router.get('/contacto-recordatorios/:id_contacto', async (req, res) => {
+    try {
+        const { id_contacto } = req.params;
+
+        console.log(`========== [webhook/contacto-recordatorios/${id_contacto}] GET ==========`);
+
+        const resultado = await getRecordatorioByContactoId(parseInt(id_contacto, 10));
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/contacto-recordatorios/:id_contacto] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /webhook/contacto-recordatorios/incrementar
+ * Incrementa o crea un recordatorio para un contacto
+ * - Si no existe: crea nuevo registro con cantidad = 1
+ * - Si existe: incrementa cantidad en 1
+ * - Si supera el límite: retorna limite_alcanzado = true
+ *
+ * Body: { id_contacto, limite_default? }
+ */
+router.post('/contacto-recordatorios/incrementar', async (req, res) => {
+    try {
+        const { id_contacto, limite_default } = req.body;
+
+        console.log('========== [webhook/contacto-recordatorios/incrementar] POST ==========');
+        console.log('id_contacto:', id_contacto);
+
+        const resultado = await incrementarRecordatorio(
+            parseInt(id_contacto, 10),
+            limite_default ? parseInt(limite_default, 10) : undefined
+        );
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Recordatorio ${resultado.action}: cantidad=${resultado.cantidad}, limite=${resultado.limite}, limite_alcanzado=${resultado.limite_alcanzado}`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/contacto-recordatorios/incrementar] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /webhook/contacto-recordatorios/resetear
+ * Resetea la cantidad de recordatorios de un contacto a 0
+ * Body: { id_contacto }
+ */
+router.post('/contacto-recordatorios/resetear', async (req, res) => {
+    try {
+        const { id_contacto } = req.body;
+
+        console.log('========== [webhook/contacto-recordatorios/resetear] POST ==========');
+        console.log('id_contacto:', id_contacto);
+
+        const resultado = await resetearRecordatorio(parseInt(id_contacto, 10));
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Recordatorio reseteado para contacto ${id_contacto}`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/contacto-recordatorios/resetear] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * PUT /webhook/contacto-recordatorios/:id_contacto/limite
+ * Actualiza el límite de recordatorios de un contacto
+ * Body: { limite }
+ */
+router.put('/contacto-recordatorios/:id_contacto/limite', async (req, res) => {
+    try {
+        const { id_contacto } = req.params;
+        const { limite } = req.body;
+
+        console.log(`========== [webhook/contacto-recordatorios/${id_contacto}/limite] PUT ==========`);
+        console.log('Nuevo limite:', limite);
+
+        const resultado = await actualizarLimiteRecordatorio(
+            parseInt(id_contacto, 10),
+            parseInt(limite, 10)
+        );
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Límite actualizado para contacto ${id_contacto}`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/contacto-recordatorios/:id_contacto/limite] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /webhook/contacto-recordatorios/:id_contacto
+ * Elimina (soft delete) el recordatorio de un contacto
+ */
+router.delete('/contacto-recordatorios/:id_contacto', async (req, res) => {
+    try {
+        const { id_contacto } = req.params;
+
+        console.log(`========== [webhook/contacto-recordatorios/${id_contacto}] DELETE ==========`);
+
+        const resultado = await deleteRecordatorio(parseInt(id_contacto, 10));
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Recordatorio eliminado para contacto ${id_contacto}`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/contacto-recordatorios/:id_contacto] DELETE Error:', error.message);
         res.status(500).json({
             success: false,
             error: error.message
