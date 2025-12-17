@@ -40,7 +40,7 @@ class TblContactoModel {
         }
     }
 
-    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null, userId = null) {
+    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, userId = null) {
         try {
             let query = `SELECT
                     c.id,
@@ -79,6 +79,11 @@ class TblContactoModel {
                 params.push(id_tipificacion);
             }
 
+            if (id_tipificacion_asesor !== null) {
+                conditions.push(`p.id_tipificacion_asesor = ?`);
+                params.push(id_tipificacion_asesor);
+            }
+
             if (conditions.length > 0) {
                 query += ` WHERE ` + conditions.join(' AND ');
             }
@@ -98,7 +103,7 @@ class TblContactoModel {
         }
     }
 
-    async getTotal(id_asesor = null, id_estado = null, id_tipificacion = null) {
+    async getTotal(id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null) {
         try {
             let query = 'SELECT COUNT(*) as total FROM contacto c LEFT JOIN prospecto p ON p.id = c.id_prospecto';
             const params = [];
@@ -119,6 +124,11 @@ class TblContactoModel {
                 params.push(id_tipificacion);
             }
 
+            if (id_tipificacion_asesor !== null) {
+                conditions.push('p.id_tipificacion_asesor = ?');
+                params.push(id_tipificacion_asesor);
+            }
+
             if (conditions.length > 0) {
                 query += ' WHERE ' + conditions.join(' AND ');
             }
@@ -130,7 +140,7 @@ class TblContactoModel {
         }
     }
 
-    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null, userId = null) {
+    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, userId = null) {
         try {
             const searchTerm = `%${query}%`;
             const offsetNum = parseInt(offset, 10) || 0;
@@ -172,6 +182,11 @@ class TblContactoModel {
                 params.push(id_tipificacion);
             }
 
+            if (id_tipificacion_asesor !== null) {
+                sqlQuery += ` AND p.id_tipificacion_asesor = ?`;
+                params.push(id_tipificacion_asesor);
+            }
+
             sqlQuery += ` ORDER BY ultimo_mensaje DESC, c.id DESC LIMIT 20 OFFSET ?`;
             params.push(offsetNum);
 
@@ -187,7 +202,7 @@ class TblContactoModel {
         }
     }
 
-    async getSearchTotal(query, id_asesor = null, id_estado = null, id_tipificacion = null) {
+    async getSearchTotal(query, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null) {
         try {
             const searchTerm = `%${query}%`;
 
@@ -211,6 +226,11 @@ class TblContactoModel {
             if (id_tipificacion !== null) {
                 sqlQuery += ` AND p.id_tipificacion = ?`;
                 params.push(id_tipificacion);
+            }
+
+            if (id_tipificacion_asesor !== null) {
+                sqlQuery += ` AND p.id_tipificacion_asesor = ?`;
+                params.push(id_tipificacion_asesor);
             }
 
             const [rows] = await this.connection.execute(sqlQuery, params);

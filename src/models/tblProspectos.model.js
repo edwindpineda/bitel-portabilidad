@@ -26,6 +26,8 @@ class TblClienteRestModel {
                     pt.nombre as plan_nombre,
                     t.nombre as tipificacion_nombre,
                     t.color as tipificacion_color,
+                    ta.nombre as tipificacion_asesor_nombre,
+                    ta.color as tipificacion_asesor_color,
                     c.celular as contacto_celular,
                     u.username as asesor_nombre
              FROM prospecto p
@@ -33,6 +35,7 @@ class TblClienteRestModel {
              LEFT JOIN proveedor pv ON p.id_provedor = pv.id
              LEFT JOIN planes_tarifarios pt ON p.id_plan = pt.id
              LEFT JOIN tipificacion t ON p.id_tipificacion = t.id
+             LEFT JOIN tipificacion ta ON p.id_tipificacion_asesor = ta.id
              LEFT JOIN contacto c ON c.id_prospecto = p.id
              LEFT JOIN usuario u ON p.id_asesor = u.id
              WHERE p.tipo_usuario = ?`;
@@ -219,6 +222,7 @@ class TblClienteRestModel {
                 id_provedor,
                 id_plan,
                 id_tipificacion,
+                id_tipificacion_asesor,
                 id_asesor
             } = data;
 
@@ -232,6 +236,7 @@ class TblClienteRestModel {
                     id_provedor = ?,
                     id_plan = ?,
                     id_tipificacion = ?,
+                    id_tipificacion_asesor = ?,
                     id_asesor = ?
                 WHERE id = ?`,
                 [
@@ -243,6 +248,7 @@ class TblClienteRestModel {
                     id_provedor || null,
                     id_plan || null,
                     id_tipificacion || null,
+                    id_tipificacion_asesor || null,
                     id_asesor || null,
                     id
                 ]
