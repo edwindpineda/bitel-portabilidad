@@ -33,7 +33,7 @@ class TipificacionModel {
   async create(data) {
     const { nombre, definicion, orden, color, flag_asesor, flag_bot } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO tipificacion (nombre, definicion, orden, color) VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tipificacion (nombre, definicion, orden, color, flag_asesor, flag_bot) VALUES (?, ?, ?, ?, ?, ?)`,
       [nombre, definicion || null, orden || 0, color || null, flag_asesor, flag_bot]
     );
     return result.insertId;
