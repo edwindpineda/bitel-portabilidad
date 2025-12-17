@@ -699,7 +699,7 @@ class ConfiguracionController {
       }
 
       const tipificacionModel = new TipificacionModel();
-      const id = await tipificacionModel.create({ nombre, definicion, orden, color });
+      const id = await tipificacionModel.create({ nombre, definicion, orden, color, flag_asesor, flag_bot });
 
       return res.status(201).json({ msg: "Tipificación creada exitosamente", data: { id } });
     } catch (error) {
@@ -711,7 +711,7 @@ class ConfiguracionController {
   async updateTipificacion(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, definicion, orden, color } = req.body;
+      const { nombre, definicion, orden, color, flag_asesor, flag_bot } = req.body;
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
