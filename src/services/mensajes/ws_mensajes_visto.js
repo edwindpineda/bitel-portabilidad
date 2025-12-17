@@ -15,14 +15,12 @@ async function getMensajesEnVisto(filtros = {}) {
             SELECT 
     ultimos_mensajes.id_contacto,
     ultimos_mensajes.respuesta_ia,
-    ultimos_mensajes.fecha_ia,
     p.id_estado,
     COUNT(*) as total_conversaciones_fallidas
 FROM (
     SELECT 
         c.id as id_contacto,
         m2.contenido as respuesta_ia,
-        m2.fecha_hora as fecha_ia,
         c.id_prospecto,  -- Asumo que el campo se llama id_prospecto
         ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY m2.fecha_hora DESC) as row_num
     FROM mensaje m1
@@ -32,7 +30,7 @@ FROM (
     INNER JOIN contacto c ON m1.id_contacto = c.id
                      AND m2.id_contacto = c.id
     WHERE m1.wid_mensaje IS NOT NULL
-      AND m2.fecha_hora >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+      
 ) AS ultimos_mensajes
 INNER JOIN prospecto p ON ultimos_mensajes.id_prospecto = p.id
 WHERE ultimos_mensajes.row_num = 1
