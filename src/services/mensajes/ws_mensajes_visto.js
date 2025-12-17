@@ -47,7 +47,7 @@ WHERE ultimos_mensajes.row_num = 1
     AND ultimos_mensajes.respuesta_ia NOT LIKE '%éxito%'
   )
 GROUP BY ultimos_mensajes.id_contacto, ultimos_mensajes.respuesta_ia
-ORDER BY total_conversaciones_fallidas DESC;"
+ORDER BY total_conversaciones_fallidas DESC;
         `;
 
         if (id_contacto) {
