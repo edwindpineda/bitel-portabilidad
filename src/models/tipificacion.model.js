@@ -40,11 +40,11 @@ class TipificacionModel {
   }
 
   async update(id, data) {
-    const { nombre, definicion, orden, color } = data;
+    const { nombre, definicion, orden, color, flag_asesor, flag_bot } = data;
     const ordenValue = orden !== undefined && orden !== null ? orden : 0;
     await this.connection.execute(
-      `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ? WHERE id = ?`,
-      [nombre, definicion || null, ordenValue, color || null, id]
+      `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ?, WHERE id = ?`,
+      [nombre, definicion || null, ordenValue, color || null, flag_asesor, flag_bot, id]
     );
     return true;
   }
