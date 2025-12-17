@@ -7,7 +7,18 @@ const https = require('https');
 const { isBotActivo } = require('../services/assistant/ws_contacto.js');
 const { pool } = require('../config/dbConnection.js');
 const { getMensajesEnVisto } = require('../services/mensajes/ws_mensajes_visto.js');
-const { getArgumentosVenta, getArgumentoVentaById, createArgumentoVenta, updateArgumentoVenta, deleteArgumentoVenta } = require('../services/mensajes/ws_argumentos_ventas.js');
+const {
+    getArgumentosVenta,
+    getArgumentoVentaById,
+    createArgumentoVenta,
+    updateArgumentoVenta,
+    deleteArgumentoVenta,
+    getPeriodicidadRecordatorio,
+    getPeriodicidadRecordatorioById,
+    createPeriodicidadRecordatorio,
+    updatePeriodicidadRecordatorio,
+    deletePeriodicidadRecordatorio
+} = require('../services/mensajes/ws_argumentos_ventas.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -1128,6 +1139,148 @@ router.delete('/argumentos-venta/:id', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [webhook/argumentos-venta/:id] DELETE Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ==================== PERIODICIDAD RECORDATORIO ====================
+
+/**
+ * GET /webhook/periodicidad-recordatorio
+ * Obtiene todas las periodicidades de recordatorio activas
+ * Para uso en n8n
+ */
+router.get('/periodicidad-recordatorio', async (req, res) => {
+    try {
+        console.log('========== [webhook/periodicidad-recordatorio] GET ==========');
+
+        const resultado = await getPeriodicidadRecordatorio();
+
+        console.log(`✅ Encontradas ${resultado.total} periodicidades`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/periodicidad-recordatorio] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /webhook/periodicidad-recordatorio/:id
+ * Obtiene una periodicidad de recordatorio por ID
+ */
+router.get('/periodicidad-recordatorio/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log(`========== [webhook/periodicidad-recordatorio/${id}] GET ==========`);
+
+        const resultado = await getPeriodicidadRecordatorioById(parseInt(id, 10));
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/periodicidad-recordatorio/:id] Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /webhook/periodicidad-recordatorio
+ * Crea una nueva periodicidad de recordatorio
+ * Body: { nombre, cada_horas }
+ */
+router.post('/periodicidad-recordatorio', async (req, res) => {
+    try {
+        const { nombre, cada_horas } = req.body;
+
+        console.log('========== [webhook/periodicidad-recordatorio] POST ==========');
+        console.log('Nombre:', nombre);
+        console.log('Cada horas:', cada_horas);
+
+        const resultado = await createPeriodicidadRecordatorio(nombre, cada_horas);
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Periodicidad creada con ID ${resultado.id}`);
+
+        res.status(201).json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/periodicidad-recordatorio] POST Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * PUT /webhook/periodicidad-recordatorio/:id
+ * Actualiza una periodicidad de recordatorio
+ * Body: { nombre?, cada_horas?, estado_registro? }
+ */
+router.put('/periodicidad-recordatorio/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const datos = req.body;
+
+        console.log(`========== [webhook/periodicidad-recordatorio/${id}] PUT ==========`);
+        console.log('Datos:', datos);
+
+        const resultado = await updatePeriodicidadRecordatorio(parseInt(id, 10), datos);
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Periodicidad ${id} actualizada`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/periodicidad-recordatorio/:id] PUT Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * DELETE /webhook/periodicidad-recordatorio/:id
+ * Elimina (soft delete) una periodicidad de recordatorio
+ */
+router.delete('/periodicidad-recordatorio/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        console.log(`========== [webhook/periodicidad-recordatorio/${id}] DELETE ==========`);
+
+        const resultado = await deletePeriodicidadRecordatorio(parseInt(id, 10));
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Periodicidad ${id} eliminada`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/periodicidad-recordatorio/:id] DELETE Error:', error.message);
         res.status(500).json({
             success: false,
             error: error.message

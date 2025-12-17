@@ -175,10 +175,190 @@ async function deleteArgumentoVenta(id) {
     }
 }
 
+// ==================== PERIODICIDAD RECORDATORIO ====================
+
+/**
+ * Obtener todas las periodicidades de recordatorio activas
+ * @param {Object} filtros - Filtros opcionales
+ * @returns {Promise<Object>}
+ */
+async function getPeriodicidadRecordatorio(filtros = {}) {
+    try {
+        let query = `
+            SELECT
+                id,
+                nombre,
+                cada_horas,
+                estado_registro,
+                fecha_registro,
+                fecha_actualizacion
+            FROM periodicidad_recordatorio
+            WHERE estado_registro = 1
+        `;
+
+        const [rows] = await pool.execute(query);
+
+        return {
+            success: true,
+            data: rows,
+            total: rows.length
+        };
+
+    } catch (error) {
+        console.error(`Error al obtener periodicidad de recordatorio: ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Obtener una periodicidad de recordatorio por ID
+ * @param {number} id - ID de la periodicidad
+ * @returns {Promise<Object>}
+ */
+async function getPeriodicidadRecordatorioById(id) {
+    try {
+        const [rows] = await pool.execute(
+            `SELECT id, nombre, cada_horas, estado_registro, fecha_registro, fecha_actualizacion
+             FROM periodicidad_recordatorio WHERE id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return { success: false, error: 'Periodicidad no encontrada' };
+        }
+
+        return {
+            success: true,
+            data: rows[0]
+        };
+
+    } catch (error) {
+        console.error(`Error al obtener periodicidad de recordatorio: ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Crear una nueva periodicidad de recordatorio
+ * @param {string} nombre - Nombre de la periodicidad
+ * @param {number} cada_horas - Cada cuántas horas
+ * @returns {Promise<Object>}
+ */
+async function createPeriodicidadRecordatorio(nombre, cada_horas) {
+    try {
+        if (!nombre || cada_horas === undefined) {
+            return { success: false, error: 'Nombre y cada_horas son requeridos' };
+        }
+
+        const [result] = await pool.execute(
+            `INSERT INTO periodicidad_recordatorio (nombre, cada_horas, estado_registro, fecha_registro)
+             VALUES (?, ?, 1, NOW())`,
+            [nombre, cada_horas]
+        );
+
+        return {
+            success: true,
+            message: 'Periodicidad creada correctamente',
+            id: result.insertId
+        };
+
+    } catch (error) {
+        console.error(`Error al crear periodicidad de recordatorio: ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Actualizar una periodicidad de recordatorio
+ * @param {number} id - ID de la periodicidad
+ * @param {Object} datos - Datos a actualizar
+ * @returns {Promise<Object>}
+ */
+async function updatePeriodicidadRecordatorio(id, datos) {
+    try {
+        const { nombre, cada_horas, estado_registro } = datos;
+
+        const updates = [];
+        const params = [];
+
+        if (nombre !== undefined) {
+            updates.push('nombre = ?');
+            params.push(nombre);
+        }
+        if (cada_horas !== undefined) {
+            updates.push('cada_horas = ?');
+            params.push(cada_horas);
+        }
+        if (estado_registro !== undefined) {
+            updates.push('estado_registro = ?');
+            params.push(estado_registro);
+        }
+
+        if (updates.length === 0) {
+            return { success: false, error: 'No hay datos para actualizar' };
+        }
+
+        updates.push('fecha_actualizacion = NOW()');
+        params.push(id);
+
+        const [result] = await pool.execute(
+            `UPDATE periodicidad_recordatorio SET ${updates.join(', ')} WHERE id = ?`,
+            params
+        );
+
+        if (result.affectedRows === 0) {
+            return { success: false, error: 'Periodicidad no encontrada' };
+        }
+
+        return {
+            success: true,
+            message: 'Periodicidad actualizada correctamente'
+        };
+
+    } catch (error) {
+        console.error(`Error al actualizar periodicidad de recordatorio: ${error.message}`);
+        throw error;
+    }
+}
+
+/**
+ * Eliminar (soft delete) una periodicidad de recordatorio
+ * @param {number} id - ID de la periodicidad
+ * @returns {Promise<Object>}
+ */
+async function deletePeriodicidadRecordatorio(id) {
+    try {
+        const [result] = await pool.execute(
+            `UPDATE periodicidad_recordatorio SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?`,
+            [id]
+        );
+
+        if (result.affectedRows === 0) {
+            return { success: false, error: 'Periodicidad no encontrada' };
+        }
+
+        return {
+            success: true,
+            message: 'Periodicidad eliminada correctamente'
+        };
+
+    } catch (error) {
+        console.error(`Error al eliminar periodicidad de recordatorio: ${error.message}`);
+        throw error;
+    }
+}
+
 module.exports = {
+    // Argumentos de venta
     getArgumentosVenta,
     getArgumentoVentaById,
     createArgumentoVenta,
     updateArgumentoVenta,
-    deleteArgumentoVenta
+    deleteArgumentoVenta,
+    // Periodicidad de recordatorio
+    getPeriodicidadRecordatorio,
+    getPeriodicidadRecordatorioById,
+    createPeriodicidadRecordatorio,
+    updatePeriodicidadRecordatorio,
+    deletePeriodicidadRecordatorio
 };
