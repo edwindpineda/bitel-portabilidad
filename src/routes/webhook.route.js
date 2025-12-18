@@ -1497,7 +1497,7 @@ router.delete('/contacto-recordatorios/:id_contacto', async (req, res) => {
  * Genera una respuesta usando OpenAI
  *
  * Headers:
- *   Authorization: Bearer <API_KEY_OPENAI> (requerido)
+ *   Authorization: Bearer <API_KEY_OPENAI> (opcional - si no se envía, usa la del sistema)
  *
  * Body: {
  *   prompt: string (requerido) - El prompt del usuario
@@ -1508,7 +1508,7 @@ router.delete('/contacto-recordatorios/:id_contacto', async (req, res) => {
  */
 router.post('/openai/generate', async (req, res) => {
     try {
-        // Extraer API Key del header Authorization: Bearer <token>
+        // Extraer API Key del header Authorization: Bearer <token> (opcional)
         const authHeader = req.headers['authorization'];
         const apiKey = authHeader && authHeader.startsWith('Bearer ')
             ? authHeader.substring(7)
@@ -1519,13 +1519,7 @@ router.post('/openai/generate', async (req, res) => {
         console.log('========== [webhook/openai/generate] POST ==========');
         console.log('Prompt:', prompt ? prompt.substring(0, 50) + '...' : 'No proporcionado');
         console.log('Model:', model || 'gpt-4.1 (default)');
-
-        if (!apiKey) {
-            return res.status(401).json({
-                success: false,
-                error: 'API Key de OpenAI requerida en header Authorization: Bearer <API_KEY>'
-            });
-        }
+        console.log('API Key:', apiKey ? 'Proporcionada por usuario' : 'Usando la del sistema');
 
         if (!prompt) {
             return res.status(400).json({

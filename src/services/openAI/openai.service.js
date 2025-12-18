@@ -20,9 +20,12 @@ async function openAIResponse(params) {
             temperature = 0.5
         } = params;
 
+        // Usar API Key proporcionada o la del sistema
+        const finalApiKey = apiKey || process.env.OPENAI_API_KEY;
+
         // Validaciones
-        if (!apiKey) {
-            return { success: false, error: 'API Key es requerida' };
+        if (!finalApiKey) {
+            return { success: false, error: 'API Key de OpenAI no configurada' };
         }
 
         if (!prompt) {
@@ -30,7 +33,7 @@ async function openAIResponse(params) {
         }
 
         // Crear instancia del servicio con la API Key
-        const llmService = new LlmResponsesApiService(apiKey);
+        const llmService = new LlmResponsesApiService(finalApiKey);
 
         // Formatear el mensaje de entrada
         const inputMessages = [
