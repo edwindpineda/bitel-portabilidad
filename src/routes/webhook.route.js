@@ -27,6 +27,7 @@ const {
     actualizarLimiteRecordatorio,
     deleteRecordatorio
 } = require('../services/mensajes/ws_recordatorios.js');
+const { openAIResponse } = require('../services/openAI/openai.service.js');
 
 // Agente HTTPS que ignora verificación SSL (como PHP cURL)
 const httpsAgent = new https.Agent({
@@ -1482,6 +1483,70 @@ router.delete('/contacto-recordatorios/:id_contacto', async (req, res) => {
 
     } catch (error) {
         console.error('❌ [webhook/contacto-recordatorios/:id_contacto] DELETE Error:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ==================== OPENAI ====================
+
+/**
+ * POST /webhook/openai/generate
+ * Genera una respuesta usando OpenAI
+ *
+ * Headers:
+ *   x-openai-key: API Key de OpenAI (requerido)
+ *
+ * Body: {
+ *   prompt: string (requerido) - El prompt del usuario
+ *   systemPrompt?: string - Instrucciones del sistema (opcional)
+ *   model?: string - Modelo a usar (opcional, default "gpt-4.1")
+ *   temperature?: number - Temperatura (opcional, default 0.5)
+ * }
+ */
+router.post('/openai/generate', async (req, res) => {
+    try {
+        const apiKey = req.headers['x-openai-key'];
+        const { prompt, systemPrompt, model, temperature } = req.body;
+
+        console.log('========== [webhook/openai/generate] POST ==========');
+        console.log('Prompt:', prompt ? prompt.substring(0, 50) + '...' : 'No proporcionado');
+        console.log('Model:', model || 'gpt-4.1 (default)');
+
+        if (!apiKey) {
+            return res.status(401).json({
+                success: false,
+                error: 'API Key de OpenAI requerida en header x-openai-key'
+            });
+        }
+
+        if (!prompt) {
+            return res.status(400).json({
+                success: false,
+                error: 'Prompt es requerido'
+            });
+        }
+
+        const resultado = await openAIResponse({
+            apiKey,
+            prompt,
+            systemPrompt,
+            model,
+            temperature
+        });
+
+        if (!resultado.success) {
+            return res.status(400).json(resultado);
+        }
+
+        console.log(`✅ Respuesta generada correctamente`);
+
+        res.json(resultado);
+
+    } catch (error) {
+        console.error('❌ [webhook/openai/generate] Error:', error.message);
         res.status(500).json({
             success: false,
             error: error.message
