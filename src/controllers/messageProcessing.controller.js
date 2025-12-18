@@ -16,7 +16,7 @@ class MessageProcessingController {
             let { phone, question, wid } = req.body;
             phone = phone.trim();
             question = question.trim();
-            wid = question.trim();
+            wid = wid ? wid.trim() : null;
 
             let userType = req.userType;
             userType = userType.trim();
@@ -59,7 +59,7 @@ class MessageProcessingController {
                 contact = await contactModel.create(phone, prospecto.id);
             }
             
-            await mensajeModel.create(contact, question, "in");
+            await mensajeModel.create(contact, question, "in", wid);
             
             // Asistente
             const response = await AssistantService.runProcess({
@@ -137,7 +137,7 @@ class MessageProcessingController {
                 respuesta_api: { status, answer, datos_cliente: datosCliente }
             });
 
-            await mensajeModel.create(contact, answer, wid);
+            await mensajeModel.create(contact, answer, "out", wid);
 
             // Construir respuesta según el status
             const responseData = { status, answer, imagen_url };
