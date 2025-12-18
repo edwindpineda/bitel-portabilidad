@@ -1497,7 +1497,7 @@ router.delete('/contacto-recordatorios/:id_contacto', async (req, res) => {
  * Genera una respuesta usando OpenAI
  *
  * Headers:
- *   x-openai-key: API Key de OpenAI (requerido)
+ *   Authorization: Bearer <API_KEY_OPENAI> (requerido)
  *
  * Body: {
  *   prompt: string (requerido) - El prompt del usuario
@@ -1508,7 +1508,12 @@ router.delete('/contacto-recordatorios/:id_contacto', async (req, res) => {
  */
 router.post('/openai/generate', async (req, res) => {
     try {
-        const apiKey = req.headers['x-openai-key'];
+        // Extraer API Key del header Authorization: Bearer <token>
+        const authHeader = req.headers['authorization'];
+        const apiKey = authHeader && authHeader.startsWith('Bearer ')
+            ? authHeader.substring(7)
+            : null;
+
         const { prompt, systemPrompt, model, temperature } = req.body;
 
         console.log('========== [webhook/openai/generate] POST ==========');
@@ -1518,7 +1523,7 @@ router.post('/openai/generate', async (req, res) => {
         if (!apiKey) {
             return res.status(401).json({
                 success: false,
-                error: 'API Key de OpenAI requerida en header x-openai-key'
+                error: 'API Key de OpenAI requerida en header Authorization: Bearer <API_KEY>'
             });
         }
 
