@@ -9,7 +9,7 @@ class TblClienteRestModel {
 
     async getById(id) {
         const [rows] = await this.connection.execute(
-            "SELECT * FROM prospecto WHERE id = ?",
+            "SELECT * FROM prospecto WHERE id = ? AND estado_registro = 1",
             [id]
         );
 
@@ -38,7 +38,8 @@ class TblClienteRestModel {
              LEFT JOIN tipificacion ta ON p.id_tipificacion_asesor = ta.id
              LEFT JOIN contacto c ON c.id_prospecto = p.id
              LEFT JOIN usuario u ON p.id_asesor = u.id
-             WHERE p.tipo_usuario = ?`;
+             WHERE p.tipo_usuario = ?
+             AND p.estado_registro = 1`;
 
         const params = [tipo_usuario];
 
@@ -64,7 +65,7 @@ class TblClienteRestModel {
     // Obtener el consumo total de un usuario
     async getConsumoTotal(tipo_usuario) {
         const [rows] = await this.connection.execute(
-            'SELECT SUM(count_consumo) AS total_consumo FROM prospecto WHERE tipo_usuario = ?',
+            'SELECT SUM(count_consumo) AS total_consumo FROM prospecto WHERE tipo_usuario = ? AND estado_registro = 1',
             [tipo_usuario]
         );
 
@@ -81,7 +82,7 @@ class TblClienteRestModel {
         try {
     
             const [rows] = await this.connection.execute(
-                'SELECT * FROM prospecto WHERE fecha_consumo = ? AND tipo_usuario = ?',
+                'SELECT * FROM prospecto WHERE fecha_consumo = ? AND tipo_usuario = ? AND p.estado_registro = 1',
                 [fechaConsumo, tipo_usuario]
             );
 
@@ -98,7 +99,8 @@ class TblClienteRestModel {
                 `SELECT p.*, c.celular as num_contacto
                 FROM prospecto p
                 INNER JOIN contacto c ON p.id = c.id_prospecto
-                WHERE c.celular = ?`,
+                WHERE c.celular = ?
+                AND p.estado_registro = 1`,
                 [phone]
             );
 
@@ -123,7 +125,7 @@ class TblClienteRestModel {
             );
 
                 const [rows] = await this.connection.execute(
-                `SELECT * FROM prospecto WHERE id = ?`,
+                `SELECT * FROM prospecto WHERE id = ? AND estado_registro = 1`,
                 [result.insertId]
             );
 
@@ -273,7 +275,7 @@ class TblClienteRestModel {
     async getAsignacionesAsesor(tipo_usuario) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT id_asesor FROM prospecto WHERE tipo_usuario = ? ORDER BY created_at DESC LIMIT 1',
+                'SELECT id_asesor FROM prospecto WHERE tipo_usuario = ? AND estado_registro = 1 ORDER BY created_at DESC LIMIT 1',
                 [tipo_usuario]
             );
             return rows.length > 0 ? rows[0] : null;
@@ -291,7 +293,7 @@ class TblClienteRestModel {
     async getConsumoByFechaAndTipo(fechaConsumo, tipo_usuario) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT fecha_consumo, count_consumo FROM prospecto WHERE fecha_consumo = ? AND tipo_usuario = ?',
+                'SELECT fecha_consumo, count_consumo FROM prospecto WHERE fecha_consumo = ? AND tipo_usuario = ? AND estado_registro = 1',
                 [fechaConsumo, tipo_usuario]
             );
             

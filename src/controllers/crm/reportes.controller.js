@@ -38,7 +38,10 @@ class ReportesCrmController {
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM prospecto p
-        WHERE p.tipo_usuario = 'user'${asesorCondition}${dateCondition}
+        WHERE p.tipo_usuario = 'user'
+        AND p.estado_registro = 1
+        ${asesorCondition}
+        ${dateCondition}
       `, params);
       const totalLeads = totalLeadsResult[0]?.total || 0;
 
@@ -48,7 +51,10 @@ class ReportesCrmController {
         FROM prospecto p
         INNER JOIN contacto c ON c.id_prospecto = p.id
         INNER JOIN mensaje m ON m.id_contacto = c.id
-        WHERE p.tipo_usuario = 'user'${asesorCondition}${dateCondition}
+        WHERE p.tipo_usuario = 'user'
+        AND p.estado_registro = 1
+        ${asesorCondition}
+        ${dateCondition}
       `, params);
       const contactados = contactadosResult[0]?.total || 0;
 
@@ -58,7 +64,10 @@ class ReportesCrmController {
         FROM prospecto p
         INNER JOIN estado e ON e.id = p.id_estado
         WHERE p.tipo_usuario = 'user'
-        AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')${asesorCondition}${dateCondition}
+        AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
+        AND p.estado_registro = 1
+        ${asesorCondition}
+        ${dateCondition}
       `, params);
       const interesados = interesadosResult[0]?.total || 0;
 
@@ -105,7 +114,9 @@ class ReportesCrmController {
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM prospecto p
-        WHERE p.tipo_usuario = 'user'${asesorCondition}
+        WHERE p.tipo_usuario = 'user'
+        AND p.estado_registro = 1
+        ${asesorCondition}
       `, asesorParams);
       const totalLeads = totalLeadsResult[0]?.total || 0;
 
@@ -115,7 +126,9 @@ class ReportesCrmController {
         FROM prospecto p
         INNER JOIN estado e ON e.id = p.id_estado
         WHERE p.tipo_usuario = 'user'
-        AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')${asesorCondition}
+        AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
+        AND p.estado_registro = 1
+        ${asesorCondition}
       `, asesorParams);
       const interesados = interesadosResult[0]?.total || 0;
 
@@ -124,7 +137,9 @@ class ReportesCrmController {
         SELECT COUNT(*) as total
         FROM prospecto p
         WHERE p.tipo_usuario = 'user'
-        AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)${asesorCondition}
+        AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        AND p.estado_registro = 1
+        ${asesorCondition}
       `, asesorParams);
       const leadsSemana = leadsSemanasResult[0]?.total || 0;
 
@@ -134,7 +149,9 @@ class ReportesCrmController {
         FROM prospecto p
         INNER JOIN contacto c ON c.id_prospecto = p.id
         INNER JOIN mensaje m ON m.id_contacto = c.id
-        WHERE p.tipo_usuario = 'user'${asesorCondition}
+        WHERE p.tipo_usuario = 'user'
+        AND p.estado_registro = 1
+        ${asesorCondition}
       `, asesorParams);
       const contactados = contactadosResult[0]?.total || 0;
 
