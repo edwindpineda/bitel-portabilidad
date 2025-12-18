@@ -32,14 +32,15 @@ class TblMensajeModel {
      * @param {number} idContacto - ID del contacto
      * @param {string} contenido - Contenido del mensaje
      * @param {string} direccion - Direccion del mensaje ('in' o 'out')
+     * @param {string} wid - Id de la conversacion 
      * @returns {Promise<Object>} - Mensaje creado
      */
-    async create(idContacto, contenido, direccion = 'out') {
+    async create(idContacto, contenido, direccion = 'out', wid) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO mensaje (id_contacto, direccion, tipo_mensaje, contenido, fecha_hora, fecha_registro, estado_registro)
-                 VALUES (?, ?, 'text', ?, NOW(), NOW(), 1)`,
-                [idContacto, direccion, contenido]
+                `INSERT INTO mensaje (id_contacto, direccion, tipo_mensaje, wid_mensaje, contenido, fecha_hora, fecha_registro, estado_registro)
+                 VALUES (?, ?, 'text', ?, ?, NOW(), NOW(), 1)`,
+                [idContacto, direccion, wid,contenido]
             );
 
             return {
@@ -47,6 +48,7 @@ class TblMensajeModel {
                 id_contacto: idContacto,
                 direccion,
                 contenido,
+                wid,
                 fecha_registro: new Date()
             };
         } catch (error) {

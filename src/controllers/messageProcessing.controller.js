@@ -13,9 +13,10 @@ class MessageProcessingController {
 
     async processMessage(req, res) {
         try {
-            let { phone, question } = req.body;
+            let { phone, question, wid } = req.body;
             phone = phone.trim();
             question = question.trim();
+            wid = question.trim();
 
             let userType = req.userType;
             userType = userType.trim();
@@ -136,7 +137,7 @@ class MessageProcessingController {
                 respuesta_api: { status, answer, datos_cliente: datosCliente }
             });
 
-            await mensajeModel.create(contact, answer);
+            await mensajeModel.create(contact, answer, wid);
 
             // Construir respuesta según el status
             const responseData = { status, answer, imagen_url };

@@ -368,7 +368,7 @@ async function sendToBaileys(id_empresa, phone, message, imageUrl = null) {
  */
 router.post('/send', async (req, res) => {
     try {
-        const { phone, question } = req.body;
+        const { phone, question, wid } = req.body;
 
         if (!phone) {
             return res.status(400).json({ success: false, error: 'Número de teléfono requerido' });
@@ -378,12 +378,17 @@ router.post('/send', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Pregunta requerida' });
         }
 
+        if (!wid) {
+            return res.status(400).json({ success: false, error: 'WID Mensaje Requerido ' });         
+        }
+
         console.log(`📥 [webhook/send] Recibida pregunta de ${phone}: ${question.substring(0, 50)}...`);
 
         // Llamar al API de Bitel (mismo servidor)
         const bitelResponse = await axios.post('https://portabilidad-bitel.ai-you.io/api/assistant/message', {
             phone,
-            question
+            question,
+            wid
         }, {
             headers: {
                 'Content-Type': 'application/json',
