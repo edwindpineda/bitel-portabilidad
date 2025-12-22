@@ -217,6 +217,7 @@ Cuando el cliente haga preguntas similares a las siguientes, usa las respuestas 
 - Usa emojis con moderación.
 - Usa jergas o lenguaje coloquial cuando finalizas tu respuesta pero no abuses de ellas.
 - Cuando el cliente dé sus datos, confirma cada uno.
+- Si ya enviaste la misma URL DE IMAGEN anteriormente en la conversación, NO LA VUELVAS a enviar. SOLO envia la URL si no lo haz hecho antes.
 
 # FAQs adicionales (búsqueda vectorial):
 
