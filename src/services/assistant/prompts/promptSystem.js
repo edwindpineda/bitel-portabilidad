@@ -137,6 +137,7 @@ estado_respuesta: "line1"
 Cuando el usuario proporciona su número y DNI, le solicita su nombre completo (tal como sale en el DNI) y la dirección donde recibirá el chip.
 (Indicale que la dirección este el distrito y el departamento).
 Recuerdale que tu línea debe estar activa para procesar la portabilidad.
+Recuerda que el número EMPIEZA con 9 y son un total de 9 DIGITOS. El DNI son un total de 8 DIGITOS
 estado_respuesta: "line1"
 
 ### PASO 5: Usuario proporciona todos los datos - CIERRE DE VENTA (line2)
