@@ -7,7 +7,7 @@ class PlanesTarifariosModel {
 
   async getAll() {
     const [rows] = await this.connection.execute(
-      `SELECT id, nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, created_at, updated_at
+      `SELECT *
        FROM planes_tarifarios ORDER BY nombre`
     );
     return rows;
@@ -15,7 +15,7 @@ class PlanesTarifariosModel {
 
   async getById(id) {
     const [rows] = await this.connection.execute(
-      `SELECT id, nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, created_at, updated_at
+      `SELECT *
        FROM planes_tarifarios WHERE id = ?`,
       [id]
     );
@@ -25,8 +25,8 @@ class PlanesTarifariosModel {
   async create(data) {
     const { nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO planes_tarifarios (nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO planes_tarifarios (nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, estado_registro)
+       VALUES (?, ?, ?, ?, ?, ?, 1)`,
       [nombre, precio_regular, precio_promocional || null, descripcion || null, principal ?? 1, imagen_url || null]
     );
     return result.insertId;
@@ -45,7 +45,7 @@ class PlanesTarifariosModel {
 
   async delete(id) {
     await this.connection.execute(
-      `DELETE FROM planes_tarifarios WHERE id = ?`,
+      `UPDATE planes_tarifarios SET estado_registro = 0 WHERE id = ?`,
       [id]
     );
     return true;
