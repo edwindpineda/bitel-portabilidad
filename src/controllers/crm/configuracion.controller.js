@@ -10,7 +10,16 @@ const EstadoModel = require("../../models/estado.model.js");
 const PreguntaPerfilamientoModel = require("../../models/preguntaPerfilamiento.model.js");
 const ArgumentoVentaModel = require("../../models/argumentoVenta.model.js");
 const PeriodicidadRecordatorioModel = require("../../models/periodicidadRecordatorio.model.js");
+const FormatoModel = require("../../models/formato.model.js");
+const FormatoCampoModel = require("../../models/formatoCampo.model.js");
+const BaseNumeroModel = require("../../models/baseNumero.model.js");
+const BaseNumeroDetalleModel = require("../../models/baseNumeroDetalle.model.js");
+const PlantillaModel = require("../../models/plantilla.model.js");
+const CampaniaModel = require("../../models/campania.model.js");
+const CampaniaBaseNumeroModel = require("../../models/campaniaBaseNumero.model.js");
+const CampaniaEjecucionModel = require("../../models/campaniaEjecucion.model.js");
 const logger = require('../../config/logger/loggerClient.js');
+const xlsx = require('xlsx');
 
 class ConfiguracionController {
   // ==================== ROLES ====================
@@ -1020,6 +1029,1024 @@ class ConfiguracionController {
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar periodicidad de recordatorio: ${error.message}`);
       return res.status(500).json({ msg: "Error al eliminar periodicidad de recordatorio" });
+    }
+  }
+
+  // ==================== FORMATOS ====================
+  async getFormatos(req, res) {
+    try {
+      const formatoModel = new FormatoModel();
+      const formatos = await formatoModel.getAll();
+      return res.status(200).json({ data: formatos });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener formatos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener formatos" });
+    }
+  }
+
+  async getFormatoById(req, res) {
+    try {
+      const { id } = req.params;
+      const formatoModel = new FormatoModel();
+      const formato = await formatoModel.getByIdWithCampos(id);
+
+      if (!formato) {
+        return res.status(404).json({ msg: "Formato no encontrado" });
+      }
+
+      return res.status(200).json({ data: formato });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener formato: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener formato" });
+    }
+  }
+
+  async createFormato(req, res) {
+    try {
+      const { nombre, descripcion } = req.body;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!nombre) {
+        return res.status(400).json({ msg: "El nombre es requerido" });
+      }
+
+      const formatoModel = new FormatoModel();
+      const id = await formatoModel.create({ id_empresa: 1, nombre, descripcion, usuario_registro });
+
+      return res.status(201).json({ msg: "Formato creado exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear formato: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear formato" });
+    }
+  }
+
+  async updateFormato(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion, es_activo } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      if (!nombre) {
+        return res.status(400).json({ msg: "El nombre es requerido" });
+      }
+
+      const formatoModel = new FormatoModel();
+      await formatoModel.update(id, { nombre, descripcion, es_activo, usuario_actualizacion });
+
+      return res.status(200).json({ msg: "Formato actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar formato: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar formato" });
+    }
+  }
+
+  async deleteFormato(req, res) {
+    try {
+      const { id } = req.params;
+      const formatoModel = new FormatoModel();
+      await formatoModel.delete(id);
+      return res.status(200).json({ msg: "Formato eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar formato: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar formato" });
+    }
+  }
+
+  // ==================== FORMATO CAMPOS ====================
+  async getCamposByFormato(req, res) {
+    try {
+      const { idFormato } = req.params;
+      const formatoCampoModel = new FormatoCampoModel();
+      const campos = await formatoCampoModel.getAllByFormato(idFormato);
+      return res.status(200).json({ data: campos });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener campos del formato: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener campos del formato" });
+    }
+  }
+
+  async getCampoById(req, res) {
+    try {
+      const { id } = req.params;
+      const formatoCampoModel = new FormatoCampoModel();
+      const campo = await formatoCampoModel.getById(id);
+
+      if (!campo) {
+        return res.status(404).json({ msg: "Campo no encontrado" });
+      }
+
+      return res.status(200).json({ data: campo });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener campo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener campo" });
+    }
+  }
+
+  async createCampo(req, res) {
+    try {
+      const { id_formato, nombre_campo, etiqueta, tipo_dato, longitud, requerido, unico, orden, placeholder, reglas_json } = req.body;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_formato || !nombre_campo || !tipo_dato) {
+        return res.status(400).json({ msg: "El formato, nombre del campo y tipo de dato son requeridos" });
+      }
+
+      const formatoCampoModel = new FormatoCampoModel();
+      const id = await formatoCampoModel.create({
+        id_formato,
+        nombre_campo,
+        etiqueta,
+        tipo_dato,
+        longitud,
+        requerido,
+        unico,
+        orden,
+        placeholder,
+        reglas_json,
+        usuario_registro
+      });
+
+      return res.status(201).json({ msg: "Campo creado exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear campo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear campo" });
+    }
+  }
+
+  async updateCampo(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre_campo, etiqueta, tipo_dato, longitud, requerido, unico, orden, placeholder, reglas_json } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      if (!nombre_campo || !tipo_dato) {
+        return res.status(400).json({ msg: "El nombre del campo y tipo de dato son requeridos" });
+      }
+
+      const formatoCampoModel = new FormatoCampoModel();
+      await formatoCampoModel.update(id, {
+        nombre_campo,
+        etiqueta,
+        tipo_dato,
+        longitud,
+        requerido,
+        unico,
+        orden,
+        placeholder,
+        reglas_json,
+        usuario_actualizacion
+      });
+
+      return res.status(200).json({ msg: "Campo actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar campo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar campo" });
+    }
+  }
+
+  async deleteCampo(req, res) {
+    try {
+      const { id } = req.params;
+      const formatoCampoModel = new FormatoCampoModel();
+      await formatoCampoModel.delete(id);
+      return res.status(200).json({ msg: "Campo eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar campo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar campo" });
+    }
+  }
+
+  async updateOrdenCampos(req, res) {
+    try {
+      const { campos } = req.body;
+
+      if (!campos || !Array.isArray(campos)) {
+        return res.status(400).json({ msg: "Se requiere un array de campos con orden" });
+      }
+
+      const formatoCampoModel = new FormatoCampoModel();
+      await formatoCampoModel.updateOrden(campos);
+
+      return res.status(200).json({ msg: "Orden de campos actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar orden de campos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar orden de campos" });
+    }
+  }
+
+  // ==================== BASE DE NUMEROS ====================
+  async getBasesNumeros(req, res) {
+    try {
+      const baseNumeroModel = new BaseNumeroModel();
+      const bases = await baseNumeroModel.getAll();
+      return res.status(200).json({ data: bases });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener bases de numeros: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener bases de numeros" });
+    }
+  }
+
+  async getBaseNumeroById(req, res) {
+    try {
+      const { id } = req.params;
+      const baseNumeroModel = new BaseNumeroModel();
+      const base = await baseNumeroModel.getById(id);
+
+      if (!base) {
+        return res.status(404).json({ msg: "Base de numeros no encontrada" });
+      }
+
+      return res.status(200).json({ data: base });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener base de numeros: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener base de numeros" });
+    }
+  }
+
+  async createBaseNumero(req, res) {
+    try {
+      const { id_empresa, id_formato, nombre, descripcion } = req.body;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_empresa || !id_formato || !nombre) {
+        return res.status(400).json({ msg: "La empresa, formato y nombre son requeridos" });
+      }
+
+      const baseNumeroModel = new BaseNumeroModel();
+      const id = await baseNumeroModel.create({ id_empresa, id_formato, nombre, descripcion, usuario_registro });
+
+      return res.status(201).json({ msg: "Base de numeros creada exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear base de numeros: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al crear base de numeros" });
+    }
+  }
+
+  async updateBaseNumero(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion, id_formato } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      if (!nombre || !id_formato) {
+        return res.status(400).json({ msg: "El nombre y formato son requeridos" });
+      }
+
+      const baseNumeroModel = new BaseNumeroModel();
+      await baseNumeroModel.update(id, { nombre, descripcion, id_formato, usuario_actualizacion });
+
+      return res.status(200).json({ msg: "Base de numeros actualizada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar base de numeros: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al actualizar base de numeros" });
+    }
+  }
+
+  async deleteBaseNumero(req, res) {
+    try {
+      const { id } = req.params;
+      const baseNumeroModel = new BaseNumeroModel();
+      await baseNumeroModel.delete(id);
+      return res.status(200).json({ msg: "Base de numeros eliminada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar base de numeros: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar base de numeros" });
+    }
+  }
+
+  // ==================== DETALLE BASE DE NUMEROS ====================
+  async getDetallesByBaseNumero(req, res) {
+    try {
+      const { idBase } = req.params;
+      const { page = 1, limit = 50 } = req.query;
+
+      const detalleModel = new BaseNumeroDetalleModel();
+      const result = await detalleModel.getByBaseNumero(idBase, parseInt(page), parseInt(limit));
+
+      return res.status(200).json(result);
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener detalles: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener detalles de la base" });
+    }
+  }
+
+  async createDetalle(req, res) {
+    try {
+      const { id_base_numero, telefono, nombre, correo, tipo_documento, numero_documento, json_adicional } = req.body;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_base_numero || !telefono) {
+        return res.status(400).json({ msg: "La base y telefono son requeridos" });
+      }
+
+      const detalleModel = new BaseNumeroDetalleModel();
+      const id = await detalleModel.create({
+        id_base_numero,
+        telefono,
+        nombre,
+        correo,
+        tipo_documento,
+        numero_documento,
+        json_adicional,
+        usuario_registro
+      });
+
+      return res.status(201).json({ msg: "Registro agregado exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear detalle: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al agregar registro" });
+    }
+  }
+
+  async deleteDetalle(req, res) {
+    try {
+      const { id } = req.params;
+      const detalleModel = new BaseNumeroDetalleModel();
+      await detalleModel.delete(id);
+      return res.status(200).json({ msg: "Registro eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar detalle: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar registro" });
+    }
+  }
+
+  // ==================== CARGA MASIVA ====================
+  async uploadBaseNumero(req, res) {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ msg: "No se ha proporcionado un archivo" });
+      }
+
+      const { id_base_numero } = req.body;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_base_numero) {
+        return res.status(400).json({ msg: "El ID de la base es requerido" });
+      }
+
+      // Obtener la base y su formato
+      const baseNumeroModel = new BaseNumeroModel();
+      const base = await baseNumeroModel.getById(id_base_numero);
+
+      if (!base) {
+        return res.status(404).json({ msg: "Base de numeros no encontrada" });
+      }
+
+      // Obtener campos del formato
+      const formatoModel = new FormatoModel();
+      const formato = await formatoModel.getByIdWithCampos(base.id_formato);
+
+      if (!formato) {
+        return res.status(404).json({ msg: "Formato no encontrado" });
+      }
+
+      // Leer el archivo Excel/CSV
+      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (jsonData.length === 0) {
+        return res.status(400).json({ msg: "El archivo esta vacio" });
+      }
+
+      // Campos fijos de base_numero_detalle
+      const camposFijos = ['telefono', 'nombre', 'correo', 'tipo_documento', 'numero_documento'];
+      const camposFormato = formato.campos || [];
+
+      // ========== VALIDAR ESTRUCTURA DEL ARCHIVO ==========
+      // Obtener las columnas del archivo
+      const columnasArchivo = Object.keys(jsonData[0]).map(col => col.toLowerCase().trim());
+
+      // Construir lista de columnas esperadas segun el formato
+      const columnasEsperadas = [];
+
+      // telefono siempre es requerido
+      columnasEsperadas.push({ nombre: 'telefono', requerido: true, tipo: 'fijo' });
+
+      // Agregar campos opcionales fijos
+      camposFijos.filter(c => c !== 'telefono').forEach(campo => {
+        columnasEsperadas.push({ nombre: campo, requerido: false, tipo: 'fijo' });
+      });
+
+      // Agregar campos del formato
+      camposFormato.forEach(campo => {
+        columnasEsperadas.push({
+          nombre: campo.nombre_campo.toLowerCase(),
+          etiqueta: campo.etiqueta ? campo.etiqueta.toLowerCase() : null,
+          requerido: campo.requerido === 1,
+          tipo: 'formato'
+        });
+      });
+
+      // Validar que existan las columnas requeridas
+      const columnasRequeridas = columnasEsperadas.filter(c => c.requerido);
+      const columnasFaltantes = [];
+
+      for (const colReq of columnasRequeridas) {
+        const existe = columnasArchivo.some(colArch =>
+          colArch === colReq.nombre || colArch === colReq.etiqueta
+        );
+        if (!existe) {
+          columnasFaltantes.push(colReq.etiqueta || colReq.nombre);
+        }
+      }
+
+      // Identificar columnas del archivo que no estan en el formato
+      const columnasValidas = columnasEsperadas.map(c => [c.nombre, c.etiqueta]).flat().filter(Boolean);
+      const columnasSobrantes = columnasArchivo.filter(col => !columnasValidas.includes(col));
+
+      // Validar estructura: columnas faltantes o sobrantes
+      if (columnasFaltantes.length > 0 || columnasSobrantes.length > 0) {
+        let mensaje = "El archivo no tiene la estructura correcta";
+        if (columnasFaltantes.length > 0 && columnasSobrantes.length > 0) {
+          mensaje = "El archivo tiene columnas faltantes y columnas no reconocidas";
+        } else if (columnasFaltantes.length > 0) {
+          mensaje = "El archivo tiene columnas requeridas faltantes";
+        } else {
+          mensaje = "El archivo tiene columnas que no estan definidas en el formato";
+        }
+
+        return res.status(400).json({
+          msg: mensaje,
+          error: "estructura_invalida",
+          columnasFaltantes: columnasFaltantes.length > 0 ? columnasFaltantes : undefined,
+          columnasSobrantes: columnasSobrantes.length > 0 ? columnasSobrantes : undefined,
+          columnasEsperadas: columnasEsperadas.map(c => ({
+            nombre: c.etiqueta || c.nombre,
+            requerido: c.requerido
+          })),
+          columnasArchivo: Object.keys(jsonData[0])
+        });
+      }
+
+      // ========== PROCESAR LOS DATOS ==========
+      const registros = [];
+      const erroresValidacion = [];
+
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i];
+        const registro = {
+          telefono: null,
+          nombre: null,
+          correo: null,
+          tipo_documento: null,
+          numero_documento: null,
+          json_adicional: {}
+        };
+        let tieneError = false;
+        const erroresFila = [];
+
+        // Procesar cada columna del archivo
+        const headerKeys = Object.keys(row);
+
+        for (const headerKey of headerKeys) {
+          const headerLower = headerKey.toLowerCase().trim();
+          const valor = row[headerKey];
+
+          // Verificar si es un campo fijo
+          if (camposFijos.includes(headerLower)) {
+            registro[headerLower] = valor !== '' ? String(valor) : null;
+          } else {
+            // Buscar en los campos del formato
+            const campoFormato = camposFormato.find(c =>
+              c.nombre_campo.toLowerCase() === headerLower ||
+              (c.etiqueta && c.etiqueta.toLowerCase() === headerLower)
+            );
+
+            if (campoFormato) {
+              // Validar segun tipo de dato
+              let valorValidado = valor;
+              let errorCampo = null;
+
+              if (campoFormato.requerido && (valor === '' || valor === null || valor === undefined)) {
+                errorCampo = `Campo "${campoFormato.etiqueta || campoFormato.nombre_campo}" es requerido`;
+              } else if (valor !== '' && valor !== null) {
+                switch (campoFormato.tipo_dato) {
+                  case 'integer':
+                    if (isNaN(parseInt(valor))) {
+                      errorCampo = `Campo "${campoFormato.etiqueta || campoFormato.nombre_campo}" debe ser un numero entero`;
+                    } else {
+                      valorValidado = parseInt(valor);
+                    }
+                    break;
+                  case 'decimal':
+                    if (isNaN(parseFloat(valor))) {
+                      errorCampo = `Campo "${campoFormato.etiqueta || campoFormato.nombre_campo}" debe ser un numero decimal`;
+                    } else {
+                      valorValidado = parseFloat(valor);
+                    }
+                    break;
+                  case 'email':
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(valor)) {
+                      errorCampo = `Campo "${campoFormato.etiqueta || campoFormato.nombre_campo}" debe ser un email valido`;
+                    }
+                    break;
+                  case 'phone':
+                    const phoneClean = String(valor).replace(/\D/g, '');
+                    if (phoneClean.length < 9) {
+                      errorCampo = `Campo "${campoFormato.etiqueta || campoFormato.nombre_campo}" debe ser un telefono valido`;
+                    }
+                    valorValidado = phoneClean;
+                    break;
+                  case 'boolean':
+                    valorValidado = ['1', 'true', 'si', 'yes'].includes(String(valor).toLowerCase()) ? 1 : 0;
+                    break;
+                  case 'date':
+                  case 'datetime':
+                    // Intentar parsear la fecha
+                    if (typeof valor === 'number') {
+                      // Es un serial de Excel
+                      const date = xlsx.SSF.parse_date_code(valor);
+                      valorValidado = `${date.y}-${String(date.m).padStart(2, '0')}-${String(date.d).padStart(2, '0')}`;
+                    } else {
+                      valorValidado = valor;
+                    }
+                    break;
+                }
+
+                // Validar longitud
+                if (!errorCampo && campoFormato.longitud && String(valorValidado).length > campoFormato.longitud) {
+                  errorCampo = `Campo "${campoFormato.etiqueta || campoFormato.nombre_campo}" excede la longitud maxima de ${campoFormato.longitud}`;
+                }
+              }
+
+              if (errorCampo) {
+                erroresFila.push(errorCampo);
+                tieneError = true;
+              } else {
+                registro.json_adicional[campoFormato.nombre_campo] = valorValidado !== '' ? valorValidado : null;
+              }
+            }
+          }
+        }
+
+        // Validar telefono requerido
+        if (!registro.telefono) {
+          erroresFila.push('El telefono es requerido');
+          tieneError = true;
+        }
+
+        if (tieneError) {
+          erroresValidacion.push({
+            fila: i + 2, // +2 porque la fila 1 es el header y el array empieza en 0
+            errores: erroresFila
+          });
+        } else {
+          registros.push(registro);
+        }
+      }
+
+      // Insertar registros validos
+      const detalleModel = new BaseNumeroDetalleModel();
+      const resultado = await detalleModel.bulkCreate(id_base_numero, registros, usuario_registro);
+
+      return res.status(200).json({
+        msg: "Carga completada",
+        data: {
+          totalProcesados: jsonData.length,
+          insertados: resultado.total,
+          erroresValidacion: erroresValidacion.length,
+          erroresDuplicados: resultado.errores.length,
+          detalleErroresValidacion: erroresValidacion.slice(0, 10), // Primeros 10 errores
+          detalleErroresDuplicados: resultado.errores.slice(0, 10)
+        }
+      });
+
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error en carga masiva: ${error.message}`);
+      return res.status(500).json({ msg: "Error al procesar el archivo" });
+    }
+  }
+
+  // ==================== PLANTILLAS ====================
+  async getPlantillas(req, res) {
+    try {
+      const plantillaModel = new PlantillaModel();
+      const plantillas = await plantillaModel.getAll();
+      return res.status(200).json({ data: plantillas });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener plantillas: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener plantillas" });
+    }
+  }
+
+  async getPlantillaById(req, res) {
+    try {
+      const { id } = req.params;
+      const plantillaModel = new PlantillaModel();
+      const plantilla = await plantillaModel.getById(id);
+
+      if (!plantilla) {
+        return res.status(404).json({ msg: "Plantilla no encontrada" });
+      }
+
+      return res.status(200).json({ data: plantilla });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener plantilla: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener plantilla" });
+    }
+  }
+
+  async getPlantillasByFormato(req, res) {
+    try {
+      const { idFormato } = req.params;
+      const plantillaModel = new PlantillaModel();
+      const plantillas = await plantillaModel.getByFormato(idFormato);
+      return res.status(200).json({ data: plantillas });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener plantillas por formato: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener plantillas por formato" });
+    }
+  }
+
+  async createPlantilla(req, res) {
+    try {
+      const { id_formato, nombre, descripcion, prompt_sistema, prompt_inicio, prompt_flujo, prompt_cierre, prompt_resultado } = req.body;
+      const id_empresa = req.user?.id_empresa || 1;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_formato || !nombre || !prompt_sistema || !prompt_inicio || !prompt_flujo) {
+        return res.status(400).json({ msg: "El formato, nombre, prompt sistema, prompt inicio y prompt flujo son requeridos" });
+      }
+
+      const plantillaModel = new PlantillaModel();
+      const id = await plantillaModel.create({
+        id_empresa,
+        id_formato,
+        nombre,
+        descripcion,
+        prompt_sistema,
+        prompt_inicio,
+        prompt_flujo,
+        prompt_cierre,
+        prompt_resultado,
+        usuario_registro
+      });
+
+      return res.status(201).json({ msg: "Plantilla creada exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear plantilla: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al crear plantilla" });
+    }
+  }
+
+  async updatePlantilla(req, res) {
+    try {
+      const { id } = req.params;
+      const { id_formato, nombre, descripcion, prompt_sistema, prompt_inicio, prompt_flujo, prompt_cierre, prompt_resultado } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      if (!id_formato || !nombre || !prompt_sistema || !prompt_inicio || !prompt_flujo) {
+        return res.status(400).json({ msg: "El formato, nombre, prompt sistema, prompt inicio y prompt flujo son requeridos" });
+      }
+
+      const plantillaModel = new PlantillaModel();
+      const updated = await plantillaModel.update(id, {
+        id_formato,
+        nombre,
+        descripcion,
+        prompt_sistema,
+        prompt_inicio,
+        prompt_flujo,
+        prompt_cierre,
+        prompt_resultado,
+        usuario_actualizacion
+      });
+
+      if (!updated) {
+        return res.status(404).json({ msg: "Plantilla no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Plantilla actualizada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar plantilla: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al actualizar plantilla" });
+    }
+  }
+
+  async deletePlantilla(req, res) {
+    try {
+      const { id } = req.params;
+      const plantillaModel = new PlantillaModel();
+      const deleted = await plantillaModel.delete(id);
+
+      if (!deleted) {
+        return res.status(404).json({ msg: "Plantilla no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Plantilla eliminada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar plantilla: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar plantilla" });
+    }
+  }
+
+  // ==================== CAMPANIAS ====================
+  async getCampanias(req, res) {
+    try {
+      const campaniaModel = new CampaniaModel();
+      const campanias = await campaniaModel.getAll();
+      return res.status(200).json({ data: campanias });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener campanias: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener campanias" });
+    }
+  }
+
+  async getCampaniaById(req, res) {
+    try {
+      const { id } = req.params;
+      const campaniaModel = new CampaniaModel();
+      const campania = await campaniaModel.getByIdWithBases(id);
+
+      if (!campania) {
+        return res.status(404).json({ msg: "Campania no encontrada" });
+      }
+
+      return res.status(200).json({ data: campania });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener campania: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener campania" });
+    }
+  }
+
+  async createCampania(req, res) {
+    try {
+      const { nombre, descripcion } = req.body;
+      const id_empresa = req.user?.id_empresa || 1;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!nombre) {
+        return res.status(400).json({ msg: "El nombre es requerido" });
+      }
+
+      const campaniaModel = new CampaniaModel();
+      const id = await campaniaModel.create({
+        id_empresa,
+        nombre,
+        descripcion,
+        usuario_registro
+      });
+
+      return res.status(201).json({ msg: "Campania creada exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear campania: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al crear campania" });
+    }
+  }
+
+  async updateCampania(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      if (!nombre) {
+        return res.status(400).json({ msg: "El nombre es requerido" });
+      }
+
+      const campaniaModel = new CampaniaModel();
+      const updated = await campaniaModel.update(id, {
+        nombre,
+        descripcion,
+        usuario_actualizacion
+      });
+
+      if (!updated) {
+        return res.status(404).json({ msg: "Campania no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Campania actualizada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar campania: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al actualizar campania" });
+    }
+  }
+
+  async deleteCampania(req, res) {
+    try {
+      const { id } = req.params;
+      const campaniaModel = new CampaniaModel();
+      const deleted = await campaniaModel.delete(id);
+
+      if (!deleted) {
+        return res.status(404).json({ msg: "Campania no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Campania eliminada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar campania: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar campania" });
+    }
+  }
+
+  // ==================== CAMPANIA BASE NUMERO ====================
+  async getBasesByCampania(req, res) {
+    try {
+      const { idCampania } = req.params;
+      const campaniaBaseModel = new CampaniaBaseNumeroModel();
+      const bases = await campaniaBaseModel.getByCampania(idCampania);
+      return res.status(200).json({ data: bases });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener bases de campania: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener bases de campania" });
+    }
+  }
+
+  async addBaseToCampania(req, res) {
+    try {
+      const { id_campania, id_base_numero } = req.body;
+      const id_empresa = req.user?.id_empresa || 1;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_campania || !id_base_numero) {
+        return res.status(400).json({ msg: "La campania y base son requeridas" });
+      }
+
+      const campaniaBaseModel = new CampaniaBaseNumeroModel();
+      const id = await campaniaBaseModel.add({
+        id_empresa,
+        id_campania,
+        id_base_numero,
+        usuario_registro
+      });
+
+      return res.status(201).json({ msg: "Base agregada a campania exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al agregar base a campania: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al agregar base a campania" });
+    }
+  }
+
+  async removeBaseFromCampania(req, res) {
+    try {
+      const { id } = req.params;
+      const campaniaBaseModel = new CampaniaBaseNumeroModel();
+      const removed = await campaniaBaseModel.remove(id);
+
+      if (!removed) {
+        return res.status(404).json({ msg: "Relacion no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Base eliminada de campania exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar base de campania: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar base de campania" });
+    }
+  }
+
+  // ==================== CAMPANIA EJECUCION ====================
+  async getEjecucionesByCampania(req, res) {
+    try {
+      const { idCampania } = req.params;
+      const { page = 1, limit = 20 } = req.query;
+
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const result = await ejecucionModel.getByCampania(idCampania, parseInt(page), parseInt(limit));
+
+      return res.status(200).json(result);
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener ejecuciones: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener ejecuciones" });
+    }
+  }
+
+  async ejecutarCampania(req, res) {
+    try {
+      const { id_campania } = req.body;
+      const id_empresa = req.user?.id_empresa || 1;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_campania) {
+        return res.status(400).json({ msg: "La campania es requerida" });
+      }
+
+      // Obtener bases de la campania
+      const campaniaBaseModel = new CampaniaBaseNumeroModel();
+      const bases = await campaniaBaseModel.getByCampania(id_campania);
+
+      if (bases.length === 0) {
+        return res.status(400).json({ msg: "La campania no tiene bases de numeros asignadas" });
+      }
+
+      // Crear ejecuciones para cada base
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const ejecuciones = [];
+
+      for (const base of bases) {
+        const id = await ejecucionModel.create({
+          id_empresa,
+          id_campania,
+          id_base_numero: base.id_base_numero,
+          fecha_programada: new Date(),
+          usuario_registro
+        });
+        ejecuciones.push({ id, id_base_numero: base.id_base_numero, base_nombre: base.base_nombre });
+      }
+
+      return res.status(201).json({
+        msg: "Ejecucion de campania iniciada",
+        data: {
+          total_bases: bases.length,
+          ejecuciones
+        }
+      });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al ejecutar campania: ${error.message}`);
+      return res.status(500).json({ msg: error.message || "Error al ejecutar campania" });
+    }
+  }
+
+  async getEjecucionById(req, res) {
+    try {
+      const { id } = req.params;
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const ejecucion = await ejecucionModel.getById(id);
+
+      if (!ejecucion) {
+        return res.status(404).json({ msg: "Ejecucion no encontrada" });
+      }
+
+      return res.status(200).json({ data: ejecucion });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener ejecucion: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener ejecucion" });
+    }
+  }
+
+  async updateEstadoEjecucion(req, res) {
+    try {
+      const { id } = req.params;
+      const { estado_ejecucion, resultado, mensaje_error } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      if (!estado_ejecucion) {
+        return res.status(400).json({ msg: "El estado es requerido" });
+      }
+
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const updateData = {
+        estado_ejecucion,
+        usuario_actualizacion
+      };
+
+      if (estado_ejecucion === 'en_proceso') {
+        updateData.fecha_inicio = new Date();
+      }
+
+      if (['ejecutado', 'fallido', 'cancelado'].includes(estado_ejecucion)) {
+        updateData.fecha_fin = new Date();
+        updateData.resultado = resultado;
+        updateData.mensaje_error = mensaje_error;
+      }
+
+      const updated = await ejecucionModel.updateEstado(id, updateData);
+
+      if (!updated) {
+        return res.status(404).json({ msg: "Ejecucion no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Estado de ejecucion actualizado" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar ejecucion: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar estado de ejecucion" });
+    }
+  }
+
+  async getEstadisticasCampania(req, res) {
+    try {
+      const { idCampania } = req.params;
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const estadisticas = await ejecucionModel.getEstadisticas(idCampania);
+      return res.status(200).json({ data: estadisticas });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener estadisticas: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener estadisticas" });
+    }
+  }
+
+  async cancelarEjecucion(req, res) {
+    try {
+      const { id } = req.params;
+      const { mensaje_error } = req.body;
+      const usuario_actualizacion = req.user?.userId || null;
+
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const cancelled = await ejecucionModel.cancelarEjecucion(id, {
+        mensaje_error: mensaje_error || 'Cancelado por el usuario',
+        usuario_actualizacion
+      });
+
+      if (!cancelled) {
+        return res.status(404).json({ msg: "Ejecucion no encontrada" });
+      }
+
+      return res.status(200).json({ msg: "Ejecucion cancelada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al cancelar ejecucion: ${error.message}`);
+      return res.status(500).json({ msg: "Error al cancelar ejecucion" });
     }
   }
 }
