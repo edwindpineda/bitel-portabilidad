@@ -15,6 +15,7 @@ const configuracionRoutes = require("./routes/crm/configuracion.route.js");
 const leadsRoutes = require("./routes/crm/leads.route.js");
 const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
 const webhookRoutes = require("./routes/webhook.route.js");
+const adminRoutes = require("./routes/admin.route.js");
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use("/api/crm", usuarioRoutes);
 app.use("/api/crm", authMiddleware, auditoriaRoutes, contactoRoutes, configuracionRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
+app.use("/api/admin", authMiddleware, adminRoutes);
 app.use('/api/assistant', checkApiKey, messageProcessingRoutes);
 
 // Rutas de webhook (sin auth - para recibir mensajes de Baileys)
