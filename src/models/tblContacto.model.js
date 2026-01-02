@@ -26,14 +26,23 @@ class TblContactoModel {
     /**
      * Obtiene un contacto por su número de celular
      * @param {string} celular - Número de celular del contacto
+     * @param {number|null} id_empresa - ID de la empresa para filtrar
      * @returns {Promise<Object|null>} - Objeto del contacto o null si no existe
      */
-    async getByCelular(celular) {
+    async getByCelular(celular, id_empresa = null) {
         try {
-            const [rows] = await this.connection.execute(
-                'SELECT * FROM contacto WHERE celular = ?',
-                [celular]
-            );
+            let query = `SELECT c.* FROM contacto c
+                INNER JOIN prospecto p ON c.id_prospecto = p.id
+                WHERE c.celular = ?`;
+
+            const params = [celular];
+
+            if (id_empresa) {
+                query += ` AND p.id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            const [rows] = await this.connection.execute(query, params);
             return rows.length > 0 ? rows[0].id : null;
         } catch (error) {
             throw new Error(`Error al obtener contacto por celular: ${error.message}`);

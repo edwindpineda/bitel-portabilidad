@@ -2,7 +2,6 @@ const LlmResponsesApiService = require("../openAI/llmResponsesApi.service");
 const BuildPromptService = require("./buildPrompt.service");
 const MemoryService = require("./memory.service");
 const { customTimestamp } = require("../../utils/customTimestamp");
-const GetFqas = require("./getFqas");
 const logger = require("../../config/logger/loggerClient");
 
 class AssistantService {
@@ -17,7 +16,8 @@ class AssistantService {
     async runProcess({
         contactId,
         message,
-        nombre_modelo
+        nombre_modelo,
+        id_empresa = null
     }) {
         try {
 
@@ -53,10 +53,8 @@ class AssistantService {
 
             // Obtener el prompt system --------------------------------------------------------
 
-            const fqas = await GetFqas.getFqas(message);
-            //console.log("fqas desde asistant", fqas);
             const promptInstructions = await BuildPromptService.buildSystemPrompt({
-                fqas: fqas
+                id_empresa: id_empresa
             });
 
             // Inputs ----------------------------------------------------------------------

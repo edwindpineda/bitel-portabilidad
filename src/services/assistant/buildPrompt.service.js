@@ -2,17 +2,18 @@ const { promptSystem } = require("./prompts/promptSystem");
 const { promptUser } = require("./prompts/promptUser");
 const { promptAutocorrector } = require("./prompts/autocorrector");
 const TblPlanesTarifariosModel = require("../../models/tblPlanesTarifarios.model.js");
-const TblFaqPortabilidadModel = require("../../models/tblFaqPortabilidad.model.js");
+const FaqModel = require("../../models/faq.model.js");
 const TblTipicacionModel = require("../../models/tipificacion.model.js");
 const TblPregPerfilamientoModel = require("../../models/preguntaPerfilamiento.model.js");
+const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
 
 class BuildPromptService {
 
   // Obtener FAQs de portabilidad formateadas para el prompt
-  async getFaqsPortabilidadFormatted() {
+  async getFaqsPortabilidadFormatted(id_empresa = null) {
     try {
-      const faqModel = new TblFaqPortabilidadModel();
-      const faqs = await faqModel.getAllActivas();
+      const faqModel = new FaqModel();
+      const faqs = await faqModel.getAllActivas(id_empresa);
 
       if (!faqs || faqs.length === 0) {
         return "No hay FAQs disponibles.";
@@ -32,10 +33,10 @@ class BuildPromptService {
   }
 
   // Obtener el plan principal (el primero de portabilidad) formateado con saltos de línea
-  async getPlanPrincipalFormatted() {
+  async getPlanPrincipalFormatted(id_empresa = null) {
     try {
       const planesModel = new TblPlanesTarifariosModel();
-      const plan = await planesModel.getPlanPrincipal();
+      const plan = await planesModel.getPlanPrincipal(id_empresa);
 
       if (!plan) {
         return "No hay plan principal disponible.";
@@ -70,10 +71,10 @@ class BuildPromptService {
   }
 
   // Obtener planes tarifarios formateados para el prompt
-  async getPlanesTarifariosFormatted() {
+  async getPlanesTarifariosFormatted(id_empresa = null) {
     try {
       const planesModel = new TblPlanesTarifariosModel();
-      const planes = await planesModel.getAll();
+      const planes = await planesModel.getAll(id_empresa);
 
       if (!planes || planes.length === 0) {
         return "No hay planes disponibles actualmente.";
@@ -109,10 +110,10 @@ class BuildPromptService {
     }
   }
 
-  async getTipicaciones() {
+  async getTipicaciones(id_empresa = null) {
     try {
       const tipificacionModel = new TblTipicacionModel();
-      const tipificacion = await tipificacionModel.getAllForBot();
+      const tipificacion = await tipificacionModel.getAllForBot(id_empresa);
       let info = "";
 
       if (!tipificacion || tipificacion.length === 0) {
@@ -136,10 +137,10 @@ class BuildPromptService {
     }
   }
 
-  async getPreguntasPerfilamiento() {
+  async getPreguntasPerfilamiento(id_empresa = null) {
     try {
       const preguntasModel = new TblPregPerfilamientoModel();
-      const preguntas = await preguntasModel.getAll();
+      const preguntas = await preguntasModel.getAll(id_empresa);
       let info = "";
 
       if (!preguntas || preguntas.length === 0) {
@@ -163,36 +164,57 @@ class BuildPromptService {
     }
   }
 
+  // Obtener el prompt base del sistema (de BD o default)
+  async getPromptBase(id_empresa = null) {
+    try {
+      if (id_empresa) {
+        const promptModel = new PromptAsistenteModel();
+        const promptDb = await promptModel.getByEmpresa(id_empresa);
+        if (promptDb && promptDb.prompt_sistema) {
+          return promptDb.prompt_sistema;
+        }
+      }
+      // Si no hay prompt en BD, usar el default
+      return promptSystem;
+    } catch (error) {
+      console.error(`[BuildPromptService.getPromptBase] ${error.message}`);
+      // En caso de error, usar el default
+      return promptSystem;
+    }
+  }
+
   // Construir el prompt para el modelo de IA
   async buildSystemPrompt({
-    fqas
+    id_empresa = null
   }) {
     try {
+      // Obtener el prompt base (de BD o default)
+      const promptBase = await this.getPromptBase(id_empresa);
+
       // Obtener plan principal
-      const planPrincipal = await this.getPlanPrincipalFormatted();
+      const planPrincipal = await this.getPlanPrincipalFormatted(id_empresa);
 
       // Obtener planes tarifarios
-      const planesTarifarios = await this.getPlanesTarifariosFormatted();
+      const planesTarifarios = await this.getPlanesTarifariosFormatted(id_empresa);
 
       // Obtener FAQs de portabilidad de la base de datos
-      const faqsPortabilidad = await this.getFaqsPortabilidadFormatted();
+      const faqsPortabilidad = await this.getFaqsPortabilidadFormatted(id_empresa);
 
-      const tipificaciones = await this.getTipicaciones();
+      const tipificaciones = await this.getTipicaciones(id_empresa);
 
-      const preguntas = await this.getPreguntasPerfilamiento();
+      const preguntas = await this.getPreguntasPerfilamiento(id_empresa);
 
       // Crear un objeto con las variables a reemplazar en el prompt
       const replacements = {
-        "{{fqas}}": fqas,
-        "{{plan_principal}}": planPrincipal,
-        "{{planes_tarifarios}}": planesTarifarios,
-        "{{faqs_portabilidad}}": faqsPortabilidad,
+        "{{catalogo_principal}}": planPrincipal,
+        "{{catalogo}}": planesTarifarios,
+        "{{faqs}}": faqsPortabilidad,
         "{{Tipo_tipificaciones}}": tipificaciones,
         "{{preguntas_perfilamiento}}": preguntas
       };
 
       // Reemplazar las variables en el prompt
-      let prompt = promptSystem;
+      let prompt = promptBase;
 
       for (const [placeholder, value] of Object.entries(replacements)) {
         prompt = prompt.replace(new RegExp(placeholder, "g"), value);

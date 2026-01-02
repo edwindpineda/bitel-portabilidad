@@ -13,10 +13,11 @@ class MessageProcessingController {
 
     async processMessage(req, res) {
         try {
-            let { phone, question, wid } = req.body;
+            let { phone, question, wid, id_empresa } = req.body;
             phone = phone.trim();
             question = question.trim();
             wid = wid ? wid.trim() : null;
+            id_empresa = id_empresa ? parseInt(id_empresa, 10) : null;
 
             let userType = req.userType;
             userType = userType.trim();
@@ -31,7 +32,7 @@ class MessageProcessingController {
             
             
             // Verificar si prospecto esta registrado por medio del celular.
-            let prospecto = await prospectoModel.selectByCelular(phone);
+            let prospecto = await prospectoModel.selectByCelular(phone, id_empresa);
             
             if (!prospecto) {
                 const asesores = await usuarioModel.getByRol(3);
@@ -48,11 +49,11 @@ class MessageProcessingController {
                     }
                 }
                 // Registar prospecto
-                prospecto = await prospectoModel.createProspecto(userType, 1, phone, id_asesor);
+                prospecto = await prospectoModel.createProspecto(userType, 1, phone, id_asesor, id_empresa);
             }
             
             // Verificar si existe el contacto
-            let contact = await contactModel.getByCelular(phone);
+            let contact = await contactModel.getByCelular(phone, id_empresa);
             
             if (!contact) {
                 // Registrar contacto
@@ -65,7 +66,8 @@ class MessageProcessingController {
             const response = await AssistantService.runProcess({
                 contactId: contact,
                 message: question,
-                nombre_modelo: "gpt-4.1-mini"
+                nombre_modelo: "gpt-4.1-mini",
+                id_empresa: id_empresa
             });
 
             // Respuesta
@@ -116,7 +118,8 @@ class MessageProcessingController {
                 tipo_usuario: userType,
                 id_contacto: contact,
                 id_cliente_rest: prospecto.id,
-                respuesta_api: { status, answer, datos_cliente: datosCliente }
+                respuesta_api: { status, answer, datos_cliente: datosCliente },
+                id_empresa
             });
 
             await mensajeModel.create(contact, answer, "out", wid);

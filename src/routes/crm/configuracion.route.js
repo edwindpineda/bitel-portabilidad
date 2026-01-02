@@ -6,15 +6,15 @@ const ConfiguracionController = require("../../controllers/crm/configuracion.con
 
 const router = Router();
 
-// Configuración de Multer para subida de imágenes de planes tarifarios
-const uploadDir = path.join(__dirname, "../../../uploads/plan_tarifario");
+// Configuración de Multer para subida de imágenes de catálogo
+const uploadDir = path.join(__dirname, "../../../uploads/catalogo");
 
 // Crear directorio si no existe
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const storagePlanTarifario = multer.diskStorage({
+const storageCatalogo = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
     },
@@ -27,12 +27,12 @@ const storagePlanTarifario = multer.diskStorage({
             now.getMinutes().toString().padStart(2, '0') +
             now.getSeconds().toString().padStart(2, '0');
         const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, `plan_${timestamp}${ext}`);
+        cb(null, `catalogo_${timestamp}${ext}`);
     }
 });
 
-const uploadPlanTarifario = multer({
-    storage: storagePlanTarifario,
+const uploadCatalogo = multer({
+    storage: storageCatalogo,
     limits: { fileSize: 5 * 1024 * 1024 }, // 5MB máximo
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -82,12 +82,12 @@ router.post("/proveedores", ConfiguracionController.createProveedor);
 router.put("/proveedores/:id", ConfiguracionController.updateProveedor);
 router.delete("/proveedores/:id", ConfiguracionController.deleteProveedor);
 
-// Rutas de Planes Tarifarios
-router.get("/planes-tarifarios", ConfiguracionController.getPlanesTarifarios);
-router.get("/planes-tarifarios/:id", ConfiguracionController.getPlanTarifarioById);
-router.post("/planes-tarifarios", uploadPlanTarifario.single('imagen'), ConfiguracionController.createPlanTarifario);
-router.put("/planes-tarifarios/:id", uploadPlanTarifario.single('imagen'), ConfiguracionController.updatePlanTarifario);
-router.delete("/planes-tarifarios/:id", ConfiguracionController.deletePlanTarifario);
+// Rutas de Catálogo
+router.get("/catalogo", ConfiguracionController.getCatalogo);
+router.get("/catalogo/:id", ConfiguracionController.getCatalogoById);
+router.post("/catalogo", uploadCatalogo.single('imagen'), ConfiguracionController.createCatalogo);
+router.put("/catalogo/:id", uploadCatalogo.single('imagen'), ConfiguracionController.updateCatalogo);
+router.delete("/catalogo/:id", ConfiguracionController.deleteCatalogo);
 
 // Rutas de Preguntas Frecuentes
 router.get("/faqs", ConfiguracionController.getFaqs);
@@ -200,5 +200,9 @@ router.post("/campania-ejecuciones/ejecutar", ConfiguracionController.ejecutarCa
 router.get("/campania-ejecuciones/:id", ConfiguracionController.getEjecucionById);
 router.patch("/campania-ejecuciones/:id/estado", ConfiguracionController.updateEstadoEjecucion);
 router.patch("/campania-ejecuciones/:id/cancelar", ConfiguracionController.cancelarEjecucion);
+
+// Rutas de Prompt Asistente (Bot WhatsApp)
+router.get("/prompt-asistente", ConfiguracionController.getPromptAsistente);
+router.post("/prompt-asistente", ConfiguracionController.savePromptAsistente);
 
 module.exports = router;

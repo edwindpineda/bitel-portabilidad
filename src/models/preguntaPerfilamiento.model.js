@@ -5,11 +5,18 @@ class PreguntaPerfilamientoModel {
     this.connection = dbConnection || pool;
   }
 
-  async getAll() {
-    const [rows] = await this.connection.execute(
-      `SELECT id, pregunta, orden
-       FROM pregunta_perfilamiento WHERE estado_registro = 1 ORDER BY orden ASC`
-    );
+  async getAll(id_empresa = null) {
+    let query = `SELECT id, pregunta, orden FROM pregunta_perfilamiento WHERE estado_registro = 1`;
+    const params = [];
+
+    if (id_empresa) {
+      query += ' AND id_empresa = ?';
+      params.push(id_empresa);
+    }
+
+    query += ' ORDER BY orden ASC';
+
+    const [rows] = await this.connection.execute(query, params);
     return rows;
   }
 
@@ -23,28 +30,39 @@ class PreguntaPerfilamientoModel {
   }
 
   async create(data) {
-    const { pregunta, orden } = data;
+    const { pregunta, orden, id_empresa = null } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO pregunta_perfilamiento (pregunta, orden) VALUES (?, ?)`,
-      [pregunta, orden || 0]
+      `INSERT INTO pregunta_perfilamiento (pregunta, orden, id_empresa) VALUES (?, ?, ?)`,
+      [pregunta, orden || 0, id_empresa]
     );
     return result.insertId;
   }
 
   async update(id, data) {
-    const { pregunta, orden } = data;
-    await this.connection.execute(
-      `UPDATE pregunta_perfilamiento SET pregunta = ?, orden = ? WHERE id = ?`,
-      [pregunta, orden || 0, id]
-    );
+    const { pregunta, orden, id_empresa = null } = data;
+
+    let query = `UPDATE pregunta_perfilamiento SET pregunta = ?, orden = ? WHERE id = ?`;
+    const params = [pregunta, orden || 0, id];
+
+    if (id_empresa) {
+      query = `UPDATE pregunta_perfilamiento SET pregunta = ?, orden = ? WHERE id = ? AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    await this.connection.execute(query, params);
     return true;
   }
 
-  async delete(id) {
-    await this.connection.execute(
-      `UPDATE pregunta_perfilamiento SET estado_registro = 0 WHERE id = ?`,
-      [id]
-    );
+  async delete(id, id_empresa = null) {
+    let query = `UPDATE pregunta_perfilamiento SET estado_registro = 0 WHERE id = ?`;
+    const params = [id];
+
+    if (id_empresa) {
+      query = `UPDATE pregunta_perfilamiento SET estado_registro = 0 WHERE id = ? AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    await this.connection.execute(query, params);
     return true;
   }
 }

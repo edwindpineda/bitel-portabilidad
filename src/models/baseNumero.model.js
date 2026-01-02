@@ -60,14 +60,21 @@ class BaseNumeroModel {
         }
     }
 
-    async update(id, { nombre, descripcion, id_formato, usuario_actualizacion }) {
+    async update(id, { nombre, descripcion, id_formato, usuario_actualizacion, id_empresa = null }) {
         try {
-            const [result] = await this.connection.execute(
-                `UPDATE base_numero
+            let query = `UPDATE base_numero
                 SET nombre = ?, descripcion = ?, id_formato = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
-                WHERE id = ?`,
-                [nombre, descripcion || null, id_formato, usuario_actualizacion || null, id]
-            );
+                WHERE id = ?`;
+            const params = [nombre, descripcion || null, id_formato, usuario_actualizacion || null, id];
+
+            if (id_empresa) {
+                query = `UPDATE base_numero
+                SET nombre = ?, descripcion = ?, id_formato = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
+                WHERE id = ? AND id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
@@ -77,12 +84,17 @@ class BaseNumeroModel {
         }
     }
 
-    async delete(id) {
+    async delete(id, id_empresa = null) {
         try {
-            const [result] = await this.connection.execute(
-                'UPDATE base_numero SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?',
-                [id]
-            );
+            let query = 'UPDATE base_numero SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?';
+            const params = [id];
+
+            if (id_empresa) {
+                query = 'UPDATE base_numero SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ? AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             throw new Error(`Error al eliminar base de numeros: ${error.message}`);

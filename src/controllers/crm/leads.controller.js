@@ -160,9 +160,19 @@ class LeadsController {
 
   async getPlanes(req, res) {
     try {
-      const [rows] = await pool.execute(
-        'SELECT id, nombre FROM planes_tarifarios ORDER BY nombre'
-      );
+      const { idEmpresa } = req.user || {};
+
+      let query = 'SELECT id, nombre FROM catalogo WHERE activo = 1';
+      const params = [];
+
+      if (idEmpresa) {
+        query += ' AND id_empresa = ?';
+        params.push(idEmpresa);
+      }
+
+      query += ' ORDER BY nombre';
+
+      const [rows] = await pool.execute(query, params);
       return res.status(200).json({ data: rows });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener planes: ${error.message}`);

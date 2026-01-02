@@ -5,11 +5,19 @@ class ProveedorModel {
     this.connection = dbConnection || pool;
   }
 
-  async getAll() {
-    const [rows] = await this.connection.execute(
-      `SELECT id, nombre, created_at, updated_at
-       FROM proveedor ORDER BY nombre`
-    );
+  async getAll(id_empresa = null) {
+    let query = `SELECT id, nombre, id_empresa, estado_registro, created_at, updated_at
+       FROM proveedor WHERE estado_registro = 1`;
+    const params = [];
+
+    if (id_empresa) {
+      query += ` AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    query += ` ORDER BY nombre`;
+
+    const [rows] = await this.connection.execute(query, params);
     return rows;
   }
 
@@ -23,29 +31,39 @@ class ProveedorModel {
   }
 
   async create(data) {
-    const { nombre } = data;
+    const { nombre, id_empresa } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO proveedor (nombre) VALUES (?)`,
-      [nombre]
+      `INSERT INTO proveedor (nombre, id_empresa) VALUES (?, ?)`,
+      [nombre, id_empresa]
     );
     return result.insertId;
   }
 
   async update(id, data) {
-    const { nombre } = data;
-    await this.connection.execute(
-      `UPDATE proveedor SET nombre = ? WHERE id = ?`,
-      [nombre, id]
-    );
+    const { nombre, id_empresa } = data;
+    let query = `UPDATE proveedor SET nombre = ? WHERE id = ?`;
+    const params = [nombre, id];
+
+    if (id_empresa) {
+      query = `UPDATE proveedor SET nombre = ? WHERE id = ? AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    await this.connection.execute(query, params);
     return true;
   }
 
-  async delete(id) {
-    await this.connection.execute(
-      `DELETE FROM proveedor WHERE id = ?`,
-      [id]
-    );
-    return true;
+  async delete(id, id_empresa = null) {
+    let query = `UPDATE proveedor SET estado_registro = 0 WHERE id = ?`;
+    const params = [id];
+
+    if (id_empresa) {
+      query = `UPDATE proveedor SET estado_registro = 0 WHERE id = ? AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    const [result] = await this.connection.execute(query, params);
+    return result.affectedRows > 0;
   }
 }
 

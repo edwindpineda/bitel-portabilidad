@@ -84,27 +84,36 @@ class PlantillaModel {
         }
     }
 
-    async update(id, { id_formato, nombre, descripcion, prompt_sistema, prompt_inicio, prompt_flujo, prompt_cierre, prompt_resultado, usuario_actualizacion }) {
+    async update(id, { id_formato, nombre, descripcion, prompt_sistema, prompt_inicio, prompt_flujo, prompt_cierre, prompt_resultado, usuario_actualizacion, id_empresa = null }) {
         try {
-            const [result] = await this.connection.execute(
-                `UPDATE plantilla
+            let query = `UPDATE plantilla
                 SET id_formato = ?, nombre = ?, descripcion = ?,
                     prompt_sistema = ?, prompt_inicio = ?, prompt_flujo = ?, prompt_cierre = ?, prompt_resultado = ?,
                     usuario_actualizacion = ?, fecha_actualizacion = NOW()
-                WHERE id = ?`,
-                [
-                    id_formato,
-                    nombre,
-                    descripcion || null,
-                    prompt_sistema,
-                    prompt_inicio,
-                    prompt_flujo,
-                    prompt_cierre || null,
-                    prompt_resultado || null,
-                    usuario_actualizacion || null,
-                    id
-                ]
-            );
+                WHERE id = ?`;
+            const params = [
+                id_formato,
+                nombre,
+                descripcion || null,
+                prompt_sistema,
+                prompt_inicio,
+                prompt_flujo,
+                prompt_cierre || null,
+                prompt_resultado || null,
+                usuario_actualizacion || null,
+                id
+            ];
+
+            if (id_empresa) {
+                query = `UPDATE plantilla
+                SET id_formato = ?, nombre = ?, descripcion = ?,
+                    prompt_sistema = ?, prompt_inicio = ?, prompt_flujo = ?, prompt_cierre = ?, prompt_resultado = ?,
+                    usuario_actualizacion = ?, fecha_actualizacion = NOW()
+                WHERE id = ? AND id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
@@ -114,12 +123,17 @@ class PlantillaModel {
         }
     }
 
-    async delete(id) {
+    async delete(id, id_empresa = null) {
         try {
-            const [result] = await this.connection.execute(
-                'UPDATE plantilla SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?',
-                [id]
-            );
+            let query = 'UPDATE plantilla SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?';
+            const params = [id];
+
+            if (id_empresa) {
+                query = 'UPDATE plantilla SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ? AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             throw new Error(`Error al eliminar plantilla: ${error.message}`);

@@ -75,26 +75,38 @@ class FormatoModel {
         }
     }
 
-    async update(id, { nombre, descripcion, usuario_actualizacion }) {
+    async update(id, { nombre, descripcion, usuario_actualizacion, id_empresa = null }) {
         try {
-            const [result] = await this.connection.execute(
-                `UPDATE formato
+            let query = `UPDATE formato
                 SET nombre = ?, descripcion = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
-                WHERE id = ?`,
-                [nombre, descripcion, usuario_actualizacion, id]
-            );
+                WHERE id = ?`;
+            const params = [nombre, descripcion, usuario_actualizacion, id];
+
+            if (id_empresa) {
+                query = `UPDATE formato
+                SET nombre = ?, descripcion = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
+                WHERE id = ? AND id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             throw new Error(`Error al actualizar formato: ${error.message}`);
         }
     }
 
-    async delete(id) {
+    async delete(id, id_empresa = null) {
         try {
-            const [result] = await this.connection.execute(
-                'UPDATE formato SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?',
-                [id]
-            );
+            let query = 'UPDATE formato SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?';
+            const params = [id];
+
+            if (id_empresa) {
+                query = 'UPDATE formato SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ? AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             throw new Error(`Error al eliminar formato: ${error.message}`);

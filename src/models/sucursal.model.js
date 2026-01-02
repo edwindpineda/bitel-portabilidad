@@ -5,14 +5,21 @@ class SucursalModel {
     this.connection = dbConnection || pool;
   }
 
-  async getAll() {
+  async getAll(id_empresa = null) {
     try {
-      const [rows] = await this.connection.execute(
-        `SELECT id, nombre, direccion, telefono, email, estado, fecha_registro
+      let query = `SELECT id, nombre, direccion, telefono, email, estado, fecha_registro, id_empresa
          FROM sucursal
-         WHERE estado = 'activo'
-         ORDER BY nombre`
-      );
+         WHERE estado = 'activo'`;
+      const params = [];
+
+      if (id_empresa) {
+        query += ` AND id_empresa = ?`;
+        params.push(id_empresa);
+      }
+
+      query += ` ORDER BY nombre`;
+
+      const [rows] = await this.connection.execute(query, params);
       return rows;
     } catch (error) {
       throw new Error(`Error al obtener sucursales: ${error.message}`);
@@ -33,12 +40,12 @@ class SucursalModel {
     }
   }
 
-  async create({ nombre, direccion, telefono, email }) {
+  async create({ nombre, direccion, telefono, email, id_empresa }) {
     try {
       const [result] = await this.connection.execute(
-        `INSERT INTO sucursal (nombre, direccion, telefono, email, estado, fecha_registro, usuario_registro)
-         VALUES (?, ?, ?, ?, 'activo', NOW(), 'admin')`,
-        [nombre, direccion, telefono, email]
+        `INSERT INTO sucursal (nombre, direccion, telefono, email, estado, fecha_registro, usuario_registro, id_empresa)
+         VALUES (?, ?, ?, ?, 'activo', NOW(), 'admin', ?)`,
+        [nombre, direccion, telefono, email, id_empresa]
       );
       return result.insertId;
     } catch (error) {
@@ -46,26 +53,34 @@ class SucursalModel {
     }
   }
 
-  async update(id, { nombre, direccion, telefono, email }) {
+  async update(id, { nombre, direccion, telefono, email, id_empresa }) {
     try {
-      const [result] = await this.connection.execute(
-        `UPDATE sucursal SET nombre = ?, direccion = ?, telefono = ?, email = ?
-         WHERE id = ?`,
-        [nombre, direccion, telefono, email, id]
-      );
+      let query = `UPDATE sucursal SET nombre = ?, direccion = ?, telefono = ?, email = ? WHERE id = ?`;
+      const params = [nombre, direccion, telefono, email, id];
+
+      if (id_empresa) {
+        query = `UPDATE sucursal SET nombre = ?, direccion = ?, telefono = ?, email = ? WHERE id = ? AND id_empresa = ?`;
+        params.push(id_empresa);
+      }
+
+      const [result] = await this.connection.execute(query, params);
       return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Error al actualizar sucursal: ${error.message}`);
     }
   }
 
-  async delete(id) {
+  async delete(id, id_empresa = null) {
     try {
-      const [result] = await this.connection.execute(
-        `UPDATE sucursal SET estado = 'inactivo'
-         WHERE id = ?`,
-        [id]
-      );
+      let query = `UPDATE sucursal SET estado = 'inactivo' WHERE id = ?`;
+      const params = [id];
+
+      if (id_empresa) {
+        query = `UPDATE sucursal SET estado = 'inactivo' WHERE id = ? AND id_empresa = ?`;
+        params.push(id_empresa);
+      }
+
+      const [result] = await this.connection.execute(query, params);
       return result.affectedRows > 0;
     } catch (error) {
       throw new Error(`Error al eliminar sucursal: ${error.message}`);

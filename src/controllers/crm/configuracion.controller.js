@@ -3,8 +3,8 @@ const UsuarioModel = require("../../models/tblUsuario.model.js");
 const ModuloModel = require("../../models/modulo.model.js");
 const SucursalModel = require("../../models/sucursal.model.js");
 const ProveedorModel = require("../../models/proveedor.model.js");
-const PlanesTarifariosModel = require("../../models/planesTarifarios.model.js");
-const FaqPortabilidadModel = require("../../models/tblFaqPortabilidad.model.js");
+const PlanesTarifariosModel = require("../../models/tblPlanesTarifarios.model.js");
+const FaqModel = require("../../models/faq.model.js");
 const TipificacionModel = require("../../models/tipificacion.model.js");
 const EstadoModel = require("../../models/estado.model.js");
 const PreguntaPerfilamientoModel = require("../../models/preguntaPerfilamiento.model.js");
@@ -18,6 +18,7 @@ const PlantillaModel = require("../../models/plantilla.model.js");
 const CampaniaModel = require("../../models/campania.model.js");
 const CampaniaBaseNumeroModel = require("../../models/campaniaBaseNumero.model.js");
 const CampaniaEjecucionModel = require("../../models/campaniaEjecucion.model.js");
+const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 const xlsx = require('xlsx');
 
@@ -339,8 +340,9 @@ class ConfiguracionController {
   // ==================== SUCURSALES ====================
   async getSucursales(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const sucursalModel = new SucursalModel();
-      const sucursales = await sucursalModel.getAll();
+      const sucursales = await sucursalModel.getAll(idEmpresa);
       return res.status(200).json({ data: sucursales });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener sucursales: ${error.message}`);
@@ -367,6 +369,7 @@ class ConfiguracionController {
 
   async createSucursal(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { nombre, direccion, telefono, email } = req.body;
 
       if (!nombre) {
@@ -374,7 +377,7 @@ class ConfiguracionController {
       }
 
       const sucursalModel = new SucursalModel();
-      const id = await sucursalModel.create({ nombre, direccion, telefono, email });
+      const id = await sucursalModel.create({ nombre, direccion, telefono, email, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Sucursal creada exitosamente", data: { id } });
     } catch (error) {
@@ -385,6 +388,7 @@ class ConfiguracionController {
 
   async updateSucursal(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { nombre, direccion, telefono, email } = req.body;
 
@@ -393,7 +397,7 @@ class ConfiguracionController {
       }
 
       const sucursalModel = new SucursalModel();
-      await sucursalModel.update(id, { nombre, direccion, telefono, email });
+      await sucursalModel.update(id, { nombre, direccion, telefono, email, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Sucursal actualizada exitosamente" });
     } catch (error) {
@@ -404,9 +408,10 @@ class ConfiguracionController {
 
   async deleteSucursal(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const sucursalModel = new SucursalModel();
-      await sucursalModel.delete(id);
+      await sucursalModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Sucursal eliminada exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar sucursal: ${error.message}`);
@@ -417,8 +422,9 @@ class ConfiguracionController {
   // ==================== PROVEEDORES ====================
   async getProveedores(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const proveedorModel = new ProveedorModel();
-      const proveedores = await proveedorModel.getAll();
+      const proveedores = await proveedorModel.getAll(idEmpresa);
       return res.status(200).json({ data: proveedores });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener proveedores: ${error.message}`);
@@ -445,6 +451,7 @@ class ConfiguracionController {
 
   async createProveedor(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { nombre } = req.body;
 
       if (!nombre) {
@@ -452,7 +459,7 @@ class ConfiguracionController {
       }
 
       const proveedorModel = new ProveedorModel();
-      const id = await proveedorModel.create({ nombre });
+      const id = await proveedorModel.create({ nombre, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Proveedor creado exitosamente", data: { id } });
     } catch (error) {
@@ -463,6 +470,7 @@ class ConfiguracionController {
 
   async updateProveedor(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { nombre } = req.body;
 
@@ -471,7 +479,7 @@ class ConfiguracionController {
       }
 
       const proveedorModel = new ProveedorModel();
-      await proveedorModel.update(id, { nombre });
+      await proveedorModel.update(id, { nombre, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Proveedor actualizado exitosamente" });
     } catch (error) {
@@ -482,9 +490,10 @@ class ConfiguracionController {
 
   async deleteProveedor(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const proveedorModel = new ProveedorModel();
-      await proveedorModel.delete(id);
+      await proveedorModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Proveedor eliminado exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar proveedor: ${error.message}`);
@@ -492,111 +501,128 @@ class ConfiguracionController {
     }
   }
 
-  // ==================== PLANES TARIFARIOS ====================
-  async getPlanesTarifarios(req, res) {
+  // ==================== CATÁLOGO ====================
+  async getCatalogo(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const planModel = new PlanesTarifariosModel();
-      const planes = await planModel.getAll();
+      const planes = await planModel.getAll(idEmpresa);
       return res.status(200).json({ data: planes });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener planes tarifarios: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener planes tarifarios" });
+      logger.error(`[configuracion.controller.js] Error al obtener catálogo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener catálogo" });
     }
   }
 
-  async getPlanTarifarioById(req, res) {
+  async getCatalogoById(req, res) {
     try {
       const { id } = req.params;
       const planModel = new PlanesTarifariosModel();
       const plan = await planModel.getById(id);
 
       if (!plan) {
-        return res.status(404).json({ msg: "Plan tarifario no encontrado" });
+        return res.status(404).json({ msg: "Item no encontrado" });
       }
 
       return res.status(200).json({ data: plan });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener plan tarifario: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener plan tarifario" });
+      logger.error(`[configuracion.controller.js] Error al obtener item del catálogo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener item del catálogo" });
     }
   }
 
-  async createPlanTarifario(req, res) {
+  async createCatalogo(req, res) {
     try {
       const { nombre, descripcion } = req.body;
-      let { imagen_url } = req.body;
 
       // Convertir tipos de FormData (llegan como strings)
       const precio_regular = req.body.precio_regular ? parseFloat(req.body.precio_regular) : null;
       const precio_promocional = req.body.precio_promocional ? parseFloat(req.body.precio_promocional) : null;
       const principal = req.body.principal === '1' || req.body.principal === 1 ? 1 : 0;
 
+      // Manejar imagen subida
+      let imagen_url = req.body.imagen_url || null;
+      if (req.file) {
+        imagen_url = `/uploads/catalogo/${req.file.filename}`;
+      }
+
       if (!nombre || !precio_regular) {
         return res.status(400).json({ msg: "El nombre y precio regular son requeridos" });
       }
 
-      // Si se subió una imagen, usar la ruta del archivo
-      if (req.file) {
-        imagen_url = `/uploads/plan_tarifario/${req.file.filename}`;
-      }
-
       const planModel = new PlanesTarifariosModel();
-      const id = await planModel.create({ nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url });
+      const id = await planModel.create({
+        nombre,
+        precio_regular,
+        precio_promocional,
+        descripcion,
+        principal,
+        imagen_url,
+        estado_registro: 1
+      });
 
-      return res.status(201).json({ msg: "Plan tarifario creado exitosamente", data: { id, imagen_url } });
+      return res.status(201).json({ msg: "Item creado exitosamente", data: { id } });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al crear plan tarifario: ${error.message}`);
-      return res.status(500).json({ msg: "Error al crear plan tarifario" });
+      logger.error(`[configuracion.controller.js] Error al crear item del catálogo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear item del catálogo" });
     }
   }
 
-  async updatePlanTarifario(req, res) {
+  async updateCatalogo(req, res) {
     try {
       const { id } = req.params;
       const { nombre, descripcion } = req.body;
-      let { imagen_url } = req.body;
 
       // Convertir tipos de FormData (llegan como strings)
       const precio_regular = req.body.precio_regular ? parseFloat(req.body.precio_regular) : null;
       const precio_promocional = req.body.precio_promocional ? parseFloat(req.body.precio_promocional) : null;
       const principal = req.body.principal === '1' || req.body.principal === 1 ? 1 : 0;
 
+      // Manejar imagen subida
+      let imagen_url = req.body.imagen_url || null;
+      if (req.file) {
+        imagen_url = `/uploads/catalogo/${req.file.filename}`;
+      }
+
       if (!nombre || !precio_regular) {
         return res.status(400).json({ msg: "El nombre y precio regular son requeridos" });
       }
 
-      // Si se subió una nueva imagen, usar la ruta del archivo
-      if (req.file) {
-        imagen_url = `/uploads/plan_tarifario/${req.file.filename}`;
-      }
-
       const planModel = new PlanesTarifariosModel();
-      await planModel.update(id, { nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url });
+      await planModel.update(id, {
+        nombre,
+        precio_regular,
+        precio_promocional,
+        descripcion,
+        principal,
+        imagen_url
+      });
 
-      return res.status(200).json({ msg: "Plan tarifario actualizado exitosamente", data: { imagen_url } });
+      return res.status(200).json({ msg: "Item actualizado exitosamente" });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al actualizar plan tarifario: ${error.message}`);
-      return res.status(500).json({ msg: "Error al actualizar plan tarifario" });
+      logger.error(`[configuracion.controller.js] Error al actualizar item del catálogo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar item del catálogo" });
     }
   }
 
-  async deletePlanTarifario(req, res) {
+  async deleteCatalogo(req, res) {
     try {
       const { id } = req.params;
       const planModel = new PlanesTarifariosModel();
-      await planModel.delete(id);
-      return res.status(200).json({ msg: "Plan tarifario eliminado exitosamente" });
+      await planModel.softDelete(id);
+      return res.status(200).json({ msg: "Item eliminado exitosamente" });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al eliminar plan tarifario: ${error.message}`);
-      return res.status(500).json({ msg: "Error al eliminar plan tarifario" });
+      logger.error(`[configuracion.controller.js] Error al eliminar item del catálogo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar item del catálogo" });
     }
   }
 
   // ==================== PREGUNTAS FRECUENTES ====================
   async getFaqs(req, res) {
     try {
-      const faqModel = new FaqPortabilidadModel();
-      const faqs = await faqModel.getAll();
+      const { idEmpresa } = req.user || {};
+      const faqModel = new FaqModel();
+      const faqs = await faqModel.getAll(idEmpresa);
       return res.status(200).json({ data: faqs });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener FAQs: ${error.message}`);
@@ -607,7 +633,7 @@ class ConfiguracionController {
   async getFaqById(req, res) {
     try {
       const { id } = req.params;
-      const faqModel = new FaqPortabilidadModel();
+      const faqModel = new FaqModel();
       const faq = await faqModel.getById(id);
 
       if (!faq) {
@@ -623,14 +649,15 @@ class ConfiguracionController {
 
   async createFaq(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { numero, pregunta, proceso, respuesta, activo } = req.body;
 
       if (!pregunta || !respuesta || !proceso) {
         return res.status(400).json({ msg: "La pregunta, respuesta y proceso son requeridos" });
       }
 
-      const faqModel = new FaqPortabilidadModel();
-      const id = await faqModel.create({ numero, pregunta, proceso, respuesta, activo });
+      const faqModel = new FaqModel();
+      const id = await faqModel.create({ numero, pregunta, proceso, respuesta, activo, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Pregunta frecuente creada exitosamente", data: { id } });
     } catch (error) {
@@ -641,6 +668,7 @@ class ConfiguracionController {
 
   async updateFaq(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { numero, pregunta, proceso, respuesta, activo } = req.body;
 
@@ -648,8 +676,8 @@ class ConfiguracionController {
         return res.status(400).json({ msg: "La pregunta, respuesta y proceso son requeridos" });
       }
 
-      const faqModel = new FaqPortabilidadModel();
-      await faqModel.update(id, { numero, pregunta, proceso, respuesta, activo });
+      const faqModel = new FaqModel();
+      await faqModel.update(id, { numero, pregunta, proceso, respuesta, activo, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Pregunta frecuente actualizada exitosamente" });
     } catch (error) {
@@ -660,9 +688,10 @@ class ConfiguracionController {
 
   async deleteFaq(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
-      const faqModel = new FaqPortabilidadModel();
-      await faqModel.delete(id);
+      const faqModel = new FaqModel();
+      await faqModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Pregunta frecuente eliminada exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar FAQ: ${error.message}`);
@@ -673,8 +702,9 @@ class ConfiguracionController {
   // ==================== TIPIFICACIONES ====================
   async getTipificaciones(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const tipificacionModel = new TipificacionModel();
-      const tipificaciones = await tipificacionModel.getAll();
+      const tipificaciones = await tipificacionModel.getAll(idEmpresa);
       return res.status(200).json({ data: tipificaciones });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener tipificaciones: ${error.message}`);
@@ -701,6 +731,7 @@ class ConfiguracionController {
 
   async createTipificacion(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { nombre, definicion, orden, color, flag_asesor, flag_bot } = req.body;
 
       if (!nombre) {
@@ -708,7 +739,7 @@ class ConfiguracionController {
       }
 
       const tipificacionModel = new TipificacionModel();
-      const id = await tipificacionModel.create({ nombre, definicion, orden, color, flag_asesor, flag_bot });
+      const id = await tipificacionModel.create({ nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Tipificación creada exitosamente", data: { id } });
     } catch (error) {
@@ -719,6 +750,7 @@ class ConfiguracionController {
 
   async updateTipificacion(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { nombre, definicion, orden, color, flag_asesor, flag_bot } = req.body;
 
@@ -727,7 +759,7 @@ class ConfiguracionController {
       }
 
       const tipificacionModel = new TipificacionModel();
-      await tipificacionModel.update(id, { nombre, definicion, orden, color, flag_asesor, flag_bot });
+      await tipificacionModel.update(id, { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Tipificación actualizada exitosamente" });
     } catch (error) {
@@ -738,9 +770,10 @@ class ConfiguracionController {
 
   async deleteTipificacion(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const tipificacionModel = new TipificacionModel();
-      await tipificacionModel.delete(id);
+      await tipificacionModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Tipificación eliminada exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar tipificación: ${error.message}`);
@@ -801,8 +834,9 @@ class ConfiguracionController {
   // ==================== PREGUNTAS DE PERFILAMIENTO ====================
   async getPreguntasPerfilamiento(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const preguntaModel = new PreguntaPerfilamientoModel();
-      const preguntas = await preguntaModel.getAll();
+      const preguntas = await preguntaModel.getAll(idEmpresa);
       return res.status(200).json({ data: preguntas });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener preguntas de perfilamiento: ${error.message}`);
@@ -829,6 +863,7 @@ class ConfiguracionController {
 
   async createPreguntaPerfilamiento(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { pregunta, orden } = req.body;
 
       if (!pregunta) {
@@ -836,7 +871,7 @@ class ConfiguracionController {
       }
 
       const preguntaModel = new PreguntaPerfilamientoModel();
-      const id = await preguntaModel.create({ pregunta, orden });
+      const id = await preguntaModel.create({ pregunta, orden, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Pregunta de perfilamiento creada exitosamente", data: { id } });
     } catch (error) {
@@ -847,6 +882,7 @@ class ConfiguracionController {
 
   async updatePreguntaPerfilamiento(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { pregunta, orden } = req.body;
 
@@ -855,7 +891,7 @@ class ConfiguracionController {
       }
 
       const preguntaModel = new PreguntaPerfilamientoModel();
-      await preguntaModel.update(id, { pregunta, orden });
+      await preguntaModel.update(id, { pregunta, orden, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Pregunta de perfilamiento actualizada exitosamente" });
     } catch (error) {
@@ -866,9 +902,10 @@ class ConfiguracionController {
 
   async deletePreguntaPerfilamiento(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const preguntaModel = new PreguntaPerfilamientoModel();
-      await preguntaModel.delete(id);
+      await preguntaModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Pregunta de perfilamiento eliminada exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar pregunta de perfilamiento: ${error.message}`);
@@ -879,8 +916,9 @@ class ConfiguracionController {
   // ==================== ARGUMENTOS DE VENTA ====================
   async getArgumentosVenta(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const argumentoModel = new ArgumentoVentaModel();
-      const argumentos = await argumentoModel.getAll();
+      const argumentos = await argumentoModel.getAll(idEmpresa);
       return res.status(200).json({ data: argumentos });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener argumentos de venta: ${error.message}`);
@@ -907,6 +945,7 @@ class ConfiguracionController {
 
   async createArgumentoVenta(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { titulo, argumento } = req.body;
 
       if (!titulo || !argumento) {
@@ -914,7 +953,7 @@ class ConfiguracionController {
       }
 
       const argumentoModel = new ArgumentoVentaModel();
-      const id = await argumentoModel.create({ titulo, argumento });
+      const id = await argumentoModel.create({ titulo, argumento, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Argumento de venta creado exitosamente", data: { id } });
     } catch (error) {
@@ -925,6 +964,7 @@ class ConfiguracionController {
 
   async updateArgumentoVenta(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { titulo, argumento } = req.body;
 
@@ -933,7 +973,7 @@ class ConfiguracionController {
       }
 
       const argumentoModel = new ArgumentoVentaModel();
-      await argumentoModel.update(id, { titulo, argumento });
+      await argumentoModel.update(id, { titulo, argumento, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Argumento de venta actualizado exitosamente" });
     } catch (error) {
@@ -944,9 +984,10 @@ class ConfiguracionController {
 
   async deleteArgumentoVenta(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const argumentoModel = new ArgumentoVentaModel();
-      await argumentoModel.delete(id);
+      await argumentoModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Argumento de venta eliminado exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar argumento de venta: ${error.message}`);
@@ -957,8 +998,9 @@ class ConfiguracionController {
   // ==================== PERIODICIDAD DE RECORDATORIOS ====================
   async getPeriodicidadesRecordatorio(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const periodicidadModel = new PeriodicidadRecordatorioModel();
-      const periodicidades = await periodicidadModel.getAll();
+      const periodicidades = await periodicidadModel.getAll(idEmpresa);
       return res.status(200).json({ data: periodicidades });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener periodicidades de recordatorio: ${error.message}`);
@@ -985,6 +1027,7 @@ class ConfiguracionController {
 
   async createPeriodicidadRecordatorio(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { nombre, cada_horas } = req.body;
 
       if (!nombre || !cada_horas) {
@@ -992,7 +1035,7 @@ class ConfiguracionController {
       }
 
       const periodicidadModel = new PeriodicidadRecordatorioModel();
-      const id = await periodicidadModel.create({ nombre, cada_horas });
+      const id = await periodicidadModel.create({ nombre, cada_horas, id_empresa: idEmpresa });
 
       return res.status(201).json({ msg: "Periodicidad de recordatorio creada exitosamente", data: { id } });
     } catch (error) {
@@ -1003,6 +1046,7 @@ class ConfiguracionController {
 
   async updatePeriodicidadRecordatorio(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const { nombre, cada_horas } = req.body;
 
@@ -1011,7 +1055,7 @@ class ConfiguracionController {
       }
 
       const periodicidadModel = new PeriodicidadRecordatorioModel();
-      await periodicidadModel.update(id, { nombre, cada_horas });
+      await periodicidadModel.update(id, { nombre, cada_horas, id_empresa: idEmpresa });
 
       return res.status(200).json({ msg: "Periodicidad de recordatorio actualizada exitosamente" });
     } catch (error) {
@@ -1022,9 +1066,10 @@ class ConfiguracionController {
 
   async deletePeriodicidadRecordatorio(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { id } = req.params;
       const periodicidadModel = new PeriodicidadRecordatorioModel();
-      await periodicidadModel.delete(id);
+      await periodicidadModel.delete(id, idEmpresa);
       return res.status(200).json({ msg: "Periodicidad de recordatorio eliminada exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar periodicidad de recordatorio: ${error.message}`);
@@ -1087,13 +1132,14 @@ class ConfiguracionController {
       const { id } = req.params;
       const { nombre, descripcion } = req.body;
       const usuario_actualizacion = req.user?.userId || null;
+      const id_empresa = req.user?.idEmpresa || null;
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
       }
 
       const formatoModel = new FormatoModel();
-      await formatoModel.update(id, { nombre, descripcion, usuario_actualizacion });
+      await formatoModel.update(id, { nombre, descripcion, usuario_actualizacion, id_empresa });
 
       return res.status(200).json({ msg: "Formato actualizado exitosamente" });
     } catch (error) {
@@ -1105,8 +1151,9 @@ class ConfiguracionController {
   async deleteFormato(req, res) {
     try {
       const { id } = req.params;
+      const id_empresa = req.user?.idEmpresa || null;
       const formatoModel = new FormatoModel();
-      await formatoModel.delete(id);
+      await formatoModel.delete(id, id_empresa);
       return res.status(200).json({ msg: "Formato eliminado exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar formato: ${error.message}`);
@@ -1290,13 +1337,14 @@ class ConfiguracionController {
       const { id } = req.params;
       const { nombre, descripcion, id_formato } = req.body;
       const usuario_actualizacion = req.user?.userId || null;
+      const id_empresa = req.user?.idEmpresa || null;
 
       if (!nombre || !id_formato) {
         return res.status(400).json({ msg: "El nombre y formato son requeridos" });
       }
 
       const baseNumeroModel = new BaseNumeroModel();
-      await baseNumeroModel.update(id, { nombre, descripcion, id_formato, usuario_actualizacion });
+      await baseNumeroModel.update(id, { nombre, descripcion, id_formato, usuario_actualizacion, id_empresa });
 
       return res.status(200).json({ msg: "Base de numeros actualizada exitosamente" });
     } catch (error) {
@@ -1308,8 +1356,9 @@ class ConfiguracionController {
   async deleteBaseNumero(req, res) {
     try {
       const { id } = req.params;
+      const id_empresa = req.user?.idEmpresa || null;
       const baseNumeroModel = new BaseNumeroModel();
-      await baseNumeroModel.delete(id);
+      await baseNumeroModel.delete(id, id_empresa);
       return res.status(200).json({ msg: "Base de numeros eliminada exitosamente" });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar base de numeros: ${error.message}`);
@@ -1626,8 +1675,9 @@ class ConfiguracionController {
   // ==================== PLANTILLAS ====================
   async getPlantillas(req, res) {
     try {
+      const idEmpresa = req.user?.idEmpresa || null;
       const plantillaModel = new PlantillaModel();
-      const plantillas = await plantillaModel.getAll();
+      const plantillas = await plantillaModel.getAll(idEmpresa);
       return res.status(200).json({ data: plantillas });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener plantillas: ${error.message}`);
@@ -1667,7 +1717,7 @@ class ConfiguracionController {
   async createPlantilla(req, res) {
     try {
       const { id_formato, nombre, descripcion, prompt_sistema, prompt_inicio, prompt_flujo, prompt_cierre, prompt_resultado } = req.body;
-      const id_empresa = req.user?.id_empresa || 1;
+      const id_empresa = req.user?.idEmpresa || 1;
       const usuario_registro = req.user?.userId || null;
 
       if (!id_formato || !nombre || !prompt_sistema || !prompt_inicio || !prompt_flujo) {
@@ -1699,6 +1749,7 @@ class ConfiguracionController {
     try {
       const { id } = req.params;
       const { id_formato, nombre, descripcion, prompt_sistema, prompt_inicio, prompt_flujo, prompt_cierre, prompt_resultado } = req.body;
+      const idEmpresa = req.user?.idEmpresa || null;
       const usuario_actualizacion = req.user?.userId || null;
 
       if (!id_formato || !nombre || !prompt_sistema || !prompt_inicio || !prompt_flujo) {
@@ -1715,7 +1766,8 @@ class ConfiguracionController {
         prompt_flujo,
         prompt_cierre,
         prompt_resultado,
-        usuario_actualizacion
+        usuario_actualizacion,
+        id_empresa: idEmpresa
       });
 
       if (!updated) {
@@ -1732,8 +1784,9 @@ class ConfiguracionController {
   async deletePlantilla(req, res) {
     try {
       const { id } = req.params;
+      const idEmpresa = req.user?.idEmpresa || null;
       const plantillaModel = new PlantillaModel();
-      const deleted = await plantillaModel.delete(id);
+      const deleted = await plantillaModel.delete(id, idEmpresa);
 
       if (!deleted) {
         return res.status(404).json({ msg: "Plantilla no encontrada" });
@@ -2050,6 +2103,57 @@ class ConfiguracionController {
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al cancelar ejecucion: ${error.message}`);
       return res.status(500).json({ msg: "Error al cancelar ejecucion" });
+    }
+  }
+
+  // ==================== PROMPT ASISTENTE ====================
+  async getPromptAsistente(req, res) {
+    try {
+      const idEmpresa = req.user?.idEmpresa || null;
+
+      if (!idEmpresa) {
+        return res.status(400).json({ msg: "ID de empresa requerido" });
+      }
+
+      const promptModel = new PromptAsistenteModel();
+      const prompt = await promptModel.getByEmpresa(idEmpresa);
+
+      return res.status(200).json({ data: prompt });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener prompt asistente: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener prompt asistente" });
+    }
+  }
+
+  async savePromptAsistente(req, res) {
+    try {
+      const { prompt_sistema } = req.body;
+      const idEmpresa = req.user?.idEmpresa || null;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!idEmpresa) {
+        return res.status(400).json({ msg: "ID de empresa requerido" });
+      }
+
+      if (!prompt_sistema || prompt_sistema.trim() === '') {
+        return res.status(400).json({ msg: "El prompt del sistema es requerido" });
+      }
+
+      const promptModel = new PromptAsistenteModel();
+      const result = await promptModel.upsert({
+        id_empresa: idEmpresa,
+        prompt_sistema,
+        usuario_registro
+      });
+
+      const mensaje = result.updated
+        ? "Prompt actualizado exitosamente"
+        : "Prompt creado exitosamente";
+
+      return res.status(200).json({ msg: mensaje, data: { id: result.id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al guardar prompt asistente: ${error.message}`);
+      return res.status(500).json({ msg: "Error al guardar prompt asistente" });
     }
   }
 }

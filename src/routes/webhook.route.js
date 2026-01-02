@@ -541,7 +541,8 @@ router.post('/send-whatsapp', async (req, res) => {
             document_url,
             filename,
             audio_url,
-            video_url
+            video_url,
+            id_empresa
         } = req.body;
 
         if (!phone) {
@@ -609,9 +610,11 @@ router.post('/send-whatsapp', async (req, res) => {
         console.log('========== [webhook/send-whatsapp] ENVIANDO ==========');
         console.log(`📱 Phone: ${phone}`);
         console.log(`📝 Type: ${type}`);
+        console.log(`🏢 id_empresa/sessionId: ${id_empresa || CONFIG.SESSION_ID}`);
         console.log(`💬 Message: ${message ? message.substring(0, 50) + '...' : 'Sin texto'}`);
 
-        const baileysUrl = `${CONFIG.BAILEYS_URL}/session/${CONFIG.SESSION_ID}/send`;
+        const sessionId = id_empresa || CONFIG.SESSION_ID;
+        const baileysUrl = `${CONFIG.BAILEYS_URL}/session/${sessionId}/send`;
         let payload = { phone };
         let mediaUrl = null;
 

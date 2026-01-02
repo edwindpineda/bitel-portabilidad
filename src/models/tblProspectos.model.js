@@ -33,7 +33,7 @@ class TblClienteRestModel {
              FROM prospecto p
              LEFT JOIN estado e ON p.id_estado = e.id
              LEFT JOIN proveedor pv ON p.id_provedor = pv.id
-             LEFT JOIN planes_tarifarios pt ON p.id_plan = pt.id
+             LEFT JOIN catalogo pt ON p.id_plan = pt.id
              LEFT JOIN tipificacion t ON p.id_tipificacion = t.id
              LEFT JOIN tipificacion ta ON p.id_tipificacion_asesor = ta.id
              LEFT JOIN contacto c ON c.id_prospecto = p.id
@@ -99,17 +99,22 @@ class TblClienteRestModel {
         }
     }
 
-    async selectByCelular(phone) {
+    async selectByCelular(phone, id_empresa = null) {
         try {
-    
-            const [rows] = await this.connection.execute(
-                `SELECT p.*, c.celular as num_contacto
+            let query = `SELECT p.*, c.celular as num_contacto
                 FROM prospecto p
                 INNER JOIN contacto c ON p.id = c.id_prospecto
                 WHERE c.celular = ?
-                AND p.estado_registro = 1`,
-                [phone]
-            );
+                AND p.estado_registro = 1`;
+
+            const params = [phone];
+
+            if (id_empresa) {
+                query += ` AND p.id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            const [rows] = await this.connection.execute(query, params);
 
             return rows.length > 0 ? rows[0] : null;
         } catch (error) {
@@ -124,11 +129,11 @@ class TblClienteRestModel {
      * @param {string} tipo_usuario - Tipo de usuario
      * @returns {Promise<number>} - ID del registro creado
      */
-    async createProspecto(tipo_usuario, id_estado, phone, id_asesor) {
+    async createProspecto(tipo_usuario, id_estado, phone, id_asesor, id_empresa = null) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO prospecto (tipo_usuario, id_estado, celular, id_asesor) VALUES (?, ?, ?, ?)',
-                [tipo_usuario, id_estado, phone, id_asesor]
+                'INSERT INTO prospecto (tipo_usuario, id_estado, celular, id_asesor, id_empresa) VALUES (?, ?, ?, ?, ?)',
+                [tipo_usuario, id_estado, phone, id_asesor, id_empresa]
             );
 
                 const [rows] = await this.connection.execute(

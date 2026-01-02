@@ -5,19 +5,33 @@ class TipificacionModel {
     this.connection = dbConnection || pool;
   }
 
-  async getAll() {
-    const [rows] = await this.connection.execute(
-      `SELECT *
-       FROM tipificacion ORDER BY orden ASC, nombre ASC`
-    );
+  async getAll(id_empresa = null) {
+    let query = `SELECT * FROM tipificacion WHERE 1=1`;
+    const params = [];
+
+    if (id_empresa) {
+      query += ' AND id_empresa = ?';
+      params.push(id_empresa);
+    }
+
+    query += ' ORDER BY orden ASC, nombre ASC';
+
+    const [rows] = await this.connection.execute(query, params);
     return rows;
   }
 
-  async getAllForBot() {
-    const [rows] = await this.connection.execute(
-      `SELECT *
-       FROM tipificacion WHERE flag_bot = 1 ORDER BY orden ASC, nombre ASC`
-    );
+  async getAllForBot(id_empresa = null) {
+    let query = `SELECT * FROM tipificacion WHERE flag_bot = 1`;
+    const params = [];
+
+    if (id_empresa) {
+      query += ' AND id_empresa = ?';
+      params.push(id_empresa);
+    }
+
+    query += ' ORDER BY orden ASC, nombre ASC';
+
+    const [rows] = await this.connection.execute(query, params);
     return rows;
   }
 
@@ -31,29 +45,40 @@ class TipificacionModel {
   }
 
   async create(data) {
-    const { nombre, definicion, orden, color, flag_asesor, flag_bot } = data;
+    const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa = null } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO tipificacion (nombre, definicion, orden, color, flag_asesor, flag_bot) VALUES (?, ?, ?, ?, ?, ?)`,
-      [nombre, definicion || null, orden || 0, color || null, flag_asesor, flag_bot]
+      `INSERT INTO tipificacion (nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, definicion || null, orden || 0, color || null, flag_asesor, flag_bot, id_empresa]
     );
     return result.insertId;
   }
 
   async update(id, data) {
-    const { nombre, definicion, orden, color, flag_asesor, flag_bot } = data;
+    const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa = null } = data;
     const ordenValue = orden !== undefined && orden !== null ? orden : 0;
-    await this.connection.execute(
-      `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ? WHERE id = ?`,
-      [nombre, definicion || null, ordenValue, color || null, flag_asesor, flag_bot, id]
-    );
+
+    let query = `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ? WHERE id = ?`;
+    const params = [nombre, definicion || null, ordenValue, color || null, flag_asesor, flag_bot, id];
+
+    if (id_empresa) {
+      query = `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ? WHERE id = ? AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    await this.connection.execute(query, params);
     return true;
   }
 
-  async delete(id) {
-    await this.connection.execute(
-      `DELETE FROM tipificacion WHERE id = ?`,
-      [id]
-    );
+  async delete(id, id_empresa = null) {
+    let query = `DELETE FROM tipificacion WHERE id = ?`;
+    const params = [id];
+
+    if (id_empresa) {
+      query = `DELETE FROM tipificacion WHERE id = ? AND id_empresa = ?`;
+      params.push(id_empresa);
+    }
+
+    await this.connection.execute(query, params);
     return true;
   }
 }

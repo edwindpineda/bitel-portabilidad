@@ -1,6 +1,6 @@
 const { pool } = require("../config/dbConnection.js");
 
-class TblFaqPortabilidadModel {
+class FaqModel {
 
     constructor(dbConnection = null) {
         this.connection = dbConnection || pool;
@@ -8,13 +8,22 @@ class TblFaqPortabilidadModel {
 
     /**
      * Obtiene todas las FAQs activas
+     * @param {number|null} id_empresa - ID de la empresa para filtrar
      * @returns {Promise<Array>} - Array de FAQs
      */
-    async getAllActivas() {
+    async getAllActivas(id_empresa = null) {
         try {
-            const [rows] = await this.connection.execute(
-                'SELECT * FROM faq_portabilidad WHERE activo = 1 ORDER BY numero ASC'
-            );
+            let query = 'SELECT * FROM faq WHERE activo = 1';
+            const params = [];
+
+            if (id_empresa) {
+                query += ' AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            query += ' ORDER BY numero ASC';
+
+            const [rows] = await this.connection.execute(query, params);
             return rows;
         } catch (error) {
             throw new Error(`Error al obtener FAQs activas: ${error.message}`);
@@ -23,13 +32,22 @@ class TblFaqPortabilidadModel {
 
     /**
      * Obtiene todas las FAQs (activas e inactivas)
+     * @param {number|null} id_empresa - ID de la empresa para filtrar
      * @returns {Promise<Array>} - Array de FAQs
      */
-    async getAll() {
+    async getAll(id_empresa = null) {
         try {
-            const [rows] = await this.connection.execute(
-                'SELECT * FROM faq_portabilidad ORDER BY numero ASC'
-            );
+            let query = 'SELECT * FROM faq WHERE activo = 1';
+            const params = [];
+
+            if (id_empresa) {
+                query += ' AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            query += ' ORDER BY numero ASC';
+
+            const [rows] = await this.connection.execute(query, params);
             return rows;
         } catch (error) {
             throw new Error(`Error al obtener FAQs: ${error.message}`);
@@ -44,7 +62,7 @@ class TblFaqPortabilidadModel {
     async getByProceso(proceso) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM faq_portabilidad WHERE proceso = ? AND activo = 1 ORDER BY numero ASC',
+                'SELECT * FROM faq WHERE proceso = ? AND activo = 1 ORDER BY numero ASC',
                 [proceso]
             );
             return rows;
@@ -61,7 +79,7 @@ class TblFaqPortabilidadModel {
     async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT * FROM faq_portabilidad WHERE id = ?',
+                'SELECT * FROM faq WHERE id = ?',
                 [id]
             );
             return rows.length > 0 ? rows[0] : null;
@@ -78,7 +96,7 @@ class TblFaqPortabilidadModel {
     async search(texto) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT * FROM faq_portabilidad
+                `SELECT * FROM faq
                  WHERE activo = 1 AND (pregunta LIKE ? OR respuesta LIKE ?)
                  ORDER BY numero ASC`,
                 [`%${texto}%`, `%${texto}%`]
@@ -94,12 +112,12 @@ class TblFaqPortabilidadModel {
      * @param {Object} faq - Datos de la FAQ
      * @returns {Promise<number>} - ID de la FAQ creada
      */
-    async create({ numero, pregunta, proceso, respuesta, activo = 1 }) {
+    async create({ numero, pregunta, proceso, respuesta, activo = 1, id_empresa = null }) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO faq_portabilidad (numero, pregunta, proceso, respuesta, activo)
-                 VALUES (?, ?, ?, ?, ?)`,
-                [numero, pregunta, proceso, respuesta, activo]
+                `INSERT INTO faq (numero, pregunta, proceso, respuesta, activo, id_empresa)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [numero, pregunta, proceso, respuesta, activo, id_empresa]
             );
             return result.insertId;
         } catch (error) {
@@ -113,14 +131,21 @@ class TblFaqPortabilidadModel {
      * @param {Object} faq - Datos a actualizar
      * @returns {Promise<boolean>} - true si se actualizó correctamente
      */
-    async update(id, { numero, pregunta, proceso, respuesta, activo }) {
+    async update(id, { numero, pregunta, proceso, respuesta, activo, id_empresa = null }) {
         try {
-            const [result] = await this.connection.execute(
-                `UPDATE faq_portabilidad
+            let query = `UPDATE faq
                  SET numero = ?, pregunta = ?, proceso = ?, respuesta = ?, activo = ?
-                 WHERE id = ?`,
-                [numero, pregunta, proceso, respuesta, activo, id]
-            );
+                 WHERE id = ?`;
+            const params = [numero, pregunta, proceso, respuesta, activo, id];
+
+            if (id_empresa) {
+                query = `UPDATE faq
+                 SET numero = ?, pregunta = ?, proceso = ?, respuesta = ?, activo = ?
+                 WHERE id = ? AND id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             throw new Error(`Error al actualizar FAQ: ${error.message}`);
@@ -135,7 +160,7 @@ class TblFaqPortabilidadModel {
     async softDelete(id) {
         try {
             const [result] = await this.connection.execute(
-                'UPDATE faq_portabilidad SET activo = 0 WHERE id = ?',
+                'UPDATE faq SET activo = 0 WHERE id = ?',
                 [id]
             );
             return result.affectedRows > 0;
@@ -145,16 +170,22 @@ class TblFaqPortabilidadModel {
     }
 
     /**
-     * Elimina una FAQ permanentemente
+     * Elimina una FAQ (soft delete)
      * @param {number} id - ID de la FAQ
+     * @param {number|null} id_empresa - ID de la empresa
      * @returns {Promise<boolean>} - true si se eliminó correctamente
      */
-    async delete(id) {
+    async delete(id, id_empresa = null) {
         try {
-            const [result] = await this.connection.execute(
-                'DELETE FROM faq_portabilidad WHERE id = ?',
-                [id]
-            );
+            let query = 'UPDATE faq SET activo = 0 WHERE id = ?';
+            const params = [id];
+
+            if (id_empresa) {
+                query = 'UPDATE faq SET activo = 0 WHERE id = ? AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            const [result] = await this.connection.execute(query, params);
             return result.affectedRows > 0;
         } catch (error) {
             throw new Error(`Error al eliminar FAQ: ${error.message}`);
@@ -186,4 +217,4 @@ R: ${faq.respuesta}`;
     }
 }
 
-module.exports = TblFaqPortabilidadModel;
+module.exports = FaqModel;
