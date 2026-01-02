@@ -8,20 +8,46 @@ class TblUsuarioModel {
   async getAll() {
     try {
       const [rows] = await this.connection.execute(
-        `SELECT u.id, u.username, u.id_rol, u.id_sucursal, u.id_padre, u.estado_registro, u.fecha_registro,
+        `SELECT u.id, u.username, u.id_rol, u.id_sucursal, u.id_padre, u.id_empresa, u.estado_registro, u.fecha_registro,
                 r.nombre as rol_nombre,
                 s.nombre as sucursal_nombre,
-                p.username as padre_username
+                p.username as padre_username,
+                e.razon_social as empresa_nombre
          FROM usuario u
          LEFT JOIN rol r ON u.id_rol = r.id
          LEFT JOIN sucursal s ON u.id_sucursal = s.id
          LEFT JOIN usuario p ON u.id_padre = p.id
-         WHERE u.estado_registro = 1
+         LEFT JOIN empresa e ON u.id_empresa = e.id
+         WHERE u.estado_registro = '1' OR u.estado_registro = 1
          ORDER BY u.username`
       );
       return rows;
     } catch (error) {
       throw new Error(`Error al obtener usuarios: ${error.message}`);
+    }
+  }
+
+  async getAdministradores() {
+    try {
+      const [rows] = await this.connection.execute(
+        `SELECT u.id, u.username, u.id_rol, u.id_sucursal, u.id_padre, u.id_empresa, u.estado_registro, u.fecha_registro,
+                r.nombre as rol_nombre,
+                s.nombre as sucursal_nombre,
+                p.username as padre_username,
+                e.razon_social as empresa_nombre
+         FROM usuario u
+         LEFT JOIN rol r ON u.id_rol = r.id
+         LEFT JOIN sucursal s ON u.id_sucursal = s.id
+         LEFT JOIN usuario p ON u.id_padre = p.id
+         LEFT JOIN empresa e ON u.id_empresa = e.id
+         WHERE u.id_rol = 1
+           AND (u.id_empresa IS NULL OR u.id_empresa != 0)
+           AND (u.estado_registro = '1' OR u.estado_registro = 1)
+         ORDER BY u.username`
+      );
+      return rows;
+    } catch (error) {
+      throw new Error(`Error al obtener administradores: ${error.message}`);
     }
   }
 
@@ -74,12 +100,12 @@ class TblUsuarioModel {
     }
   }
 
-  async create({ id_rol, username, password, id_sucursal, id_padre }) {
+  async create({ id_rol, username, password, id_sucursal, id_padre, id_empresa }) {
     try {
       const [result] = await this.connection.execute(
-        `INSERT INTO usuario (id_rol, username, password, id_sucursal, id_padre, estado_registro, fecha_registro, usuario_registro, fecha_actualizacion, usuario_actualizacion)
-         VALUES (?, ?, ?, ?, ?, 1, NOW(), 'admin', NOW(), 'admin')`,
-        [id_rol, username, password, id_sucursal || null, id_padre || null]
+        `INSERT INTO usuario (id_rol, username, password, id_sucursal, id_padre, id_empresa, estado_registro, fecha_registro, usuario_registro, fecha_actualizacion, usuario_actualizacion)
+         VALUES (?, ?, ?, ?, ?, ?, 1, NOW(), 'admin', NOW(), 'admin')`,
+        [id_rol, username, password, id_sucursal || null, id_padre || null, id_empresa || null]
       );
       return result.insertId;
     } catch (error) {
@@ -87,10 +113,10 @@ class TblUsuarioModel {
     }
   }
 
-  async update(id, { id_rol, username, password, id_sucursal, id_padre }) {
+  async update(id, { id_rol, username, password, id_sucursal, id_padre, id_empresa }) {
     try {
-      let query = `UPDATE usuario SET id_rol = ?, username = ?, id_sucursal = ?, id_padre = ?, fecha_actualizacion = NOW()`;
-      let params = [id_rol, username, id_sucursal || null, id_padre || null];
+      let query = `UPDATE usuario SET id_rol = ?, username = ?, id_sucursal = ?, id_padre = ?, id_empresa = ?, fecha_actualizacion = NOW()`;
+      let params = [id_rol, username, id_sucursal || null, id_padre || null, id_empresa || null];
 
       if (password) {
         query += `, password = ?`;

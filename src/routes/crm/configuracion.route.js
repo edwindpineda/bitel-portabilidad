@@ -129,4 +129,76 @@ router.post("/periodicidades-recordatorio", ConfiguracionController.createPeriod
 router.put("/periodicidades-recordatorio/:id", ConfiguracionController.updatePeriodicidadRecordatorio);
 router.delete("/periodicidades-recordatorio/:id", ConfiguracionController.deletePeriodicidadRecordatorio);
 
+// Rutas de Formatos
+router.get("/formatos", ConfiguracionController.getFormatos);
+router.get("/formatos/:id", ConfiguracionController.getFormatoById);
+router.post("/formatos", ConfiguracionController.createFormato);
+router.put("/formatos/:id", ConfiguracionController.updateFormato);
+router.delete("/formatos/:id", ConfiguracionController.deleteFormato);
+
+// Rutas de Campos de Formato
+router.get("/formatos/:idFormato/campos", ConfiguracionController.getCamposByFormato);
+router.get("/formato-campos/:id", ConfiguracionController.getCampoById);
+router.post("/formato-campos", ConfiguracionController.createCampo);
+router.put("/formato-campos/:id", ConfiguracionController.updateCampo);
+router.delete("/formato-campos/:id", ConfiguracionController.deleteCampo);
+router.patch("/formato-campos/orden", ConfiguracionController.updateOrdenCampos);
+
+// Configuracion de Multer para carga de archivos Excel/CSV
+const uploadBaseNumero = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB maximo
+    fileFilter: (req, file, cb) => {
+        const allowedTypes = /xlsx|xls|csv/;
+        const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+        if (extname) {
+            return cb(null, true);
+        }
+        cb(new Error("Solo se permiten archivos Excel (xlsx, xls) o CSV"));
+    }
+});
+
+// Rutas de Base de Numeros
+router.get("/bases-numeros", ConfiguracionController.getBasesNumeros);
+router.get("/bases-numeros/:id", ConfiguracionController.getBaseNumeroById);
+router.post("/bases-numeros", ConfiguracionController.createBaseNumero);
+router.put("/bases-numeros/:id", ConfiguracionController.updateBaseNumero);
+router.delete("/bases-numeros/:id", ConfiguracionController.deleteBaseNumero);
+
+// Rutas de Detalle Base de Numeros
+router.get("/bases-numeros/:idBase/detalles", ConfiguracionController.getDetallesByBaseNumero);
+router.post("/base-numero-detalles", ConfiguracionController.createDetalle);
+router.delete("/base-numero-detalles/:id", ConfiguracionController.deleteDetalle);
+
+// Ruta de carga masiva
+router.post("/bases-numeros/upload", uploadBaseNumero.single('archivo'), ConfiguracionController.uploadBaseNumero);
+
+// Rutas de Plantillas
+router.get("/plantillas", ConfiguracionController.getPlantillas);
+router.get("/plantillas/:id", ConfiguracionController.getPlantillaById);
+router.get("/formatos/:idFormato/plantillas", ConfiguracionController.getPlantillasByFormato);
+router.post("/plantillas", ConfiguracionController.createPlantilla);
+router.put("/plantillas/:id", ConfiguracionController.updatePlantilla);
+router.delete("/plantillas/:id", ConfiguracionController.deletePlantilla);
+
+// Rutas de Campanias
+router.get("/campanias", ConfiguracionController.getCampanias);
+router.get("/campanias/:id", ConfiguracionController.getCampaniaById);
+router.post("/campanias", ConfiguracionController.createCampania);
+router.put("/campanias/:id", ConfiguracionController.updateCampania);
+router.delete("/campanias/:id", ConfiguracionController.deleteCampania);
+
+// Rutas de Bases de Campania
+router.get("/campanias/:idCampania/bases", ConfiguracionController.getBasesByCampania);
+router.post("/campania-bases", ConfiguracionController.addBaseToCampania);
+router.delete("/campania-bases/:id", ConfiguracionController.removeBaseFromCampania);
+
+// Rutas de Ejecucion de Campania
+router.get("/campanias/:idCampania/ejecuciones", ConfiguracionController.getEjecucionesByCampania);
+router.get("/campanias/:idCampania/estadisticas", ConfiguracionController.getEstadisticasCampania);
+router.post("/campania-ejecuciones/ejecutar", ConfiguracionController.ejecutarCampania);
+router.get("/campania-ejecuciones/:id", ConfiguracionController.getEjecucionById);
+router.patch("/campania-ejecuciones/:id/estado", ConfiguracionController.updateEstadoEjecucion);
+router.patch("/campania-ejecuciones/:id/cancelar", ConfiguracionController.cancelarEjecucion);
+
 module.exports = router;
