@@ -8,11 +8,11 @@ class LeadsController {
       const prospectoModel = new ProspectoModel();
 
       // Obtener info del usuario autenticado
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
 
-      logger.info(`[leads.controller.js] getLeads - userId: ${userId}, rolId: ${rolId}`);
+      logger.info(`[leads.controller.js] getLeads - userId: ${userId}, rolId: ${rolId}, idEmpresa: ${idEmpresa}`);
 
-      const leads = await prospectoModel.getAllByTipoUsuario('user', userId, rolId);
+      const leads = await prospectoModel.getAllByTipoUsuario('user', userId, rolId, idEmpresa);
       return res.status(200).json({ data: leads });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener leads: ${error.message}`);
@@ -58,23 +58,31 @@ class LeadsController {
 
   async getAsesores(req, res) {
     try {
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
 
       // Convertir rolId a número para comparación segura
       const rolIdNum = parseInt(rolId, 10);
 
-      logger.info(`[leads.controller.js] getAsesores - userId: ${userId}, rolId: ${rolId}, rolIdNum: ${rolIdNum}`);
+      logger.info(`[leads.controller.js] getAsesores - userId: ${userId}, rolId: ${rolId}, rolIdNum: ${rolIdNum}, idEmpresa: ${idEmpresa}`);
 
       let query = '';
       let params = [];
 
       if (rolIdNum === 1) {
-        // Rol 1 (admin): ver todos los asesores (id_rol = 3)
+        // Rol 1 (admin): ver todos los asesores (id_rol = 3) de su empresa
         query = `SELECT id, username, email FROM usuario WHERE id_rol = 3 AND estado_registro = 1`;
+        if (idEmpresa) {
+          query += ` AND id_empresa = ?`;
+          params.push(idEmpresa);
+        }
       } else if (rolIdNum === 2) {
         // Rol 2 (supervisor): ver solo asesores con id_padre = userId del logueado
         query = `SELECT id, username, email FROM usuario WHERE id_rol = 3 AND id_padre = ? AND estado_registro = 1`;
         params = [userId];
+        if (idEmpresa) {
+          query += ` AND id_empresa = ?`;
+          params.push(idEmpresa);
+        }
       } else {
         // Otros roles no pueden ver asesores
         logger.info(`[leads.controller.js] getAsesores - Rol ${rolIdNum} no tiene permisos para ver asesores`);

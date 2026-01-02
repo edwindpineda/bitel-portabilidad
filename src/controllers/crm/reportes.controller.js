@@ -7,7 +7,15 @@ class ReportesCrmController {
       const { dateFrom, dateTo } = req.query;
 
       // Obtener info del usuario autenticado
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
+
+      // Filtrar por id_empresa del usuario
+      let empresaCondition = '';
+      const empresaParams = [];
+      if (idEmpresa) {
+        empresaCondition = ' AND p.id_empresa = ?';
+        empresaParams.push(idEmpresa);
+      }
 
       // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
       let asesorCondition = '';
@@ -32,7 +40,7 @@ class ReportesCrmController {
         dateParams.push(dateTo + ' 23:59:59');
       }
 
-      const params = [...asesorParams, ...dateParams];
+      const params = [...empresaParams, ...asesorParams, ...dateParams];
 
       // 1. Total de leads (prospectos con tipo_usuario = 'user')
       const [totalLeadsResult] = await pool.execute(`
@@ -40,6 +48,7 @@ class ReportesCrmController {
         FROM prospecto p
         WHERE p.tipo_usuario = 'user'
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
         ${dateCondition}
       `, params);
@@ -53,6 +62,7 @@ class ReportesCrmController {
         INNER JOIN mensaje m ON m.id_contacto = c.id
         WHERE p.tipo_usuario = 'user'
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
         ${dateCondition}
       `, params);
@@ -66,6 +76,7 @@ class ReportesCrmController {
         WHERE p.tipo_usuario = 'user'
         AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
         ${dateCondition}
       `, params);
@@ -100,7 +111,15 @@ class ReportesCrmController {
   async getDashboardStats(req, res) {
     try {
       // Obtener info del usuario autenticado
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
+
+      // Filtrar por id_empresa del usuario
+      let empresaCondition = '';
+      const empresaParams = [];
+      if (idEmpresa) {
+        empresaCondition = ' AND p.id_empresa = ?';
+        empresaParams.push(idEmpresa);
+      }
 
       // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
       let asesorCondition = '';
@@ -110,14 +129,17 @@ class ReportesCrmController {
         asesorParams.push(userId);
       }
 
+      const params = [...empresaParams, ...asesorParams];
+
       // 1. Total de leads (prospectos con tipo_usuario = 'user')
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM prospecto p
         WHERE p.tipo_usuario = 'user'
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
-      `, asesorParams);
+      `, params);
       const totalLeads = totalLeadsResult[0]?.total || 0;
 
       // 2. Interesados (prospectos con estado line1 o line2) = Tasa de conversion
@@ -128,8 +150,9 @@ class ReportesCrmController {
         WHERE p.tipo_usuario = 'user'
         AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
-      `, asesorParams);
+      `, params);
       const interesados = interesadosResult[0]?.total || 0;
 
       // 3. Leads nuevos esta semana
@@ -139,8 +162,9 @@ class ReportesCrmController {
         WHERE p.tipo_usuario = 'user'
         AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
-      `, asesorParams);
+      `, params);
       const leadsSemana = leadsSemanasResult[0]?.total || 0;
 
       // 4. Contactados (prospectos que tienen al menos un mensaje)
@@ -151,8 +175,9 @@ class ReportesCrmController {
         INNER JOIN mensaje m ON m.id_contacto = c.id
         WHERE p.tipo_usuario = 'user'
         AND p.estado_registro = 1
+        ${empresaCondition}
         ${asesorCondition}
-      `, asesorParams);
+      `, params);
       const contactados = contactadosResult[0]?.total || 0;
 
       // 5. Estadisticas por estado (pipeline)
@@ -160,6 +185,10 @@ class ReportesCrmController {
         SELECT e.nombre, e.color, COUNT(p.id) as total
         FROM estado e
         LEFT JOIN prospecto p ON p.id_estado = e.id AND p.tipo_usuario = 'user'`;
+
+      if (idEmpresa) {
+        pipelineQuery += ` AND p.id_empresa = ?`;
+      }
 
       if (rolId && rolId >= 3 && userId) {
         pipelineQuery += ` AND p.id_asesor = ?`;
@@ -169,7 +198,7 @@ class ReportesCrmController {
         GROUP BY e.id, e.nombre, e.color
         ORDER BY e.id`;
 
-      const [pipelineResult] = await pool.execute(pipelineQuery, asesorParams);
+      const [pipelineResult] = await pool.execute(pipelineQuery, params);
 
       // Calcular tasa de conversion
       const tasaConversion = totalLeads > 0 ? Math.round((interesados / totalLeads) * 100) : 0;

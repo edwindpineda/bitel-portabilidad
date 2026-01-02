@@ -87,9 +87,10 @@ class TblMensajeVistoUsuarioModel {
      * Usa id_contacto para comparar el ultimo mensaje visto con el ultimo mensaje del contacto
      * @param {number} idUsuario - ID del usuario
      * @param {number|null} idAsesor - ID del asesor (para filtrar por prospecto asignado)
+     * @param {number|null} idEmpresa - ID de la empresa del usuario
      * @returns {Promise<number>} - Cantidad de contactos con mensajes no leidos
      */
-    async getUnreadContactsCount(idUsuario, idAsesor = null) {
+    async getUnreadContactsCount(idUsuario, idAsesor = null, idEmpresa = null) {
         try {
             // Subconsulta para obtener el ultimo mensaje de cada contacto
             let query = `
@@ -108,6 +109,12 @@ class TblMensajeVistoUsuarioModel {
             `;
 
             const params = [idUsuario];
+
+            // Filtrar por empresa del usuario
+            if (idEmpresa !== null && idEmpresa !== undefined) {
+                query += ` AND p.id_empresa = ?`;
+                params.push(idEmpresa);
+            }
 
             if (idAsesor !== null) {
                 query += ` AND p.id_asesor = ?`;

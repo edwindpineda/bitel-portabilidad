@@ -16,8 +16,8 @@ class TblClienteRestModel {
         return rows[0];
     }
 
-    async getAllByTipoUsuario(tipo_usuario = 'user', userId = null, rolId = null) {
-        logger.info(`[tblProspectos.model.js] getAllByTipoUsuario - tipo_usuario: ${tipo_usuario}, userId: ${userId}, rolId: ${rolId}`);
+    async getAllByTipoUsuario(tipo_usuario = 'user', userId = null, rolId = null, idEmpresa = null) {
+        logger.info(`[tblProspectos.model.js] getAllByTipoUsuario - tipo_usuario: ${tipo_usuario}, userId: ${userId}, rolId: ${rolId}, idEmpresa: ${idEmpresa}`);
 
         let query = `SELECT p.*,
                     e.nombre as estado_nombre,
@@ -42,6 +42,13 @@ class TblClienteRestModel {
              AND p.estado_registro = 1`;
 
         const params = [tipo_usuario];
+
+        // Filtrar por id_empresa si se proporciona
+        if (idEmpresa) {
+            query += ` AND p.id_empresa = ?`;
+            params.push(idEmpresa);
+            logger.info(`[tblProspectos.model.js] Aplicando filtro id_empresa = ${idEmpresa}`);
+        }
 
         // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
         if (rolId && rolId >= 3 && userId) {

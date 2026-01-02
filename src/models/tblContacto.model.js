@@ -40,7 +40,7 @@ class TblContactoModel {
         }
     }
 
-    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, userId = null) {
+    async getAll(offset, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, userId = null, id_empresa = null) {
         try {
             let query = `SELECT
                     c.id,
@@ -63,6 +63,12 @@ class TblContactoModel {
 
             const params = [userId || 0, userId || 0];
             const conditions = [];
+
+            // Filtrar por empresa del usuario
+            if (id_empresa !== null && id_empresa !== undefined) {
+                conditions.push(`p.id_empresa = ?`);
+                params.push(id_empresa);
+            }
 
             if (id_asesor !== null) {
                 conditions.push(`p.id_asesor = ?`);
@@ -103,11 +109,17 @@ class TblContactoModel {
         }
     }
 
-    async getTotal(id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null) {
+    async getTotal(id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, id_empresa = null) {
         try {
             let query = 'SELECT COUNT(*) as total FROM contacto c LEFT JOIN prospecto p ON p.id = c.id_prospecto';
             const params = [];
             const conditions = [];
+
+            // Filtrar por empresa del usuario
+            if (id_empresa !== null && id_empresa !== undefined) {
+                conditions.push('p.id_empresa = ?');
+                params.push(id_empresa);
+            }
 
             if (id_asesor !== null) {
                 conditions.push('p.id_asesor = ?');
@@ -140,7 +152,7 @@ class TblContactoModel {
         }
     }
 
-    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, userId = null) {
+    async search(query, offset = 0, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, userId = null, id_empresa = null) {
         try {
             const searchTerm = `%${query}%`;
             const offsetNum = parseInt(offset, 10) || 0;
@@ -166,6 +178,12 @@ class TblContactoModel {
                 WHERE (c.celular LIKE ? OR p.nombre_completo LIKE ?)`;
 
             const params = [userId || 0, userId || 0, searchTerm, searchTerm];
+
+            // Filtrar por empresa del usuario
+            if (id_empresa !== null && id_empresa !== undefined) {
+                sqlQuery += ` AND p.id_empresa = ?`;
+                params.push(id_empresa);
+            }
 
             if (id_asesor !== null) {
                 sqlQuery += ` AND p.id_asesor = ?`;
@@ -202,7 +220,7 @@ class TblContactoModel {
         }
     }
 
-    async getSearchTotal(query, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null) {
+    async getSearchTotal(query, id_asesor = null, id_estado = null, id_tipificacion = null, id_tipificacion_asesor = null, id_empresa = null) {
         try {
             const searchTerm = `%${query}%`;
 
@@ -212,6 +230,12 @@ class TblContactoModel {
                  WHERE (c.celular LIKE ? OR p.nombre_completo LIKE ?)`;
 
             const params = [searchTerm, searchTerm];
+
+            // Filtrar por empresa del usuario
+            if (id_empresa !== null && id_empresa !== undefined) {
+                sqlQuery += ` AND p.id_empresa = ?`;
+                params.push(id_empresa);
+            }
 
             if (id_asesor !== null) {
                 sqlQuery += ` AND p.id_asesor = ?`;

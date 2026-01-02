@@ -15,7 +15,7 @@ class ContactoController {
       const { id_estado, id_tipificacion, id_tipificacion_asesor } = req.query;
 
       // Obtener info del usuario autenticado
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
 
       // Si el rol es >= 3, filtrar solo los contactos de prospectos asignados a este asesor
       let id_asesor = null;
@@ -29,8 +29,8 @@ class ContactoController {
       const tipificacionAsesorFilter = id_tipificacion_asesor ? parseInt(id_tipificacion_asesor, 10) : null;
 
       const contactoModel = new TblContactoApiModel();
-      const contactos = await contactoModel.getAll(offset, id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter, userId);
-      const total = await contactoModel.getTotal(id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter);
+      const contactos = await contactoModel.getAll(offset, id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter, userId, idEmpresa);
+      const total = await contactoModel.getTotal(id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter, idEmpresa);
 
       return res.status(200).json({ data: contactos, total });
     }
@@ -62,7 +62,7 @@ class ContactoController {
       const { id_estado, id_tipificacion, id_tipificacion_asesor } = req.query;
 
       // Obtener info del usuario autenticado
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
 
       // Si el rol es >= 3, filtrar solo los contactos de prospectos asignados a este asesor
       let id_asesor = null;
@@ -76,8 +76,8 @@ class ContactoController {
       const tipificacionAsesorFilter = id_tipificacion_asesor ? parseInt(id_tipificacion_asesor, 10) : null;
 
       const contactoModel = new TblContactoApiModel();
-      const contactos = await contactoModel.search(query, offset, id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter, userId);
-      const total = await contactoModel.getSearchTotal(query, id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter);
+      const contactos = await contactoModel.search(query, offset, id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter, userId, idEmpresa);
+      const total = await contactoModel.getSearchTotal(query, id_asesor, estadoFilter, tipificacionFilter, tipificacionAsesorFilter, idEmpresa);
 
       return res.status(200).json({ data: contactos, total });
     }
@@ -168,7 +168,7 @@ class ContactoController {
 
   async getUnreadCount(req, res) {
     try {
-      const { userId, rolId } = req.user || {};
+      const { userId, rolId, idEmpresa } = req.user || {};
 
       if (!userId) {
         return res.status(401).json({ msg: "Usuario no autenticado" });
@@ -181,7 +181,7 @@ class ContactoController {
       }
 
       const mensajeVistoModel = new TblMensajeVistoUsuarioModel();
-      const unreadCount = await mensajeVistoModel.getUnreadContactsCount(userId, id_asesor);
+      const unreadCount = await mensajeVistoModel.getUnreadContactsCount(userId, id_asesor, idEmpresa);
 
       return res.status(200).json({ data: { unreadCount } });
     }

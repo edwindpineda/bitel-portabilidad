@@ -1035,8 +1035,9 @@ class ConfiguracionController {
   // ==================== FORMATOS ====================
   async getFormatos(req, res) {
     try {
+      const id_empresa = req.user?.idEmpresa || null;
       const formatoModel = new FormatoModel();
-      const formatos = await formatoModel.getAll();
+      const formatos = await formatoModel.getAll(id_empresa);
       return res.status(200).json({ data: formatos });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener formatos: ${error.message}`);
@@ -1065,13 +1066,14 @@ class ConfiguracionController {
     try {
       const { nombre, descripcion } = req.body;
       const usuario_registro = req.user?.userId || null;
+      const id_empresa = req.user?.idEmpresa || 1;
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
       }
 
       const formatoModel = new FormatoModel();
-      const id = await formatoModel.create({ id_empresa: 1, nombre, descripcion, usuario_registro });
+      const id = await formatoModel.create({ id_empresa, nombre, descripcion, usuario_registro });
 
       return res.status(201).json({ msg: "Formato creado exitosamente", data: { id } });
     } catch (error) {
@@ -1083,7 +1085,7 @@ class ConfiguracionController {
   async updateFormato(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, descripcion, es_activo } = req.body;
+      const { nombre, descripcion } = req.body;
       const usuario_actualizacion = req.user?.userId || null;
 
       if (!nombre) {
@@ -1091,7 +1093,7 @@ class ConfiguracionController {
       }
 
       const formatoModel = new FormatoModel();
-      await formatoModel.update(id, { nombre, descripcion, es_activo, usuario_actualizacion });
+      await formatoModel.update(id, { nombre, descripcion, usuario_actualizacion });
 
       return res.status(200).json({ msg: "Formato actualizado exitosamente" });
     } catch (error) {
@@ -1237,8 +1239,9 @@ class ConfiguracionController {
   // ==================== BASE DE NUMEROS ====================
   async getBasesNumeros(req, res) {
     try {
+      const id_empresa = req.user?.idEmpresa || null;
       const baseNumeroModel = new BaseNumeroModel();
-      const bases = await baseNumeroModel.getAll();
+      const bases = await baseNumeroModel.getAll(id_empresa);
       return res.status(200).json({ data: bases });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener bases de numeros: ${error.message}`);

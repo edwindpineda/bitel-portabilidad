@@ -946,23 +946,25 @@ router.get('/test-download', async (req, res) => {
 /**
  * GET /webhook/bot-activo
  * Verifica si un contacto tiene el bot activo
- * Query param: celular
+ * Query params: celular, id_empresa (opcional)
  */
 router.get('/bot-activo', async (req, res) => {
-    const celular = req.query.celular;
+    const { celular, id_empresa } = req.query;
 
     if (!celular) {
         return res.status(400).json({
             success: false,
-            error: 'El número de celular es requerido'
+            error: 'El numero de celular es requerido'
         });
     }
 
     try {
-        const result = await isBotActivo(celular);
+        const idEmpresa = id_empresa ? parseInt(id_empresa, 10) : null;
+        const result = await isBotActivo(celular, idEmpresa);
         res.json({
             success: true,
             celular,
+            id_empresa: idEmpresa,
             ...result
         });
     } catch (error) {

@@ -5,15 +5,22 @@ class FormatoModel {
         this.connection = dbConnection || pool;
     }
 
-    async getAll() {
+    async getAll(id_empresa = null) {
         try {
-            const [rows] = await this.connection.execute(
-                `SELECT f.*,
+            let query = `SELECT f.*,
                     (SELECT COUNT(*) FROM formato_campo fc WHERE fc.id_formato = f.id AND fc.estado_registro = 1) as total_campos
                 FROM formato f
-                WHERE f.estado_registro = 1
-                ORDER BY f.fecha_registro DESC`
-            );
+                WHERE f.estado_registro = 1`;
+
+            const params = [];
+            if (id_empresa) {
+                query += ` AND f.id_empresa = ?`;
+                params.push(id_empresa);
+            }
+
+            query += ` ORDER BY f.fecha_registro DESC`;
+
+            const [rows] = await this.connection.execute(query, params);
             return rows;
         } catch (error) {
             throw new Error(`Error al obtener formatos: ${error.message}`);
@@ -58,8 +65,8 @@ class FormatoModel {
     async create({ id_empresa, nombre, descripcion, usuario_registro }) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO formato (id_empresa, nombre, descripcion, es_activo, version, estado_registro, usuario_registro)
-                VALUES (?, ?, ?, 1, 1, 1, ?)`,
+                `INSERT INTO formato (id_empresa, nombre, descripcion, estado_registro, usuario_registro)
+                VALUES (?, ?, ?, 1, ?)`,
                 [id_empresa || 1, nombre, descripcion || null, usuario_registro || null]
             );
             return result.insertId;
@@ -68,13 +75,13 @@ class FormatoModel {
         }
     }
 
-    async update(id, { nombre, descripcion, es_activo, usuario_actualizacion }) {
+    async update(id, { nombre, descripcion, usuario_actualizacion }) {
         try {
             const [result] = await this.connection.execute(
                 `UPDATE formato
-                SET nombre = ?, descripcion = ?, es_activo = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
+                SET nombre = ?, descripcion = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
                 WHERE id = ?`,
-                [nombre, descripcion, es_activo !== undefined ? es_activo : 1, usuario_actualizacion, id]
+                [nombre, descripcion, usuario_actualizacion, id]
             );
             return result.affectedRows > 0;
         } catch (error) {
