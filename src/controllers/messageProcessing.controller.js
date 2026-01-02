@@ -76,22 +76,6 @@ class MessageProcessingController {
 
             logger.info(`[messageProcessing.controller.js] Response agente: ${JSON.stringify(response.datos_cliente)}`);
 
-            // // Verificar el valor del contador de contacto
-            // const maxCountContact = parseInt(process.env.MAX_COUNT_VALUE);
-
-            // if (contactCount >= maxCountContact && response.estado_respuesta !== "finalizada" && response.estado_respuesta !== "line1" && response.estado_respuesta !== "line2") {
-            //     status = "queue";
-            //     answer = "Gracias por tu mensaje 😊\nEn este momento te estamos derivando con un asesor experto en este tema, quien podrá ayudarte de manera más detallada.\n\n⏳ Solo tomará unos instantes. ¡Gracias por tu paciencia!";
-            //     // Resetear el contador de contacto
-            //     //await contactModel.resetCountByCelular(phone, id_cliente_rest);
-
-            // } else {
-
-            //     // Incrementar el contador de contacto en 1
-            //     // await contactModel.incrementCountByCelular(phone, id_cliente_rest);
-
-            // }
-
             if (response.estado_respuesta === "exitosa") {
                     status = "pending";
 
@@ -119,8 +103,6 @@ class MessageProcessingController {
             }
 
             answer = response.mensaje_asistente;
-            // Resetear el contador de contacto
-            // await contactModel.resetCountByCelular(phone, prospecto.id);
 
             const id_estado = await estadoModel.getIdByName(status);
             
