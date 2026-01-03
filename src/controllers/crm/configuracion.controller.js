@@ -734,14 +734,14 @@ class ConfiguracionController {
   async createTipificacion(req, res) {
     try {
       const { idEmpresa } = req.user || {};
-      const { nombre, definicion, orden, color, flag_asesor, flag_bot } = req.body;
+      const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_padre } = req.body;
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
       }
 
       const tipificacionModel = new TipificacionModel();
-      const id = await tipificacionModel.create({ nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa: idEmpresa });
+      const id = await tipificacionModel.create({ nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa: idEmpresa, id_padre });
 
       return res.status(201).json({ msg: "Tipificación creada exitosamente", data: { id } });
     } catch (error) {
@@ -754,14 +754,14 @@ class ConfiguracionController {
     try {
       const { idEmpresa } = req.user || {};
       const { id } = req.params;
-      const { nombre, definicion, orden, color, flag_asesor, flag_bot } = req.body;
+      const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_padre } = req.body;
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
       }
 
       const tipificacionModel = new TipificacionModel();
-      await tipificacionModel.update(id, { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa: idEmpresa });
+      await tipificacionModel.update(id, { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa: idEmpresa, id_padre });
 
       return res.status(200).json({ msg: "Tipificación actualizada exitosamente" });
     } catch (error) {

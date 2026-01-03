@@ -14,7 +14,7 @@ class TipificacionModel {
       params.push(id_empresa);
     }
 
-    query += ' ORDER BY orden ASC, nombre ASC';
+    query += ' ORDER BY COALESCE(id_padre, 0) ASC, orden ASC, nombre ASC';
 
     const [rows] = await this.connection.execute(query, params);
     return rows;
@@ -22,6 +22,36 @@ class TipificacionModel {
 
   async getAllForBot(id_empresa = null) {
     let query = `SELECT * FROM tipificacion WHERE flag_bot = 1`;
+    const params = [];
+
+    if (id_empresa) {
+      query += ' AND id_empresa = ?';
+      params.push(id_empresa);
+    }
+
+    query += ' ORDER BY COALESCE(id_padre, 0) ASC, orden ASC, nombre ASC';
+
+    const [rows] = await this.connection.execute(query, params);
+    return rows;
+  }
+
+  async getByIdPadre(id_padre, id_empresa = null) {
+    let query = `SELECT * FROM tipificacion WHERE id_padre = ?`;
+    const params = [id_padre];
+
+    if (id_empresa) {
+      query += ' AND id_empresa = ?';
+      params.push(id_empresa);
+    }
+
+    query += ' ORDER BY orden ASC, nombre ASC';
+
+    const [rows] = await this.connection.execute(query, params);
+    return rows;
+  }
+
+  async getPadres(id_empresa = null) {
+    let query = `SELECT * FROM tipificacion WHERE id_padre IS NULL`;
     const params = [];
 
     if (id_empresa) {
@@ -37,7 +67,7 @@ class TipificacionModel {
 
   async getById(id) {
     const [rows] = await this.connection.execute(
-      `SELECT id, nombre, definicion, orden, color, fecha_registro, fecha_actualizacion
+      `SELECT id, id_padre, nombre, definicion, orden, color, flag_asesor, flag_bot, fecha_registro, fecha_actualizacion
        FROM tipificacion WHERE id = ?`,
       [id]
     );
@@ -45,23 +75,23 @@ class TipificacionModel {
   }
 
   async create(data) {
-    const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa = null } = data;
+    const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa = null, id_padre = null } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO tipificacion (nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [nombre, definicion || null, orden || 0, color || null, flag_asesor, flag_bot, id_empresa]
+      `INSERT INTO tipificacion (nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa, id_padre) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre, definicion || null, orden || 0, color || null, flag_asesor, flag_bot, id_empresa, id_padre]
     );
     return result.insertId;
   }
 
   async update(id, data) {
-    const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa = null } = data;
+    const { nombre, definicion, orden, color, flag_asesor, flag_bot, id_empresa = null, id_padre = null } = data;
     const ordenValue = orden !== undefined && orden !== null ? orden : 0;
 
-    let query = `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ? WHERE id = ?`;
-    const params = [nombre, definicion || null, ordenValue, color || null, flag_asesor, flag_bot, id];
+    let query = `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ?, id_padre = ? WHERE id = ?`;
+    const params = [nombre, definicion || null, ordenValue, color || null, flag_asesor, flag_bot, id_padre, id];
 
     if (id_empresa) {
-      query = `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ? WHERE id = ? AND id_empresa = ?`;
+      query = `UPDATE tipificacion SET nombre = ?, definicion = ?, orden = ?, color = ?, flag_asesor = ?, flag_bot = ?, id_padre = ? WHERE id = ? AND id_empresa = ?`;
       params.push(id_empresa);
     }
 
