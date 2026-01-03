@@ -158,11 +158,11 @@ class LeadsController {
     }
   }
 
-  async getPlanes(req, res) {
+  async getCatalogo(req, res) {
     try {
       const { idEmpresa } = req.user || {};
 
-      let query = 'SELECT id, nombre FROM catalogo WHERE activo = 1';
+      let query = 'SELECT id, nombre FROM catalogo WHERE estado_registro = 1';
       const params = [];
 
       if (idEmpresa) {
@@ -175,8 +175,8 @@ class LeadsController {
       const [rows] = await pool.execute(query, params);
       return res.status(200).json({ data: rows });
     } catch (error) {
-      logger.error(`[leads.controller.js] Error al obtener planes: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener planes" });
+      logger.error(`[leads.controller.js] Error al obtener catalogo: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener catalogo" });
     }
   }
 

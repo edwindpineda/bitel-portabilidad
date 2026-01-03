@@ -6,7 +6,7 @@ const router = Router();
 router.get("/", LeadsController.getLeads);
 router.get("/asesores", LeadsController.getAsesores);
 router.get("/proveedores", LeadsController.getProveedores);
-router.get("/planes", LeadsController.getPlanes);
+router.get("/catalogo", LeadsController.getCatalogo);
 router.get("/:id", LeadsController.getLeadById);
 router.get("/:id/perfilamiento", LeadsController.getPerfilamiento);
 router.put("/:id", LeadsController.updateLead);

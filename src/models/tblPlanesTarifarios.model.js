@@ -13,7 +13,7 @@ class TblPlanesTarifariosModel {
      */
     async getAllActivos(id_empresa = null) {
         try {
-            let query = 'SELECT * FROM catalogo WHERE activo = 1';
+            let query = 'SELECT * FROM catalogo WHERE estado_registro = 1';
             const params = [];
 
             if (id_empresa) {
@@ -92,7 +92,7 @@ class TblPlanesTarifariosModel {
      */
     async getPlanesPortabilidad(id_empresa = null) {
         try {
-            let query = 'SELECT * FROM catalogo WHERE tipo_plan = "portabilidad" AND activo = 1';
+            let query = 'SELECT * FROM catalogo WHERE tipo_plan = "portabilidad" AND estado_registro = 1';
             const params = [];
 
             if (id_empresa) {
