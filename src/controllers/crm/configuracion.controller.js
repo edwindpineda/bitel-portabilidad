@@ -533,6 +533,7 @@ class ConfiguracionController {
 
   async createCatalogo(req, res) {
     try {
+      const { idEmpresa } = req.user || {};
       const { nombre, descripcion } = req.body;
 
       // Convertir tipos de FormData (llegan como strings)
@@ -558,7 +559,8 @@ class ConfiguracionController {
         descripcion,
         principal,
         imagen_url,
-        estado_registro: 1
+        estado_registro: 1,
+        id_empresa: idEmpresa
       });
 
       return res.status(201).json({ msg: "Item creado exitosamente", data: { id } });

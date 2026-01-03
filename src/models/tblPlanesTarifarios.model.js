@@ -37,8 +37,17 @@ class TblPlanesTarifariosModel {
      */
     async getAll(id_empresa = null) {
         try {
-            let query = 'SELECT * FROM catalogo ORDER BY precio_promocional ASC';
-            const [rows] = await this.connection.execute(query);
+            let query = 'SELECT * FROM catalogo WHERE 1=1';
+            const params = [];
+
+            if (id_empresa) {
+                query += ' AND id_empresa = ?';
+                params.push(id_empresa);
+            }
+
+            query += ' ORDER BY precio_promocional ASC';
+
+            const [rows] = await this.connection.execute(query, params);
             return rows;
         } catch (error) {
             throw new Error(`Error al obtener planes: ${error.message}`);
@@ -138,14 +147,15 @@ class TblPlanesTarifariosModel {
         descripcion,
         principal = 1,
         imagen_url = null,
-        estado_registro = 1
+        estado_registro = 1,
+        id_empresa = null
     }) {
         try {
             const [result] = await this.connection.execute(
                 `INSERT INTO catalogo
-                (nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, estado_registro)
-                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, estado_registro]
+                (nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, estado_registro, id_empresa)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [nombre, precio_regular, precio_promocional, descripcion, principal, imagen_url, estado_registro, id_empresa]
             );
             return result.insertId;
         } catch (error) {
