@@ -12,6 +12,7 @@ const usuarioRoutes = require("./routes/crm/usuario.route.js");
 const auditoriaRoutes = require("./routes/crm/auditoria.route.js");
 const contactoRoutes = require("./routes/crm/contacto.route.js");
 const configuracionRoutes = require("./routes/crm/configuracion.route.js");
+const llamadaRoutes = require("./routes/crm/llamada.route.js");
 const leadsRoutes = require("./routes/crm/leads.route.js");
 const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
 const webhookRoutes = require("./routes/webhook.route.js");
@@ -51,8 +52,9 @@ app.use(responseHandler);
 app.use('/api', reporteRoutes);
 // Rutas publicas (sin auth)
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
+app.use("/api/crm/tools", configuracionRoutes);
 // Rutas protegidas del CRM (requieren auth)
-app.use("/api/crm", authMiddleware, auditoriaRoutes, contactoRoutes, configuracionRoutes);
+app.use("/api/crm", authMiddleware, auditoriaRoutes, contactoRoutes, configuracionRoutes, llamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
 app.use("/api/admin", authMiddleware, adminRoutes);
