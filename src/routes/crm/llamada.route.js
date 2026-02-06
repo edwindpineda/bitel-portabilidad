@@ -8,5 +8,6 @@ router.get("/llamadas", LlamadaController.getAll);
 router.get("/llamadas/campania/:idCampania", LlamadaController.getByCampania);
 router.get("/llamadas/provider/:providerCallId", LlamadaController.getByProviderCallId);
 router.post("/llamadas", LlamadaController.create);
+router.put("/llamadas/nuevaTipificacion", LlamadaController.actualizarTipificacion);
 
 module.exports = router;

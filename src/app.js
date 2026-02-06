@@ -52,7 +52,7 @@ app.use(responseHandler);
 app.use('/api', reporteRoutes);
 // Rutas publicas (sin auth)
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
-app.use("/api/crm/tools", configuracionRoutes);
+app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes);
 // Rutas protegidas del CRM (requieren auth)
 app.use("/api/crm", authMiddleware, auditoriaRoutes, contactoRoutes, configuracionRoutes, llamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);

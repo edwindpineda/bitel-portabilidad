@@ -66,6 +66,20 @@ class LlamadaController {
             return res.status(500).json({ msg: error.message || "Error al crear llamada" });
         }
     }
+
+    async actualizarTipificacion(req, res) {
+        try {
+            const { id, id_tipificacion_llamada } = req.body;
+
+            const llamadaModel = new LlamadaModel();
+            await llamadaModel.actualizarTipificacion(id, id_tipificacion_llamada);
+
+            return res.status(201).json({ msg: "Llamada creada exitosamente", data: { id } });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al crear llamada: ${error.message}`);
+            return res.status(500).json({ msg: error.message || "Error al crear llamada" });
+        }
+    }
 }
 
 module.exports = new LlamadaController();

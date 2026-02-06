@@ -67,6 +67,19 @@ class LlamadaModel {
             throw new Error(`Error al crear llamada: ${error.message}`);
         }
     }
+
+    async actualizarTipificacion(id, id_tipificacion_llamada) {
+        try {
+            const [result] = await this.connection.execute(
+                `UPDATE llamada SET id_tipificacion_llamada = ? WHERE id = ?`,
+                [id_tipificacion_llamada, id]
+            );
+
+            return true;
+        } catch (err) {
+            throw new Error(`Error al actualizar tipificacion de llamada: ${err.message}`);
+        }
+    }
 }
 
 module.exports = LlamadaModel;
