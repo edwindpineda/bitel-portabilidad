@@ -18,6 +18,7 @@ const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
 const webhookRoutes = require("./routes/webhook.route.js");
 const adminRoutes = require("./routes/admin.route.js");
 const transcripcionRoutes = require("./controllers/crm/transcripcion.controller.js")
+const encuestaRoutes = require("./routes/encuesta.route.js");
 
 const app = express();
 
@@ -52,7 +53,7 @@ app.use(responseHandler);
 app.use('/api', reporteRoutes);
 // Rutas publicas (sin auth)
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
-app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes);
+app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes);
 // Rutas protegidas del CRM (requieren auth)
 app.use("/api/crm", authMiddleware, auditoriaRoutes, contactoRoutes, configuracionRoutes, llamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
