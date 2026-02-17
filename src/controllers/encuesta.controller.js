@@ -85,12 +85,8 @@ class EncuestaController {
   // ==================== PERSONAS (encuesta_base_numero) ====================
   async getPersonas(req, res) {
     try {
-      const id_empresa = req.user?.id_empresa;
-      if (!id_empresa) {
-        return res.status(401).json({ msg: "No autorizado - id_empresa no encontrado" });
-      }
       const model = new EncuestaBaseNumeroModel();
-      const personas = await model.getAll(id_empresa);
+      const personas = await model.getAll();
       return res.status(200).json({ msg: "Personas obtenidas", data: personas });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al obtener personas: ${error.message}`);
@@ -100,13 +96,9 @@ class EncuestaController {
 
   async getPersonaById(req, res) {
     try {
-      const id_empresa = req.user?.id_empresa;
-      if (!id_empresa) {
-        return res.status(401).json({ msg: "No autorizado - id_empresa no encontrado" });
-      }
       const { id } = req.params;
       const model = new EncuestaBaseNumeroModel();
-      const persona = await model.getById(id, id_empresa);
+      const persona = await model.getById(id);
       if (!persona) {
         return res.status(404).json({ msg: "Persona no encontrada" });
       }
@@ -119,16 +111,12 @@ class EncuestaController {
 
   async createPersona(req, res) {
     try {
-      const id_empresa = req.user?.id_empresa;
-      if (!id_empresa) {
-        return res.status(401).json({ msg: "No autorizado - id_empresa no encontrado" });
-      }
       const { telefono, nombre, apellido, departamento, municipio, referente } = req.body;
       if (!telefono) {
         return res.status(400).json({ msg: "El telefono es requerido" });
       }
       const model = new EncuestaBaseNumeroModel();
-      const id = await model.create({ telefono, nombre, apellido, departamento, municipio, referente, id_empresa });
+      const id = await model.create({ telefono, nombre, apellido, departamento, municipio, referente });
       return res.status(201).json({ msg: "Persona creada exitosamente", data: { id } });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al crear persona: ${error.message}`);
@@ -141,17 +129,13 @@ class EncuestaController {
 
   async updatePersona(req, res) {
     try {
-      const id_empresa = req.user?.id_empresa;
-      if (!id_empresa) {
-        return res.status(401).json({ msg: "No autorizado - id_empresa no encontrado" });
-      }
       const { id } = req.params;
       const { telefono, nombre, apellido, departamento, municipio, referente } = req.body;
       if (!telefono) {
         return res.status(400).json({ msg: "El telefono es requerido" });
       }
       const model = new EncuestaBaseNumeroModel();
-      const updated = await model.update(id, { telefono, nombre, apellido, departamento, municipio, referente }, id_empresa);
+      const updated = await model.update(id, { telefono, nombre, apellido, departamento, municipio, referente });
       if (!updated) {
         return res.status(404).json({ msg: "Persona no encontrada" });
       }
@@ -167,13 +151,9 @@ class EncuestaController {
 
   async deletePersona(req, res) {
     try {
-      const id_empresa = req.user?.id_empresa;
-      if (!id_empresa) {
-        return res.status(401).json({ msg: "No autorizado - id_empresa no encontrado" });
-      }
       const { id } = req.params;
       const model = new EncuestaBaseNumeroModel();
-      const deleted = await model.delete(id, id_empresa);
+      const deleted = await model.delete(id);
       if (!deleted) {
         return res.status(404).json({ msg: "Persona no encontrada" });
       }
@@ -186,11 +166,6 @@ class EncuestaController {
 
   async uploadPersonas(req, res) {
     try {
-      const id_empresa = req.user?.id_empresa;
-      if (!id_empresa) {
-        return res.status(401).json({ msg: "No autorizado - id_empresa no encontrado" });
-      }
-
       if (!req.file) {
         return res.status(400).json({ msg: "No se ha proporcionado un archivo" });
       }

@@ -1,6 +1,7 @@
 const EncuestaController = require("../controllers/encuesta.controller.js");
 const { Router } = require("express");
 const multer = require("multer");
+const authMiddleware = require("../middlewares/auth.middleware.js");
 
 const router = Router();
 
@@ -38,13 +39,13 @@ router.post("/encuesta", EncuestaController.crearEncuesta);
 router.get("/encuesta/departamentos", EncuestaController.getDepartamentos);
 router.get("/encuesta/municipios", EncuestaController.getMunicipios);
 
-// Rutas de Personas (encuesta_base_numero)
-router.get("/encuesta/personas", EncuestaController.getPersonas);
-router.get("/encuesta/personas/stats", EncuestaController.getPersonasStats);
-router.get("/encuesta/personas/:id", EncuestaController.getPersonaById);
-router.post("/encuesta/personas", EncuestaController.createPersona);
-router.put("/encuesta/personas/:id", EncuestaController.updatePersona);
-router.delete("/encuesta/personas/:id", EncuestaController.deletePersona);
-router.post("/encuesta/personas/upload", uploadPersonas.single('archivo'), handleMulterError, EncuestaController.uploadPersonas);
+// Rutas de Personas (encuesta_base_numero) - requieren autenticacion
+router.get("/encuesta/personas", authMiddleware, EncuestaController.getPersonas);
+router.get("/encuesta/personas/stats", authMiddleware, EncuestaController.getPersonasStats);
+router.get("/encuesta/personas/:id", authMiddleware, EncuestaController.getPersonaById);
+router.post("/encuesta/personas", authMiddleware, EncuestaController.createPersona);
+router.put("/encuesta/personas/:id", authMiddleware, EncuestaController.updatePersona);
+router.delete("/encuesta/personas/:id", authMiddleware, EncuestaController.deletePersona);
+router.post("/encuesta/personas/upload", authMiddleware, uploadPersonas.single('archivo'), handleMulterError, EncuestaController.uploadPersonas);
 
 module.exports = router;

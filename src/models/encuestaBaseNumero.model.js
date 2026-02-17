@@ -5,13 +5,12 @@ class EncuestaBaseNumeroModel {
         this.connection = dbConnection || pool;
     }
 
-    async getAll(id_empresa) {
+    async getAll() {
         try {
             const [rows] = await this.connection.execute(
                 `SELECT * FROM encuesta_base_numero
-                WHERE estado_registro = 1 AND id_empresa = ?
-                ORDER BY fecha_registro DESC`,
-                [id_empresa]
+                WHERE estado_registro = 1
+                ORDER BY fecha_registro DESC`
             );
             return rows;
         } catch (error) {
@@ -19,11 +18,11 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async getById(id, id_empresa) {
+    async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT * FROM encuesta_base_numero WHERE id = ? AND id_empresa = ? AND estado_registro = 1`,
-                [id, id_empresa]
+                `SELECT * FROM encuesta_base_numero WHERE id = ? AND estado_registro = 1`,
+                [id]
             );
             return rows.length > 0 ? rows[0] : null;
         } catch (error) {
@@ -31,12 +30,12 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async create({ telefono, nombre, apellido, departamento, municipio, referente, id_empresa }) {
+    async create({ telefono, nombre, apellido, departamento, municipio, referente }) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO encuesta_base_numero (telefono, nombre, apellido, departamento, municipio, referente, id_empresa, estado_registro)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null, id_empresa]
+                `INSERT INTO encuesta_base_numero (telefono, nombre, apellido, departamento, municipio, referente, estado_registro)
+                VALUES (?, ?, ?, ?, ?, ?, 1)`,
+                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null]
             );
             return result.insertId;
         } catch (error) {
@@ -178,13 +177,13 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async update(id, { telefono, nombre, apellido, departamento, municipio, referente }, id_empresa) {
+    async update(id, { telefono, nombre, apellido, departamento, municipio, referente }) {
         try {
             const [result] = await this.connection.execute(
                 `UPDATE encuesta_base_numero
                 SET telefono = ?, nombre = ?, apellido = ?, departamento = ?, municipio = ?, referente = ?, fecha_actualizacion = NOW()
-                WHERE id = ? AND id_empresa = ?`,
-                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null, id, id_empresa]
+                WHERE id = ?`,
+                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null, id]
             );
             return result.affectedRows > 0;
         } catch (error) {
@@ -195,11 +194,11 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async delete(id, id_empresa) {
+    async delete(id) {
         try {
             const [result] = await this.connection.execute(
-                `UPDATE encuesta_base_numero SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ? AND id_empresa = ?`,
-                [id, id_empresa]
+                `UPDATE encuesta_base_numero SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?`,
+                [id]
             );
             return result.affectedRows > 0;
         } catch (error) {
@@ -207,7 +206,7 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async getStats(id_empresa) {
+    async getStats() {
         try {
             const [rows] = await this.connection.execute(
                 `SELECT
@@ -215,9 +214,7 @@ class EncuestaBaseNumeroModel {
                     SUM(CASE WHEN estado_registro = 1 THEN 1 ELSE 0 END) as activos,
                     SUM(CASE WHEN estado_llamada = 0 AND estado_registro = 1 THEN 1 ELSE 0 END) as pendientes,
                     SUM(CASE WHEN estado_llamada = 3 AND estado_registro = 1 THEN 1 ELSE 0 END) as completados
-                FROM encuesta_base_numero
-                WHERE id_empresa = ?`,
-                [id_empresa]
+                FROM encuesta_base_numero`
             );
             return rows[0];
         } catch (error) {
@@ -225,7 +222,7 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async createBulkWithProgress(registros, id_empresa, onProgress) {
+    async createBulkWithProgress(registros, onProgress) {
         const connection = await this.connection.getConnection();
         const BATCH_SIZE = 500; // Reducido para evitar problemas con placeholders
 
@@ -246,10 +243,10 @@ class EncuestaBaseNumeroModel {
                     // Asegurar que telefonos sean strings
                     const telefonos = batch.map(r => String(r.telefono).trim());
 
-                    // Usar query en lugar de execute para listas grandes - filtrar por id_empresa
+                    // Usar query en lugar de execute para listas grandes
                     const [existentes] = await connection.query(
-                        `SELECT telefono FROM encuesta_base_numero WHERE telefono IN (?) AND id_empresa = ?`,
-                        [telefonos, id_empresa]
+                        `SELECT telefono FROM encuesta_base_numero WHERE telefono IN (?)`,
+                        [telefonos]
                     );
                     const telefonosExistentes = new Set(existentes.map(r => String(r.telefono).trim()));
 
@@ -261,7 +258,7 @@ class EncuestaBaseNumeroModel {
                     if (registrosNuevos.length > 0) {
                         await connection.beginTransaction();
 
-                        // Construir valores para insert multiple - incluir id_empresa
+                        // Construir valores para insert multiple
                         const insertValues = registrosNuevos.map(registro => [
                             String(registro.telefono).trim(),
                             registro.nombre || null,
@@ -269,12 +266,11 @@ class EncuestaBaseNumeroModel {
                             registro.departamento || null,
                             registro.municipio || null,
                             registro.referente || null,
-                            id_empresa,
                             1
                         ]);
 
                         const sql = `INSERT INTO encuesta_base_numero
-                            (telefono, nombre, apellido, departamento, municipio, referente, id_empresa, estado_registro)
+                            (telefono, nombre, apellido, departamento, municipio, referente, estado_registro)
                             VALUES ?`;
 
                         const [result] = await connection.query(sql, [insertValues]);
@@ -308,8 +304,8 @@ class EncuestaBaseNumeroModel {
                         try {
                             const telefonoStr = String(registro.telefono).trim();
                             const [existe] = await connection.query(
-                                `SELECT id FROM encuesta_base_numero WHERE telefono = ? AND id_empresa = ?`,
-                                [telefonoStr, id_empresa]
+                                `SELECT id FROM encuesta_base_numero WHERE telefono = ?`,
+                                [telefonoStr]
                             );
 
                             if (existe.length > 0) {
@@ -317,16 +313,15 @@ class EncuestaBaseNumeroModel {
                             } else {
                                 await connection.query(
                                     `INSERT INTO encuesta_base_numero
-                                    (telefono, nombre, apellido, departamento, municipio, referente, id_empresa, estado_registro)
-                                    VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+                                    (telefono, nombre, apellido, departamento, municipio, referente, estado_registro)
+                                    VALUES (?, ?, ?, ?, ?, ?, 1)`,
                                     [
                                         telefonoStr,
                                         registro.nombre || null,
                                         registro.apellido || null,
                                         registro.departamento || null,
                                         registro.municipio || null,
-                                        registro.referente || null,
-                                        id_empresa
+                                        registro.referente || null
                                     ]
                                 );
                                 nuevos++;
