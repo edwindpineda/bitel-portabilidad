@@ -7,10 +7,39 @@ class EncuestaModel {
 
   async getAll() {
     const [rows] = await this.connection.execute(
-      `SELECT *
-       FROM encuesta ORDER BY id`
+      `SELECT e.*, ebn.departamento, ebn.municipio, ebn.referente
+       FROM encuesta e
+       LEFT JOIN encuesta_base_numero ebn ON e.whatsapp_contacto = ebn.telefono
+       ORDER BY e.id`
     );
     return rows;
+  }
+
+  async getDepartamentos() {
+    const [rows] = await this.connection.execute(
+      `SELECT DISTINCT departamento
+       FROM encuesta_base_numero
+       WHERE departamento IS NOT NULL AND departamento != ''
+       ORDER BY departamento`
+    );
+    return rows.map(r => r.departamento);
+  }
+
+  async getMunicipios(departamento = null) {
+    let query = `SELECT DISTINCT municipio
+       FROM encuesta_base_numero
+       WHERE municipio IS NOT NULL AND municipio != ''`;
+
+    const params = [];
+    if (departamento) {
+      query += ` AND departamento = ?`;
+      params.push(departamento);
+    }
+
+    query += ` ORDER BY municipio`;
+
+    const [rows] = await this.connection.execute(query, params);
+    return rows.map(r => r.municipio);
   }
 
   async getById(id) {

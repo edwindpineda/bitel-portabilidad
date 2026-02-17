@@ -18,9 +18,14 @@ const startServer = async () => {
   }
 
   // Iniciar servidor aunque falle la conexión
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     logger.info(`[server.js] 🚀 Server running on http://localhost:${PORT}`);
   });
+
+  // Aumentar timeout para uploads grandes (30 minutos)
+  server.timeout = 1800000;
+  server.keepAliveTimeout = 1800000;
+  server.headersTimeout = 1805000;
 };
 
 startServer();
