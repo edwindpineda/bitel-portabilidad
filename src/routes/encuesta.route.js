@@ -40,7 +40,7 @@ router.get("/encuesta/departamentos", EncuestaController.getDepartamentos);
 router.get("/encuesta/municipios", EncuestaController.getMunicipios);
 
 // Rutas de Personas (encuesta_base_numero) - requieren autenticacion
-router.get("/encuesta/personas", authMiddleware, EncuestaController.getPersonas);
+router.get("/encuesta/personas", EncuestaController.getPersonas);
 router.get("/encuesta/personas/stats", authMiddleware, EncuestaController.getPersonasStats);
 router.get("/encuesta/personas/:id", authMiddleware, EncuestaController.getPersonaById);
 router.post("/encuesta/personas", authMiddleware, EncuestaController.createPersona);
