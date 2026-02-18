@@ -35,7 +35,6 @@ const handleMulterError = (err, req, res, next) => {
 
 // Rutas de Encuestas
 router.get("/encuesta", EncuestaController.getEncuestas);
-router.get("/encuesta/:id", EncuestaController.getEncuestasById);
 router.post("/encuesta", EncuestaController.crearEncuesta);
 router.get("/encuesta/departamentos", EncuestaController.getDepartamentos);
 router.get("/encuesta/municipios", EncuestaController.getMunicipios);
@@ -48,5 +47,8 @@ router.post("/encuesta/personas", authMiddleware, EncuestaController.createPerso
 router.put("/encuesta/personas/:id", EncuestaController.updatePersona);
 router.delete("/encuesta/personas/:id", authMiddleware, EncuestaController.deletePersona);
 router.post("/encuesta/personas/upload", authMiddleware, uploadPersonas.single('archivo'), handleMulterError, EncuestaController.uploadPersonas);
+
+// Ruta parametrizada AL FINAL para que no capture las rutas específicas de arriba
+router.get("/encuesta/:id", EncuestaController.getEncuestasById);
 
 module.exports = router;
