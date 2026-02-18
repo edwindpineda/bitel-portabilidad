@@ -35,6 +35,7 @@ const handleMulterError = (err, req, res, next) => {
 
 // Rutas de Encuestas
 router.get("/encuesta", EncuestaController.getEncuestas);
+router.get("/encuesta/:id", EncuestaController.getEncuestasById);
 router.post("/encuesta", EncuestaController.crearEncuesta);
 router.get("/encuesta/departamentos", EncuestaController.getDepartamentos);
 router.get("/encuesta/municipios", EncuestaController.getMunicipios);

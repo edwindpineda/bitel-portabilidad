@@ -59,6 +59,19 @@ class EncuestaController {
     }
   }
 
+  async getEncuestasById(req, res) {
+    try {
+      const { id } = req.params;
+      const encuesta = new EncuestaModel();
+      const encuestas = await encuesta.getById(id);
+      return res.status(200).json({ msg: "Encuesta obtenida", data: { encuestas } });
+    }
+    catch (error) {
+      logger.error(`[encuesta.controller.js] Error al obtener encuestas: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener encuestas" });
+    }
+  }
+
   async getDepartamentos(req, res) {
     try {
       const encuesta = new EncuestaModel();

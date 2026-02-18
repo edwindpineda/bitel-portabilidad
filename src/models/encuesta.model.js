@@ -45,7 +45,7 @@ class EncuestaModel {
   async getById(id) {
     const [rows] = await this.connection.execute(
       `SELECT *
-       FROM encuesta WHERE id = ?`,
+       FROM encuesta WHERE id_encuesta_base_numero = ?`,
       [id]
     );
     return rows[0] || null;
