@@ -194,13 +194,29 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async update(id, { telefono, nombre, apellido, departamento, municipio, referente }) {
+    async update(id, data) {
         try {
+            const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intento', 'estado_llamada'];
+            const fields = [];
+            const values = [];
+
+            for (const field of allowedFields) {
+                if (data[field] !== undefined) {
+                    fields.push(`${field} = ?`);
+                    values.push(data[field] ?? null);
+                }
+            }
+
+            if (fields.length === 0) {
+                throw new Error('No se proporcionaron campos para actualizar');
+            }
+
+            fields.push('fecha_actualizacion = NOW()');
+            values.push(id);
+
             const [result] = await this.connection.execute(
-                `UPDATE encuesta_base_numero
-                SET telefono = ?, nombre = ?, apellido = ?, departamento = ?, municipio = ?, referente = ?, fecha_actualizacion = NOW()
-                WHERE id = ?`,
-                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null, id]
+                `UPDATE encuesta_base_numero SET ${fields.join(', ')} WHERE id = ?`,
+                values
             );
             return result.affectedRows > 0;
         } catch (error) {

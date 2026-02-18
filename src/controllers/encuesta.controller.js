@@ -133,12 +133,21 @@ class EncuestaController {
   async updatePersona(req, res) {
     try {
       const { id } = req.params;
-      const { telefono, nombre, apellido, departamento, municipio, referente } = req.body;
-      if (!telefono) {
-        return res.status(400).json({ msg: "El telefono es requerido" });
+      const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intento', 'estado_llamada'];
+      const data = {};
+
+      for (const field of allowedFields) {
+        if (req.body[field] !== undefined) {
+          data[field] = req.body[field];
+        }
       }
+
+      if (Object.keys(data).length === 0) {
+        return res.status(400).json({ msg: "Debe enviar al menos un campo para actualizar" });
+      }
+
       const model = new EncuestaBaseNumeroModel();
-      const updated = await model.update(id, { telefono, nombre, apellido, departamento, municipio, referente });
+      const updated = await model.update(id, data);
       if (!updated) {
         return res.status(404).json({ msg: "Persona no encontrada" });
       }
