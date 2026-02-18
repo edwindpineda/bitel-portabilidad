@@ -5,14 +5,31 @@ class EncuestaBaseNumeroModel {
         this.connection = dbConnection || pool;
     }
 
-    async getAll() {
+    async getAll(page = 1, limit = 20) {
         try {
+            const offset = (page - 1) * limit;
+
+            const [[{ total }]] = await this.connection.execute(
+                `SELECT COUNT(*) AS total FROM encuesta_base_numero WHERE estado_registro = 1`
+            );
+
             const [rows] = await this.connection.execute(
                 `SELECT * FROM encuesta_base_numero
                 WHERE estado_registro = 1
-                ORDER BY fecha_registro DESC`
+                ORDER BY fecha_registro DESC
+                LIMIT ? OFFSET ?`,
+                [String(limit), String(offset)]
             );
-            return rows;
+
+            return {
+                data: rows,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit)
+                }
+            };
         } catch (error) {
             throw new Error(`Error al obtener personas: ${error.message}`);
         }

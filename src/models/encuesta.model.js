@@ -51,11 +51,11 @@ class EncuestaModel {
     return rows[0] || null;
   }
 
-  async create({nombre_contacto, participacion_encuesta, p1_piensa_votar, p2_intencion_voto, p2_observaciones, p3a_sabe_como_votar, p3a_refuerzo_pedagogico, p3b_conoce_candidato, p4_autoriza_whatsapp, whatsapp_contacto, notas_adicionales}) {
+  async create({nombre_contacto, participacion_encuesta, p1_piensa_votar, p2_intencion_voto, p2_observaciones, p3a_sabe_como_votar, p3a_refuerzo_pedagogico, p3b_conoce_candidato, p4_autoriza_whatsapp, whatsapp_contacto, notas_adicionales, id_encuesta_base_numero}) {
     const [result] = await this.connection.execute(
-      `INSERT INTO encuesta (nombre_contacto, participacion, p1_piensa_votar, p2_intencion_voto, p2_observaciones, p3a_sabe_como_votar, p3a_refuerzo_pedagogico, p3b_conoce_candidato, p4_autoriza_whatsapp, whatsapp_contacto, notas_adicionales)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [nombre_contacto, participacion_encuesta, p1_piensa_votar, p2_intencion_voto, p2_observaciones, p3a_sabe_como_votar, p3a_refuerzo_pedagogico, p3b_conoce_candidato, p4_autoriza_whatsapp, whatsapp_contacto, notas_adicionales]
+      `INSERT INTO encuesta (nombre_contacto, participacion, p1_piensa_votar, p2_intencion_voto, p2_observaciones, p3a_sabe_como_votar, p3a_refuerzo_pedagogico, p3b_conoce_candidato, p4_autoriza_whatsapp, whatsapp_contacto, notas_adicionales, id_encuesta_base_numero)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [nombre_contacto, participacion_encuesta, p1_piensa_votar, p2_intencion_voto, p2_observaciones, p3a_sabe_como_votar, p3a_refuerzo_pedagogico, p3b_conoce_candidato, p4_autoriza_whatsapp, whatsapp_contacto, notas_adicionales, id_encuesta_base_numero]
     );
     return result.insertId;
   }

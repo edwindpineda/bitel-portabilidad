@@ -18,7 +18,8 @@ class EncuestaController {
         p3b_conoce_candidato,
         p4_autoriza_whatsapp,
         whatsapp_contacto,
-        notas_adicionales
+        notas_adicionales,
+        id_encuesta_base_numero
       } = req.body;
 
       const encuesta = new EncuestaModel();
@@ -34,7 +35,8 @@ class EncuestaController {
         p3b_conoce_candidato,
         p4_autoriza_whatsapp,
         whatsapp_contacto,
-        notas_adicionales
+        notas_adicionales,
+        id_encuesta_base_numero
       });
 
       return res.status(201).json({ msg: "Encuesta guardada exitosamente", data: { id } });
@@ -85,9 +87,10 @@ class EncuestaController {
   // ==================== PERSONAS (encuesta_base_numero) ====================
   async getPersonas(req, res) {
     try {
+      const page = Math.max(1, parseInt(req.query.page) || 1);
       const model = new EncuestaBaseNumeroModel();
-      const personas = await model.getAll();
-      return res.status(200).json({ msg: "Personas obtenidas", data: personas });
+      const result = await model.getAll(page);
+      return res.status(200).json({ msg: "Personas obtenidas", data: result.data, pagination: result.pagination });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al obtener personas: ${error.message}`);
       return res.status(500).json({ msg: "Error al obtener personas" });
