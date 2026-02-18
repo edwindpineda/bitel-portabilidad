@@ -146,7 +146,7 @@ class EncuestaController {
   async updatePersona(req, res) {
     try {
       const { id } = req.params;
-      const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intento', 'estado_llamada'];
+      const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intentos', 'estado_llamada'];
       const data = {};
 
       for (const field of allowedFields) {
