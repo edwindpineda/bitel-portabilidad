@@ -196,7 +196,7 @@ class EncuestaBaseNumeroModel {
 
     async update(id, data) {
         try {
-            const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intento', 'estado_llamada'];
+            const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intentos', 'estado_llamada'];
             const fields = [];
             const values = [];
 
