@@ -7,9 +7,10 @@ class EncuestaModel {
 
   async getAll() {
     const [rows] = await this.connection.execute(
-      `SELECT e.*, ebn.departamento, ebn.municipio, ebn.referente
+      `SELECT e.*, ebn.departamento, ebn.municipio, ebn.referente, ebn.estado_llamada
        FROM encuesta e
-       LEFT JOIN encuesta_base_numero ebn ON e.whatsapp_contacto = ebn.telefono
+       LEFT JOIN encuesta_base_numero ebn ON e.id_encuesta_base_numero = ebn.id
+       WHERE ebn.estado_llamada = 3
        ORDER BY e.id`
     );
     return rows;

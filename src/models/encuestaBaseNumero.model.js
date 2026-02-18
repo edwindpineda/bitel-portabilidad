@@ -244,8 +244,9 @@ class EncuestaBaseNumeroModel {
             const [rows] = await this.connection.execute(
                 `SELECT
                     COUNT(*) as total,
-                    SUM(CASE WHEN estado_registro = 1 THEN 1 ELSE 0 END) as activos,
                     SUM(CASE WHEN estado_llamada = 0 AND estado_registro = 1 THEN 1 ELSE 0 END) as pendientes,
+                    SUM(CASE WHEN estado_llamada IN (1, 2, 3) AND estado_registro = 1 THEN 1 ELSE 0 END) as ejecutados,
+                    SUM(CASE WHEN estado_llamada = 2 AND estado_registro = 1 THEN 1 ELSE 0 END) as buzon,
                     SUM(CASE WHEN estado_llamada = 3 AND estado_registro = 1 THEN 1 ELSE 0 END) as completados
                 FROM encuesta_base_numero`
             );
