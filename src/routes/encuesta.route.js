@@ -44,7 +44,7 @@ router.get("/encuesta/personas", EncuestaController.getPersonas);
 router.get("/encuesta/personas/stats", authMiddleware, EncuestaController.getPersonasStats);
 router.get("/encuesta/personas/:id", authMiddleware, EncuestaController.getPersonaById);
 router.post("/encuesta/personas", authMiddleware, EncuestaController.createPersona);
-router.put("/encuesta/personas/:id", authMiddleware, EncuestaController.updatePersona);
+router.put("/encuesta/personas/:id", EncuestaController.updatePersona);
 router.delete("/encuesta/personas/:id", authMiddleware, EncuestaController.deletePersona);
 router.post("/encuesta/personas/upload", authMiddleware, uploadPersonas.single('archivo'), handleMulterError, EncuestaController.uploadPersonas);
 
