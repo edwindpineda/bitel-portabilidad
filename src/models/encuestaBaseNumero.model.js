@@ -15,7 +15,7 @@ class EncuestaBaseNumeroModel {
 
             const [rows] = await this.connection.execute(
                 `SELECT * FROM encuesta_base_numero
-                WHERE estado_registro = 1
+                WHERE estado_registro = 1 AND estado_llamada = 0
                 ORDER BY fecha_registro DESC
                 LIMIT ? OFFSET ?`,
                 [String(limit), String(offset)]
