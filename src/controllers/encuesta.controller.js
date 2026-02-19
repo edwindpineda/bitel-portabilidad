@@ -101,8 +101,9 @@ class EncuestaController {
   async getPersonas(req, res) {
     try {
       const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = Math.max(20, parseInt(req.query.limit) || 20);
       const model = new EncuestaBaseNumeroModel();
-      const result = await model.getAll(page);
+      const result = await model.getAll(page, limit);
       return res.status(200).json({ msg: "Personas obtenidas", data: result.data, pagination: result.pagination });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al obtener personas: ${error.message}`);
