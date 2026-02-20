@@ -5,20 +5,42 @@ class EncuestaBaseNumeroModel {
         this.connection = dbConnection || pool;
     }
 
-    async getAll(page = 1, limit = 20) {
+    async getAll(page = 1, limit = 20, estadoLlamada = null, search = null, prioridad = null) {
         try {
             const offset = (page - 1) * limit;
+            const params = [];
 
+            // Construir WHERE dinámico
+            let whereClause = 'WHERE estado_registro = 1';
+
+            if (estadoLlamada !== null && estadoLlamada !== 'todos') {
+                whereClause += ' AND estado_llamada = ?';
+                params.push(String(estadoLlamada));
+            }
+
+            if (prioridad !== null && prioridad !== 'todos') {
+                whereClause += ' AND prioridad = ?';
+                params.push(String(prioridad));
+            }
+
+            if (search) {
+                whereClause += ' AND (nombre LIKE ? OR telefono LIKE ?)';
+                params.push(`%${search}%`, `%${search}%`);
+            }
+
+            // Contar total con filtros
             const [[{ total }]] = await this.connection.execute(
-                `SELECT COUNT(*) AS total FROM encuesta_base_numero WHERE estado_registro = 1`
+                `SELECT COUNT(*) AS total FROM encuesta_base_numero ${whereClause}`,
+                params
             );
 
+            // Obtener datos paginados
             const [rows] = await this.connection.execute(
                 `SELECT * FROM encuesta_base_numero
-                WHERE estado_registro = 1
+                ${whereClause}
                 ORDER BY fecha_registro DESC
                 LIMIT ? OFFSET ?`,
-                [String(limit), String(offset)]
+                [...params, String(limit), String(offset)]
             );
 
             return {
@@ -239,16 +261,25 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async getStats() {
+    async getStats(prioridad = null) {
         try {
+            let whereClause = 'WHERE estado_registro = 1';
+            const params = [];
+
+            if (prioridad !== null && prioridad !== 'todos') {
+                whereClause += ' AND prioridad = ?';
+                params.push(String(prioridad));
+            }
+
             const [rows] = await this.connection.execute(
                 `SELECT
                     COUNT(*) as total,
-                    SUM(CASE WHEN estado_llamada = 0 AND estado_registro = 1 THEN 1 ELSE 0 END) as pendientes,
-                    SUM(CASE WHEN estado_llamada IN (1, 2, 3) AND estado_registro = 1 THEN 1 ELSE 0 END) as ejecutados,
-                    SUM(CASE WHEN estado_llamada = 2 AND estado_registro = 1 THEN 1 ELSE 0 END) as buzon,
-                    SUM(CASE WHEN estado_llamada = 3 AND estado_registro = 1 THEN 1 ELSE 0 END) as completados
-                FROM encuesta_base_numero`
+                    SUM(CASE WHEN estado_llamada = 0 THEN 1 ELSE 0 END) as pendientes,
+                    SUM(CASE WHEN estado_llamada IN (1, 2, 3) THEN 1 ELSE 0 END) as ejecutados,
+                    SUM(CASE WHEN estado_llamada = 2 THEN 1 ELSE 0 END) as buzon,
+                    SUM(CASE WHEN estado_llamada = 3 THEN 1 ELSE 0 END) as completados
+                FROM encuesta_base_numero ${whereClause}`,
+                params
             );
             return rows[0];
         } catch (error) {

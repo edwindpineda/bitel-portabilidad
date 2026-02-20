@@ -101,8 +101,13 @@ class EncuestaController {
   async getPersonas(req, res) {
     try {
       const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 50));
+      const estadoLlamada = req.query.estado !== undefined ? req.query.estado : null;
+      const prioridad = req.query.prioridad !== undefined ? req.query.prioridad : null;
+      const search = req.query.search || null;
+
       const model = new EncuestaBaseNumeroModel();
-      const result = await model.getAll(page);
+      const result = await model.getAll(page, limit, estadoLlamada, search, prioridad);
       return res.status(200).json({ msg: "Personas obtenidas", data: result.data, pagination: result.pagination });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al obtener personas: ${error.message}`);
@@ -381,8 +386,9 @@ class EncuestaController {
 
   async getPersonasStats(req, res) {
     try {
+      const prioridad = req.query.prioridad !== undefined ? req.query.prioridad : null;
       const model = new EncuestaBaseNumeroModel();
-      const stats = await model.getStats();
+      const stats = await model.getStats(prioridad);
       return res.status(200).json({ msg: "Estadisticas obtenidas", data: stats });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al obtener estadisticas: ${error.message}`);
