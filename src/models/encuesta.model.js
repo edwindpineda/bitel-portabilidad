@@ -5,13 +5,22 @@ class EncuestaModel {
     this.connection = dbConnection || pool;
   }
 
-  async getAll() {
+  async getAll(prioridad = null) {
+    let whereClause = 'WHERE ebn.estado_llamada = 3';
+    const params = [];
+
+    if (prioridad !== null && prioridad !== 'todos') {
+      whereClause += ' AND ebn.prioridad = ?';
+      params.push(String(prioridad));
+    }
+
     const [rows] = await this.connection.execute(
-      `SELECT e.*, ebn.departamento, ebn.municipio, ebn.referente, ebn.estado_llamada
+      `SELECT e.*, ebn.departamento, ebn.municipio, ebn.referente, ebn.estado_llamada, ebn.prioridad
        FROM encuesta e
        LEFT JOIN encuesta_base_numero ebn ON e.id_encuesta_base_numero = ebn.id
-       WHERE ebn.estado_llamada = 3
-       ORDER BY e.id`
+       ${whereClause}
+       ORDER BY e.id`,
+      params
     );
     return rows;
   }

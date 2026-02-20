@@ -49,8 +49,9 @@ class EncuestaController {
 
   async getEncuestas(req, res) {
     try {
+      const prioridad = req.query.prioridad !== undefined ? req.query.prioridad : null;
       const encuesta = new EncuestaModel();
-      const encuestas = await encuesta.getAll();
+      const encuestas = await encuesta.getAll(prioridad);
       return res.status(200).json({ msg: "Encuesta obtenidas", data: { encuestas } });
     }
     catch (error) {
