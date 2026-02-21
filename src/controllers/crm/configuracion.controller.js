@@ -1,8 +1,7 @@
 const RolModel = require("../../models/rol.model.js");
-const UsuarioModel = require("../../models/tblUsuario.model.js");
+const UsuarioModel = require("../../models/usuario.model.js");
 const ModuloModel = require("../../models/modulo.model.js");
 const SucursalModel = require("../../models/sucursal.model.js");
-const ProveedorModel = require("../../models/proveedor.model.js");
 const PlanesTarifariosModel = require("../../models/tblPlanesTarifarios.model.js");
 const FaqModel = require("../../models/faq.model.js");
 const TipificacionModel = require("../../models/tipificacion.model.js");
@@ -416,88 +415,6 @@ class ConfiguracionController {
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar sucursal: ${error.message}`);
       return res.status(500).json({ msg: "Error al eliminar sucursal" });
-    }
-  }
-
-  // ==================== PROVEEDORES ====================
-  async getProveedores(req, res) {
-    try {
-      const { idEmpresa } = req.user || {};
-      const proveedorModel = new ProveedorModel();
-      const proveedores = await proveedorModel.getAll(idEmpresa);
-      return res.status(200).json({ data: proveedores });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener proveedores: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener proveedores" });
-    }
-  }
-
-  async getProveedorById(req, res) {
-    try {
-      const { id } = req.params;
-      const proveedorModel = new ProveedorModel();
-      const proveedor = await proveedorModel.getById(id);
-
-      if (!proveedor) {
-        return res.status(404).json({ msg: "Proveedor no encontrado" });
-      }
-
-      return res.status(200).json({ data: proveedor });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener proveedor" });
-    }
-  }
-
-  async createProveedor(req, res) {
-    try {
-      const { idEmpresa } = req.user || {};
-      const { nombre } = req.body;
-
-      if (!nombre) {
-        return res.status(400).json({ msg: "El nombre es requerido" });
-      }
-
-      const proveedorModel = new ProveedorModel();
-      const id = await proveedorModel.create({ nombre, id_empresa: idEmpresa });
-
-      return res.status(201).json({ msg: "Proveedor creado exitosamente", data: { id } });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al crear proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al crear proveedor" });
-    }
-  }
-
-  async updateProveedor(req, res) {
-    try {
-      const { idEmpresa } = req.user || {};
-      const { id } = req.params;
-      const { nombre } = req.body;
-
-      if (!nombre) {
-        return res.status(400).json({ msg: "El nombre es requerido" });
-      }
-
-      const proveedorModel = new ProveedorModel();
-      await proveedorModel.update(id, { nombre, id_empresa: idEmpresa });
-
-      return res.status(200).json({ msg: "Proveedor actualizado exitosamente" });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al actualizar proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al actualizar proveedor" });
-    }
-  }
-
-  async deleteProveedor(req, res) {
-    try {
-      const { idEmpresa } = req.user || {};
-      const { id } = req.params;
-      const proveedorModel = new ProveedorModel();
-      await proveedorModel.delete(id, idEmpresa);
-      return res.status(200).json({ msg: "Proveedor eliminado exitosamente" });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al eliminar proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al eliminar proveedor" });
     }
   }
 

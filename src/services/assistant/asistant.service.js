@@ -1,135 +1,109 @@
-const LlmResponsesApiService = require("../openAI/llmResponsesApi.service");
-const BuildPromptService = require("./buildPrompt.service");
+const { createLlmProvider } = require("../llm");
 const MemoryService = require("./memory.service");
-const { customTimestamp } = require("../../utils/customTimestamp");
+const { buildSystemPrompt } = require("./promptCache.service");
+const { toolDefinitions } = require("./tools/toolDefinitions");
+const ToolExecutor = require("./tools/toolExecutor");
+const { getLocalDateWithDay } = require("../../utils/customTimestamp");
 const logger = require("../../config/logger/loggerClient");
+
+const MAX_TOOL_ITERATIONS = 5;
 
 class AssistantService {
 
     constructor() {
-
-        this.numberOfContextMessages = Number(process.env.NUM_LAST_INPUTS_MESSAGES);
-        this.llmResponsesApiService = new LlmResponsesApiService(process.env.OPENAI_API_KEY);
+        this.llmProvider = createLlmProvider();
+        this.model = process.env.LLM_MODEL || "gpt-4.1-mini";
+        this.temperature = Number(process.env.LLM_TEMPERATURE) || 0.5;
     }
 
-
-    async runProcess({
-        contactId,
-        message,
-        nombre_modelo,
-        id_empresa = null
-    }) {
+    /**
+     * Procesa un mensaje del usuario a traves del LLM con loop de tool calling.
+     * @param {Object} params
+     * @param {number} params.chatId - ID del chat para historial
+     * @param {string} params.message - Mensaje actual del usuario
+     * @param {Object} params.prospecto - Registro del prospecto desde DB
+     * @param {number} params.id_empresa - ID de la empresa
+     * @returns {Promise<string>} - Respuesta de texto del LLM
+     */
+    async runProcess({ chatId, message, prospecto, id_empresa }) {
         try {
-
-
-            // Obtener historial de conversación del contacto con la IA ----------------
-
-            // Cargar historial desde la db
-            const arrayLastContextMessages = await MemoryService.getLastContextMessagesTable(
-                contactId, this.numberOfContextMessages);
-
-            // Añadir el mensaje del usuario al historial de conversación ----------------
-
-            const mensajeClienteXML = BuildPromptService.buildUserPrompt({
-                mensaje: message,
-                timestamp: customTimestamp()
+            const systemPrompt = buildSystemPrompt({
+                prospecto,
+                timestamp: getLocalDateWithDay()
             });
 
-            const newInputMessage = this.llmResponsesApiService.inputTextFormat({
-                role: "user",
-                content: mensajeClienteXML
-            });
+            const history = await MemoryService.getConversationHistory(chatId);
 
-            await MemoryService.addMessageToContactContextHistoryForAi({
-                contactId,
-                newInputMessage,
-                status_api: null,
-                costo_modelo: null,
-                tkn_input: null,
-                tkn_output: null,
-                nombre_modelo: null
-            });
+            const messages = [
+                ...history,
+                { role: "user", content: message }
+            ];
 
+            const toolExecutor = new ToolExecutor();
 
-            // Obtener el prompt system --------------------------------------------------------
+            const newMessages = [{ role: "user", content: message }];
 
-            const promptInstructions = await BuildPromptService.buildSystemPrompt({
-                id_empresa: id_empresa
-            });
+            let iterations = 0;
 
-            // Inputs ----------------------------------------------------------------------
+            while (iterations < MAX_TOOL_ITERATIONS) {
+                iterations++;
 
-            let inputs = [...arrayLastContextMessages, newInputMessage];
+                const response = await this.llmProvider.chat({
+                    systemPrompt,
+                    messages,
+                    model: this.model,
+                    temperature: this.temperature,
+                    tools: toolDefinitions
+                });
 
-            // Obtener la respuesta de la IA 
-            const response = await this.llmResponsesApiService.getResponse(
-                inputs,
-                promptInstructions,
-                {
-                    model: nombre_modelo
+                if (!response.tool_calls || response.tool_calls.length === 0) {
+                    newMessages.push({ role: "assistant", content: response.content });
+                    await MemoryService.addMessagesToCache(chatId, newMessages);
+                    return response.content;
                 }
-            );
 
-            const newResponseMessage = this.llmResponsesApiService.inputTextFormat({
-                role: "assistant",
-                content: response.output_text
-            });
+                const assistantMsg = {
+                    role: "assistant",
+                    content: response.content,
+                    tool_calls: response.tool_calls
+                };
+                messages.push(assistantMsg);
+                newMessages.push(assistantMsg);
 
+                for (const toolCall of response.tool_calls) {
+                    const args = JSON.parse(toolCall.function.arguments);
+                    const result = await toolExecutor.execute(toolCall.function.name, args);
 
-            await MemoryService.addMessageToContactContextHistoryForAi({
-                contactId: contactId,
-                newInputMessage: newResponseMessage,
-                status_api: null,
-                costo_modelo: null,
-                tkn_input: response.usage.input_tokens || null,
-                tkn_output: response.usage.output_tokens || null,
-                nombre_modelo: response.model
-            });
+                    logger.info(`[AssistantService] Tool: ${toolCall.function.name}, args: ${toolCall.function.arguments}, result: ${result}`);
 
-
-            // Procesar la respuesta de la IA 
-
-            let cleanOutputText = response.output_text.replace(/^```json\n?/, '')
-                .replace(/^```\n?/, '')
-                .replace(/```$/, '')
-                .trim();
-
-
-            let responseObject;
-            try {
-                responseObject = JSON.parse(cleanOutputText);
-            } catch (error) {
-
-                // Si no es un JSON válido, se debe enviar a autocorrector
-                const promptAutocorrector = BuildPromptService.buildAutocorrectorPrompt();
-                const responseAutocorrector = await this.llmResponsesApiService.getResponse(
-                    cleanOutputText,
-                    promptAutocorrector,
-                    {
-                        model: "gpt-4.1-nano"
-                    }
-                );
-
-                const cleanOutputTextAutocorrector = responseAutocorrector.output_text.replace(/^```json\n?/, '')
-                    .replace(/^```\n?/, '')
-                    .replace(/```$/, '')
-                    .trim();
-
-                responseObject = JSON.parse(cleanOutputTextAutocorrector);
-                // console.log("responseObject desde corrector", responseObject);
+                    const toolMsg = {
+                        role: "tool",
+                        tool_call_id: toolCall.id,
+                        content: result
+                    };
+                    messages.push(toolMsg);
+                    newMessages.push(toolMsg);
+                }
             }
 
-            // console.log("responseObject desde asistant", responseObject );
-            return responseObject;
-            
+            logger.warn(`[AssistantService] Max tool iterations (${MAX_TOOL_ITERATIONS}) alcanzado, forzando respuesta de texto`);
+            const finalResponse = await this.llmProvider.chat({
+                systemPrompt,
+                messages,
+                model: this.model,
+                temperature: this.temperature,
+                tools: undefined
+            });
+
+            newMessages.push({ role: "assistant", content: finalResponse.content });
+            await MemoryService.addMessagesToCache(chatId, newMessages);
+            return finalResponse.content;
+
         } catch (error) {
             logger.error(`[AssistantService.runProcess] ${error.message}`);
-            throw new Error(`[AssistantService.runProcess] ${error.message}`);
+            throw error;
         }
     }
-
-
-
 }
 
 module.exports = new AssistantService();

@@ -1,156 +1,117 @@
-// assistant
 const AssistantService = require("../services/assistant/asistant.service");
-const TblContactoModel = require("../models/tblContacto.model.js");
-const TblProspectoModel = require("../models/tblProspectos.model.js");
-const TblPlanesTarifariosModel = require("../models/tblPlanesTarifarios.model.js");
-const TblAuditoriaApiModel = require("../models/tblAuditoriaApi.model.js");
-const TblEstadoModel = require("../models/tblEstado.model.js");
-const TblMensajeModel = require("../models/tblMensaje.model.js");
-const TblUsuarioModel = require("../models/tblUsuario.model.js");
-const logger = require('../config/logger/loggerClient');
+const Prospecto = require("../models/prospecto.model.js");
+const Cliente = require("../models/cliente.model.js");
+const Usuario = require("../models/usuario.model.js");
+const Chat = require("../models/chat.model.js");
+const Mensaje = require("../models/mensaje.model.js");
+const logger = require("../config/logger/loggerClient");
 
 class MessageProcessingController {
 
     async processMessage(req, res) {
         try {
-            let { phone, question, wid, id_empresa } = req.body;
+            let { phone, question, wid, id_empresa, es_cliente } = req.body;
             phone = phone.trim();
             question = question.trim();
             wid = wid ? wid.trim() : null;
             id_empresa = id_empresa ? parseInt(id_empresa, 10) : null;
 
-            let userType = req.userType;
-            userType = userType.trim();
+            let persona;
+            let chat;
 
-            const prospectoModel = new TblProspectoModel();
-            const estadoModel = new TblEstadoModel();
-            const planesModel = new TblPlanesTarifariosModel();
-            const contactModel = new TblContactoModel();
-            const auditoriaApiModel = new TblAuditoriaApiModel();
-            const mensajeModel = new TblMensajeModel();
-            const usuarioModel = new TblUsuarioModel();
-            
-            
-            // Verificar si prospecto esta registrado por medio del celular.
-            let prospecto = await prospectoModel.selectByCelular(phone, id_empresa);
-            
-            if (!prospecto) {
-                const asesores = await usuarioModel.getByRol(3);
-                const ids = asesores.map(asesores => asesores.id);
-                const conteoProspectos = await prospectoModel.getAsignacionesAsesor(userType);
-                let id_asesor = "";
+            if (es_cliente) {
+                // Flujo cliente
+                persona = await Cliente.findByCelular(phone);
 
-                if (conteoProspectos) {
-                    if (conteoProspectos.id_asesor) {
-                        const indice = (ids.indexOf(conteoProspectos.id_asesor) + 1) % ids.length;
-                        id_asesor = ids[indice]; 
-                    } else {
-                        id_asesor = ids[0];
-                    }
+                if (!persona) {
+                    return res.serverError(404, "Cliente no encontrado");
                 }
-                // Registar prospecto
-                prospecto = await prospectoModel.createProspecto(userType, 1, phone, id_asesor, id_empresa);
+
+                chat = await Chat.findByCliente(persona.id);
+                if (!chat) {
+                    chat = await Chat.create({
+                        id_empresa,
+                        id_cliente: persona.id,
+                        usuario_registro: 1
+                    });
+                }
+            } else {
+                // Flujo prospecto
+                persona = await Prospecto.selectByCelular(phone);
+
+                if (!persona) {
+                    const asesores = await Usuario.getByRol(3);
+                    const ids = asesores.map(a => a.id);
+
+                    const ultimoAsignacion = await Prospecto.getAsignacionesAsesor();
+
+                    let id_asesor = null;
+                    if (ids.length > 0) {
+                        if (ultimoAsignacion?.id_usuario) {
+                            const indice = (ids.indexOf(ultimoAsignacion.id_usuario) + 1) % ids.length;
+                            id_asesor = ids[indice];
+                        } else {
+                            id_asesor = ids[0];
+                        }
+                    }
+
+                    persona = await Prospecto.createProspecto({
+                        id_estado: 1,
+                        celular: phone,
+                        id_usuario: id_asesor,
+                        id_empresa,
+                        usuario_registro: 1
+                    });
+                }
+
+                chat = await Chat.findByProspecto(persona.id);
+                if (!chat) {
+                    chat = await Chat.create({
+                        id_empresa,
+                        id_prospecto: persona.id,
+                        usuario_registro: 1
+                    });
+                }
             }
-            
-            // Verificar si existe el contacto
-            let contact = await contactModel.getByCelular(phone, id_empresa);
-            
-            if (!contact) {
-                // Registrar contacto
-                contact = await contactModel.create(phone, prospecto.id);
-            }
-            
-            await mensajeModel.create(contact, question, "in", wid);
-            
-            // Asistente
-            const response = await AssistantService.runProcess({
-                contactId: contact,
-                message: question,
-                nombre_modelo: "gpt-4.1-mini",
-                id_empresa: id_empresa
+
+            console.log(chat);
+            // Guardar mensaje entrante
+            await Mensaje.create({
+                id_chat: chat.id || chat,
+                contenido: question,
+                direccion: "in",
+                wid_mensaje: wid,
+                tipo_mensaje: "texto",
+                fecha_hora: new Date(),
+                usuario_registro: 1
             });
 
-            // Respuesta
-            let status = null;
-            let answer = null;
-            let datosCliente = null;
-            const imagen_url = response?.imagen?.replace(/\s+/g, '') || null;
-
-            logger.info(`[messageProcessing.controller.js] Response agente: ${JSON.stringify(response.datos_cliente)}`);
-
-            if (response.estado_respuesta === "exitosa") {
-                    status = "pending";
-
-            } else if (response.estado_respuesta === "queue") {
-                // Derivar a un agente humano (no sabe responder o cliente pide hablar con humano)
-                status = "queue";
-
-            } else if (response.estado_respuesta === "ambigua") {
-                status = "pending";
-
-            } else if (response.estado_respuesta === "finalizada") {
-                status = "closed";
-
-            } else if (response.estado_respuesta === "line1") {
-                // Cliente interesado pero con dudas - derivar a asesor para llamada
-                status = "line1";
-                // Incluir datos del cliente para el asesor
-                datosCliente = response.datos_cliente || null;
-
-            } else if (response.estado_respuesta === "line2") {
-                // Cliente convencido - derivar a backoffice para procesar portabilidad
-                status = "line2";
-                // Incluir datos del cliente para backoffice
-                datosCliente = response.datos_cliente || null;
-            }
-
-            answer = response.mensaje_asistente;
-
-            const id_estado = await estadoModel.getIdByName(status);
-            
-            if (prospecto.id_estado !== id_estado && id_estado) {
-                await prospectoModel.updateEstado(prospecto.id, id_estado);
-            }
-
-            await auditoriaApiModel.insert({
-                phone,
-                question,
-                tipo_usuario: userType,
-                id_contacto: contact,
-                id_cliente_rest: prospecto.id,
-                respuesta_api: { status, answer, datos_cliente: datosCliente },
+            // Procesar con el asistente
+            const respuestaTexto = await AssistantService.runProcess({
+                chatId: chat.id || chat,
+                message: question,
+                prospecto: persona,
                 id_empresa
             });
 
-            await mensajeModel.create(contact, answer, "out", wid);
+            // Guardar mensaje saliente
+            await Mensaje.create({
+                id_chat: chat.id || chat,
+                contenido: respuestaTexto,
+                direccion: "out",
+                wid_mensaje: wid,
+                tipo_mensaje: "texto",
+                fecha_hora: new Date(),
+                usuario_registro: 1
+            });
 
-            // Construir respuesta según el status
-            const responseData = { status, answer, imagen_url };
-            
-            // Incluir datos_cliente solo cuando es line1 o line2
-            if (datosCliente && (status === "line1" || status === "line2")) {
-                responseData.datos_cliente = datosCliente;
-
-                let id_plan;
-                if (datosCliente.plan_a_vender) {
-                    id_plan = await planesModel.getIdByNombre(datosCliente.plan_a_vender);
-                }
-                
-                await prospectoModel.updateDatosProspecto(
-                    datosCliente.nombres_completos || null,
-                    datosCliente.dni || null,
-                    datosCliente.direccion || null,
-                    id_plan || null,
-                    datosCliente.numero_celular || null,
-                    datosCliente.id_tipificacion || null,
-                    prospecto.id
-                )
-            }
-
-            return res.success(200, "Mensaje procesado correctamente", responseData);
+            // Retornar respuesta
+            return res.success(200, "Mensaje procesado correctamente", {
+                respuesta: respuestaTexto
+            });
 
         } catch (error) {
-            logger.error(`[messageProcessing.controller.js] Error al procesar el mensaje: ${error.message}`);
+            logger.error(`[messageProcessing.controller.js] Error: ${error.message}`);
             return res.serverError(500, "Error Interno en el servidor");
         }
     }

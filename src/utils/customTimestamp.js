@@ -40,12 +40,35 @@ function getLocalDateTime(timeZone = 'America/Lima') {
   return `${dateTimeParts.year}-${dateTimeParts.month}-${dateTimeParts.day} ${dateTimeParts.hour}:${dateTimeParts.minute}:${dateTimeParts.second}`;
 }
 
-// Ejemplo de uso
-//console.log(getLocalDateTime()); // "2025-08-13 08:30:15"
-//console.log(getLocalDateTime('America/New_York')); // otra zona horaria
-  
+/**
+ * Devuelve la fecha actual con el dia de la semana en español.
+ * Formato: "YYYY-MM-DD, lunes"
+ * @param {string} timeZone - Ejemplo: 'America/Lima'
+ * @returns {string}
+ */
+function getLocalDateWithDay(timeZone = 'America/Lima') {
+  const now = new Date();
+
+  const dateParts = {};
+  new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(now).forEach(({ type, value }) => {
+    dateParts[type] = value;
+  });
+
+  const weekday = new Intl.DateTimeFormat('es-PE', {
+    timeZone,
+    weekday: 'long'
+  }).format(now);
+
+  return `${dateParts.year}-${dateParts.month}-${dateParts.day}, ${weekday}`;
+}
 
 module.exports = {
     customTimestamp,
-    getLocalDateTime
+    getLocalDateTime,
+    getLocalDateWithDay
 }

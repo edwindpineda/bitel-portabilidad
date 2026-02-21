@@ -3,6 +3,7 @@ require('dotenv/config');
 const app = require('./app.js');
 
 const connectDB = require('./config/dbConnection');
+const { connectRedis } = require('./config/redis');
 
 const logger = require('./config/logger/loggerClient');
 
@@ -21,6 +22,14 @@ const startServer = async () => {
   const server = app.listen(PORT, () => {
     logger.info(`[server.js] 🚀 Server running on http://localhost:${PORT}`);
   });
+
+    // Conectar a Redis
+  try {
+    await connectRedis();
+    logger.info(`[server.js] Redis verificado`);
+  } catch (error) {
+    logger.error(`[server.js] Redis no disponible: ${error.message}`);
+  }
 
   // Aumentar timeout para uploads grandes (30 minutos)
   server.timeout = 1800000;

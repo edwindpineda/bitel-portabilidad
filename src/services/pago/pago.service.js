@@ -1,0 +1,75 @@
+const logger = require("../../config/logger/loggerClient");
+
+const url_token = "https://qascobranzas-auna.oncosalud.pe/api/Autorizacion/CrearToken"
+const url_cambio = "https://qascobranzas-auna.oncosalud.pe/api/CambioTarjeta/CrearEnlace"
+const url_pago = "https://qascobranzas-auna.oncosalud.pe/api/PagoLinea/CrearEnlace"
+
+class PagoService {
+  async obtenerToken(alcance) {
+    const response = await fetch(url_token, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cliente_id: "CALLBOT-23",
+        cliente_secreto: "RUDcm3TR0VWhL7wG68uZF6dsWsQcjdyicxCrQpEZoLjnuDn2LVA25uFPmXnnDHkW",
+        tipo_acceso: "client_call_credentials",
+        alcance: alcance
+      })
+    });
+
+    const result = await response.json();
+
+    return result?.tipo_token + " " + result?.token_acceso
+  }
+
+
+  async generarLinkPago() {
+    const token = await this.obtenerToken("PagoCuota/CrearEnlace");
+
+    const response = await fetch(url_pago, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Authorization": token,
+      },
+      body: JSON.stringify({
+        grupo_familiar: "0051340047",
+        ope_origen: 36,
+        ope_call: "23"
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+
+      return result.enlace;
+    } else {
+      return null
+    }
+  }
+
+  async generarLinkCambio() {
+    const token = await this.obtenerToken("CambioTarjeta/CrearEnlace");
+
+    const response = await fetch(url_cambio, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Authorization": token,
+      },
+      body: JSON.stringify({
+        grupo_familiar: "0051340047",
+        ope_origen: 36,
+        ope_call: "23"
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+
+      return result.enlace;
+    }
+  }
+}
+
+module.exports = new PagoService();

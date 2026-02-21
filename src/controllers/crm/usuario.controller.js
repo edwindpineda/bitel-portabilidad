@@ -1,4 +1,4 @@
-const UsuarioModel = require("../../models/tblUsuario.model.js");
+const UsuarioModel = require("../../models/usuario.model.js");
 const ModuloModel = require("../../models/modulo.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 const JWTService = require('../../services/crm/jwt.service');

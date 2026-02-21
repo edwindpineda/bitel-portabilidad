@@ -75,12 +75,6 @@ router.post("/sucursales", ConfiguracionController.createSucursal);
 router.put("/sucursales/:id", ConfiguracionController.updateSucursal);
 router.delete("/sucursales/:id", ConfiguracionController.deleteSucursal);
 
-// Rutas de Proveedores
-router.get("/proveedores", ConfiguracionController.getProveedores);
-router.get("/proveedores/:id", ConfiguracionController.getProveedorById);
-router.post("/proveedores", ConfiguracionController.createProveedor);
-router.put("/proveedores/:id", ConfiguracionController.updateProveedor);
-router.delete("/proveedores/:id", ConfiguracionController.deleteProveedor);
 
 // Rutas de Catálogo
 router.get("/catalogo", ConfiguracionController.getCatalogo);
