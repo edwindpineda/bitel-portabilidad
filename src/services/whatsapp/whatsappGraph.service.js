@@ -200,13 +200,22 @@ class WhatsappGraphService {
 
     const payload = {
       messaging_product: 'whatsapp',
-      // recipient_type: 'individual',
+      recipient_type: 'individual',
       to: formattedPhone,
-      type: 'text',
-      text: {
-        // preview_url: true,
-        body: templateName
+      type: "template",
+      template: {
+        name: "enlace_lili",
+        language: { code: language },
+        components: [
+          {
+            type: "body",
+            parameters: [
+              {type: "text", text: templateName}
+            ]
+          }
+        ]
       }
+      
     };
 
     if (components && components.length > 0) {
