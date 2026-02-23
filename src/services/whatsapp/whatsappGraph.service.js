@@ -200,11 +200,11 @@ class WhatsappGraphService {
 
     const payload = {
       messaging_product: 'whatsapp',
-      recipient_type: 'individual',
+      // recipient_type: 'individual',
       to: formattedPhone,
       type: 'text',
       text: {
-        preview_url: true,
+        // preview_url: true,
         body: templateName
       }
     };
@@ -214,7 +214,6 @@ class WhatsappGraphService {
     }
 
     logger.info(`[WhatsappGraph] Enviando plantilla ${templateName} a ${formattedPhone}`);
-    console.log("[Token]: ", WHATSAPP_TOKEN);
 
     const response = await axios.post(url, payload, {
       headers: {
