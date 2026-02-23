@@ -12,10 +12,10 @@ const configuracionRoutes = require("./routes/crm/configuracion.route.js");
 const llamadaRoutes = require("./routes/crm/llamada.route.js");
 const leadsRoutes = require("./routes/crm/leads.route.js");
 const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
-const webhookRoutes = require("./routes/webhook.route.js");
 const transcripcionRoutes = require("./controllers/crm/transcripcion.controller.js")
 const encuestaRoutes = require("./routes/encuesta.route.js");
 const pagoRoutes = require("./routes/pago.routes.js");
+const whatsappRoutes = require("./routes/plantillaWhatsapp.route.js");
 
 const app = express();
 
@@ -48,15 +48,12 @@ app.use(responseHandler);
 
 // Rutas publicas (sin auth)
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
-app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes);
+app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes);
 // Rutas protegidas del CRM (requieren auth)
 app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
-
-// Rutas de webhook (sin auth - para recibir mensajes de Baileys)
-// app.use('/webhook', webhookRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {
