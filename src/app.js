@@ -16,6 +16,7 @@ const transcripcionRoutes = require("./controllers/crm/transcripcion.controller.
 const encuestaRoutes = require("./routes/encuesta.route.js");
 const pagoRoutes = require("./routes/pago.routes.js");
 const whatsappRoutes = require("./routes/plantillaWhatsapp.route.js");
+const tipificacionLlamadaRoutes = require("./routes/tipificacion_llamada.route.js");
 
 const app = express();
 
@@ -50,7 +51,7 @@ app.use(responseHandler);
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
 app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes);
 // Rutas protegidas del CRM (requieren auth)
-app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes);
+app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
