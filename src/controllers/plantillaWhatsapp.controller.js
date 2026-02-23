@@ -279,7 +279,7 @@ class PlantillaWhatsappController {
   async enviarPlantilla(req, res) {
     try {
       const { phone, template_name, language, components } = req.body;
-      // const id_empresa = req.user?.idEmpresa || null;
+      const id_empresa = req.user?.idEmpresa || null;
 
       // if (!id_empresa) {
       //   return res.status(400).json({ msg: "ID de empresa requerido" });
