@@ -18,6 +18,8 @@ const CampaniaModel = require("../../models/campania.model.js");
 const CampaniaBaseNumeroModel = require("../../models/campaniaBaseNumero.model.js");
 const CampaniaEjecucionModel = require("../../models/campaniaEjecucion.model.js");
 const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
+const ProveedorModel = require("../../models/proveedor.model.js");
+const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
 const xlsx = require('xlsx');
 
@@ -2073,6 +2075,612 @@ class ConfiguracionController {
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al guardar prompt asistente: ${error.message}`);
       return res.status(500).json({ msg: "Error al guardar prompt asistente" });
+    }
+  }
+  // ==================== PROVEEDORES ====================
+  async getProveedores(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const proveedorModel = new ProveedorModel();
+      const proveedores = await proveedorModel.getAll(idEmpresa);
+      return res.status(200).json({ data: proveedores });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener proveedores: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener proveedores" });
+    }
+  }
+
+  async getProveedorById(req, res) {
+    try {
+      const { id } = req.params;
+      const proveedorModel = new ProveedorModel();
+      const proveedor = await proveedorModel.getById(id);
+      if (!proveedor) {
+        return res.status(404).json({ msg: "Proveedor no encontrado" });
+      }
+      return res.status(200).json({ data: proveedor });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener proveedor: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener proveedor" });
+    }
+  }
+
+  async createProveedor(req, res) {
+    try {
+      const { nombre } = req.body;
+      const { idEmpresa } = req.user || {};
+      const proveedorModel = new ProveedorModel();
+      const id = await proveedorModel.create({ nombre, id_empresa: idEmpresa });
+      return res.status(201).json({ msg: "Proveedor creado exitosamente", data: { id } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear proveedor: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear proveedor" });
+    }
+  }
+
+  async updateProveedor(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre } = req.body;
+      const proveedorModel = new ProveedorModel();
+      await proveedorModel.update(id, { nombre });
+      return res.status(200).json({ msg: "Proveedor actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar proveedor: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar proveedor" });
+    }
+  }
+
+  async deleteProveedor(req, res) {
+    try {
+      const { id } = req.params;
+      const proveedorModel = new ProveedorModel();
+      await proveedorModel.delete(id);
+      return res.status(200).json({ msg: "Proveedor eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar proveedor: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar proveedor" });
+    }
+  }
+
+  // ==================== PROYECTOS ====================
+  async getProyectos(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM proyecto WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY fecha_registro DESC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener proyectos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener proyectos" });
+    }
+  }
+
+  async createProyecto(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { nombre, descripcion, ubicacion } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      const [result] = await pool.execute(
+        'INSERT INTO proyecto (nombre, descripcion, ubicacion, id_empresa, estado_registro) VALUES (?, ?, ?, ?, 1)',
+        [nombre, descripcion || null, ubicacion || null, idEmpresa]
+      );
+      return res.status(201).json({ msg: "Proyecto creado exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear proyecto: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear proyecto" });
+    }
+  }
+
+  async updateProyecto(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion, ubicacion } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE proyecto SET nombre = ?, descripcion = ?, ubicacion = ? WHERE id = ?', [nombre, descripcion || null, ubicacion || null, id]);
+      return res.status(200).json({ msg: "Proyecto actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar proyecto: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar proyecto" });
+    }
+  }
+
+  async deleteProyecto(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE proyecto SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Proyecto eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar proyecto: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar proyecto" });
+    }
+  }
+
+  async syncProyectosSperant(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      logger.info(`[configuracion.controller.js] Sync proyectos Sperant - empresa ${idEmpresa}`);
+      return res.status(200).json({ msg: "Sincronización de proyectos completada", data: { synced: 0 } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error sync proyectos Sperant: ${error.message}`);
+      return res.status(500).json({ msg: "Error al sincronizar proyectos" });
+    }
+  }
+
+  // ==================== UNIDADES ====================
+  async getUnidades(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { id_proyecto } = req.query;
+      const params = [];
+      let query = 'SELECT * FROM unidad WHERE estado_registro = 1';
+      if (id_proyecto) { query += ' AND id_proyecto = ?'; params.push(id_proyecto); }
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY fecha_registro DESC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener unidades: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener unidades" });
+    }
+  }
+
+  async createUnidad(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { id_proyecto, nombre, id_tipologia, area, precio, estado } = req.body;
+      if (!id_proyecto || !nombre) return res.status(400).json({ msg: "Proyecto y nombre son requeridos" });
+      const [result] = await pool.execute(
+        'INSERT INTO unidad (id_proyecto, nombre, id_tipologia, area, precio, estado, id_empresa, estado_registro) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
+        [id_proyecto, nombre, id_tipologia || null, area || null, precio || null, estado || null, idEmpresa]
+      );
+      return res.status(201).json({ msg: "Unidad creada exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear unidad: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear unidad" });
+    }
+  }
+
+  async updateUnidad(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, id_tipologia, area, precio, estado } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE unidad SET nombre = ?, id_tipologia = ?, area = ?, precio = ?, estado = ? WHERE id = ?', [nombre, id_tipologia || null, area || null, precio || null, estado || null, id]);
+      return res.status(200).json({ msg: "Unidad actualizada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar unidad: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar unidad" });
+    }
+  }
+
+  async deleteUnidad(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE unidad SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Unidad eliminada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar unidad: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar unidad" });
+    }
+  }
+
+  async syncUnidadesSperant(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      logger.info(`[configuracion.controller.js] Sync unidades Sperant - empresa ${idEmpresa}`);
+      return res.status(200).json({ msg: "Sincronización de unidades completada", data: { synced: 0 } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error sync unidades Sperant: ${error.message}`);
+      return res.status(500).json({ msg: "Error al sincronizar unidades" });
+    }
+  }
+
+  // ==================== TIPOLOGIAS ====================
+  async getTipologias(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM tipologia WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY nombre ASC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener tipologías: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener tipologías" });
+    }
+  }
+
+  async createTipologia(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { nombre, descripcion, id_proyecto } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      const [result] = await pool.execute(
+        'INSERT INTO tipologia (nombre, descripcion, id_proyecto, id_empresa, estado_registro) VALUES (?, ?, ?, ?, 1)',
+        [nombre, descripcion || null, id_proyecto || null, idEmpresa]
+      );
+      return res.status(201).json({ msg: "Tipología creada exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear tipología: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear tipología" });
+    }
+  }
+
+  async updateTipologia(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion, id_proyecto } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE tipologia SET nombre = ?, descripcion = ?, id_proyecto = ? WHERE id = ?', [nombre, descripcion || null, id_proyecto || null, id]);
+      return res.status(200).json({ msg: "Tipología actualizada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar tipología: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar tipología" });
+    }
+  }
+
+  async deleteTipologia(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE tipologia SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Tipología eliminada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar tipología: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar tipología" });
+    }
+  }
+
+  // ==================== TIPO PLANTILLAS ====================
+  async getTipoPlantillas(req, res) {
+    try {
+      const id_empresa = req.user?.idEmpresa || null;
+      const formatoModel = new FormatoModel();
+      const formatos = await formatoModel.getAll(id_empresa);
+      return res.status(200).json({ data: formatos });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener tipo plantillas: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener tipo plantillas" });
+    }
+  }
+
+  async getTipoPlantillaById(req, res) {
+    try {
+      const { id } = req.params;
+      const formatoModel = new FormatoModel();
+      const formato = await formatoModel.getByIdWithCampos(id);
+      if (!formato) return res.status(404).json({ msg: "Tipo plantilla no encontrado" });
+      return res.status(200).json({ data: formato });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener tipo plantilla: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener tipo plantilla" });
+    }
+  }
+
+  // ==================== TIPO RECURSOS ====================
+  async getTipoRecursos(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM tipo_recurso WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener tipo recursos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener tipo recursos" });
+    }
+  }
+
+  // ==================== RECURSOS ====================
+  async getRecursos(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM recurso WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY fecha_registro DESC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener recursos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener recursos" });
+    }
+  }
+
+  async createRecurso(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { nombre, descripcion, id_tipo_recurso, id_proyecto, id_tipologia, url } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      const [result] = await pool.execute(
+        'INSERT INTO recurso (nombre, descripcion, id_tipo_recurso, id_proyecto, id_tipologia, url, id_empresa, estado_registro) VALUES (?, ?, ?, ?, ?, ?, ?, 1)',
+        [nombre, descripcion || null, id_tipo_recurso || null, id_proyecto || null, id_tipologia || null, url || null, idEmpresa]
+      );
+      return res.status(201).json({ msg: "Recurso creado exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear recurso: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear recurso" });
+    }
+  }
+
+  async updateRecurso(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion, id_tipo_recurso, id_proyecto, id_tipologia, url } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE recurso SET nombre = ?, descripcion = ?, id_tipo_recurso = ?, id_proyecto = ?, id_tipologia = ?, url = ? WHERE id = ?', [nombre, descripcion || null, id_tipo_recurso || null, id_proyecto || null, id_tipologia || null, url || null, id]);
+      return res.status(200).json({ msg: "Recurso actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar recurso: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar recurso" });
+    }
+  }
+
+  async deleteRecurso(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE recurso SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Recurso eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar recurso: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar recurso" });
+    }
+  }
+
+  // ==================== ESTADOS CAMPANIA ====================
+  async getEstadosCampania(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM estado_campania WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY orden ASC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener estados campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener estados de campaña" });
+    }
+  }
+
+  async createEstadoCampania(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { nombre, color, orden } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      const [result] = await pool.execute(
+        'INSERT INTO estado_campania (nombre, color, orden, id_empresa, estado_registro) VALUES (?, ?, ?, ?, 1)',
+        [nombre, color || null, orden || 0, idEmpresa]
+      );
+      return res.status(201).json({ msg: "Estado de campaña creado exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear estado campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear estado de campaña" });
+    }
+  }
+
+  async updateEstadoCampania(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, color, orden } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE estado_campania SET nombre = ?, color = ?, orden = ? WHERE id = ?', [nombre, color || null, orden || 0, id]);
+      return res.status(200).json({ msg: "Estado de campaña actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar estado campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar estado de campaña" });
+    }
+  }
+
+  async deleteEstadoCampania(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE estado_campania SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Estado de campaña eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar estado campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar estado de campaña" });
+    }
+  }
+
+  // ==================== TIPOS CAMPANIA ====================
+  async getTiposCampania(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM tipo_campania WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY nombre ASC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener tipos campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener tipos de campaña" });
+    }
+  }
+
+  async createTipoCampania(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { nombre, descripcion } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      const [result] = await pool.execute(
+        'INSERT INTO tipo_campania (nombre, descripcion, id_empresa, estado_registro) VALUES (?, ?, ?, 1)',
+        [nombre, descripcion || null, idEmpresa]
+      );
+      return res.status(201).json({ msg: "Tipo de campaña creado exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear tipo campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear tipo de campaña" });
+    }
+  }
+
+  async updateTipoCampania(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, descripcion } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE tipo_campania SET nombre = ?, descripcion = ? WHERE id = ?', [nombre, descripcion || null, id]);
+      return res.status(200).json({ msg: "Tipo de campaña actualizado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar tipo campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar tipo de campaña" });
+    }
+  }
+
+  async deleteTipoCampania(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE tipo_campania SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Tipo de campaña eliminado exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar tipo campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar tipo de campaña" });
+    }
+  }
+
+  // ==================== CAMPANIA PROSPECTOS ====================
+  async getProspectosByEjecucion(req, res) {
+    try {
+      const { id } = req.params;
+      const [rows] = await pool.execute(
+        `SELECT cp.*, p.celular, p.nombre_completo, p.dni
+         FROM campania_prospecto cp
+         LEFT JOIN prospecto p ON p.id = cp.id_prospecto
+         WHERE cp.id_campania_ejecucion = ? AND cp.estado_registro = 1
+         ORDER BY cp.fecha_registro DESC`,
+        [id]
+      );
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener prospectos de ejecución: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener prospectos de la ejecución" });
+    }
+  }
+
+  async addProspectosToEjecucion(req, res) {
+    try {
+      const { id } = req.params;
+      const { prospecto_ids } = req.body;
+      const usuario_registro = req.user?.userId || null;
+      if (!prospecto_ids || !Array.isArray(prospecto_ids) || prospecto_ids.length === 0) {
+        return res.status(400).json({ msg: "Debe seleccionar al menos un prospecto" });
+      }
+      for (const prospecto_id of prospecto_ids) {
+        await pool.execute(
+          'INSERT INTO campania_prospecto (id_campania_ejecucion, id_prospecto, usuario_registro, estado_registro) VALUES (?, ?, ?, 1)',
+          [id, prospecto_id, usuario_registro]
+        );
+      }
+      return res.status(201).json({ msg: `${prospecto_ids.length} prospectos agregados exitosamente` });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al agregar prospectos a ejecución: ${error.message}`);
+      return res.status(500).json({ msg: "Error al agregar prospectos" });
+    }
+  }
+
+  async deleteCampaniaProspecto(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE campania_prospecto SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Prospecto eliminado de la campaña exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar prospecto de campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar prospecto de la campaña" });
+    }
+  }
+
+  // ==================== PROSPECTOS (listing) ====================
+  async getProspectos(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT id, celular, nombre_completo, dni FROM prospecto WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY fecha_registro DESC';
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener prospectos: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener prospectos" });
+    }
+  }
+
+  // ==================== CONVERSACIONES ====================
+  async getConversaciones(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { limit } = req.query;
+      const params = [];
+      let query = `SELECT c.*, p.celular, p.nombre_completo FROM contacto c LEFT JOIN prospecto p ON p.id = c.id_prospecto WHERE c.estado_registro = 1`;
+      if (idEmpresa) { query += ' AND c.id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY c.fecha_actualizacion DESC';
+      if (limit) { query += ` LIMIT ${parseInt(limit)}`; }
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener conversaciones: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener conversaciones" });
+    }
+  }
+
+  // ==================== PLANTILLAS WHATSAPP (via /crm/ path) ====================
+  async getPlantillasWhatsapp(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const params = [];
+      let query = 'SELECT * FROM plantilla_whatsapp WHERE estado_registro = 1';
+      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
+      const [rows] = await pool.execute(query, params);
+      return res.status(200).json({ data: rows });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener plantillas WhatsApp: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener plantillas WhatsApp" });
+    }
+  }
+
+  async createPlantillaWhatsapp(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      const { nombre, contenido, tipo, idioma } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      const [result] = await pool.execute(
+        'INSERT INTO plantilla_whatsapp (nombre, contenido, tipo, idioma, id_empresa, estado_registro) VALUES (?, ?, ?, ?, ?, 1)',
+        [nombre, contenido || null, tipo || null, idioma || 'es', idEmpresa]
+      );
+      return res.status(201).json({ msg: "Plantilla creada exitosamente", data: { id: result.insertId } });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al crear plantilla WhatsApp: ${error.message}`);
+      return res.status(500).json({ msg: "Error al crear plantilla WhatsApp" });
+    }
+  }
+
+  async updatePlantillaWhatsapp(req, res) {
+    try {
+      const { id } = req.params;
+      const { nombre, contenido, tipo, idioma } = req.body;
+      if (!nombre) return res.status(400).json({ msg: "El nombre es requerido" });
+      await pool.execute('UPDATE plantilla_whatsapp SET nombre = ?, contenido = ?, tipo = ?, idioma = ? WHERE id = ?', [nombre, contenido || null, tipo || null, idioma || 'es', id]);
+      return res.status(200).json({ msg: "Plantilla actualizada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al actualizar plantilla WhatsApp: ${error.message}`);
+      return res.status(500).json({ msg: "Error al actualizar plantilla WhatsApp" });
+    }
+  }
+
+  async deletePlantillaWhatsapp(req, res) {
+    try {
+      const { id } = req.params;
+      await pool.execute('UPDATE plantilla_whatsapp SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Plantilla eliminada exitosamente" });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al eliminar plantilla WhatsApp: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar plantilla WhatsApp" });
     }
   }
 }

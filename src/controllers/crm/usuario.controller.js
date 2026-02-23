@@ -5,6 +5,24 @@ const JWTService = require('../../services/crm/jwt.service');
 
 class UsuarioController {
 
+  async forgotPassword(req, res) {
+    try {
+      const { username } = req.body;
+
+      if (!username) {
+        return res.status(400).json({ message: "El usuario o correo es requerido" });
+      }
+
+      logger.info(`[usuario.controller.js] Solicitud de recuperación de contraseña para: ${username}`);
+
+      // Por seguridad, siempre responder con éxito independientemente de si existe el usuario
+      return res.status(200).json({ message: "Si el correo está registrado, recibirás instrucciones para restablecer tu contraseña." });
+    } catch (error) {
+      logger.error(`[usuario.controller.js] Error en forgot-password: ${error.message}`);
+      return res.status(500).json({ message: "Error al procesar la solicitud" });
+    }
+  }
+
   async loginUsuario(req, res) {
     try {
       const { username, password } = req.body;

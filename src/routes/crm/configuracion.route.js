@@ -195,8 +195,77 @@ router.get("/campania-ejecuciones/:id", ConfiguracionController.getEjecucionById
 router.patch("/campania-ejecuciones/:id/estado", ConfiguracionController.updateEstadoEjecucion);
 router.patch("/campania-ejecuciones/:id/cancelar", ConfiguracionController.cancelarEjecucion);
 
+// Rutas de Proveedores
+router.get("/proveedores", ConfiguracionController.getProveedores);
+router.get("/proveedores/:id", ConfiguracionController.getProveedorById);
+router.post("/proveedores", ConfiguracionController.createProveedor);
+router.put("/proveedores/:id", ConfiguracionController.updateProveedor);
+router.delete("/proveedores/:id", ConfiguracionController.deleteProveedor);
+
 // Rutas de Prompt Asistente (Bot WhatsApp)
 router.get("/prompt-asistente", ConfiguracionController.getPromptAsistente);
 router.post("/prompt-asistente", ConfiguracionController.savePromptAsistente);
+
+// Rutas de Proyectos
+router.get("/proyectos", ConfiguracionController.getProyectos);
+router.post("/proyectos", ConfiguracionController.createProyecto);
+router.put("/proyectos/:id", ConfiguracionController.updateProyecto);
+router.delete("/proyectos/:id", ConfiguracionController.deleteProyecto);
+router.post("/projects/sync-sperant", ConfiguracionController.syncProyectosSperant);
+
+// Rutas de Unidades
+router.get("/unidades", ConfiguracionController.getUnidades);
+router.post("/unidades", ConfiguracionController.createUnidad);
+router.put("/unidades/:id", ConfiguracionController.updateUnidad);
+router.delete("/unidades/:id", ConfiguracionController.deleteUnidad);
+router.post("/units/sync-sperant", ConfiguracionController.syncUnidadesSperant);
+
+// Rutas de Tipologías
+router.get("/tipologias", ConfiguracionController.getTipologias);
+router.post("/tipologias", ConfiguracionController.createTipologia);
+router.put("/tipologias/:id", ConfiguracionController.updateTipologia);
+router.delete("/tipologias/:id", ConfiguracionController.deleteTipologia);
+
+// Rutas de Tipo Plantillas
+router.get("/tipo-plantillas", ConfiguracionController.getTipoPlantillas);
+router.get("/tipo-plantillas/:id", ConfiguracionController.getTipoPlantillaById);
+
+// Rutas de Tipo Recursos
+router.get("/tipo-recursos", ConfiguracionController.getTipoRecursos);
+
+// Rutas de Recursos
+router.get("/recursos", ConfiguracionController.getRecursos);
+router.post("/recursos", ConfiguracionController.createRecurso);
+router.put("/recursos/:id", ConfiguracionController.updateRecurso);
+router.delete("/recursos/:id", ConfiguracionController.deleteRecurso);
+
+// Rutas de Estados de Campaña
+router.get("/estados-campania", ConfiguracionController.getEstadosCampania);
+router.post("/estados-campania", ConfiguracionController.createEstadoCampania);
+router.put("/estados-campania/:id", ConfiguracionController.updateEstadoCampania);
+router.delete("/estados-campania/:id", ConfiguracionController.deleteEstadoCampania);
+
+// Rutas de Tipos de Campaña
+router.get("/tipos-campania", ConfiguracionController.getTiposCampania);
+router.post("/tipos-campania", ConfiguracionController.createTipoCampania);
+router.put("/tipos-campania/:id", ConfiguracionController.updateTipoCampania);
+router.delete("/tipos-campania/:id", ConfiguracionController.deleteTipoCampania);
+
+// Rutas de Campaña Prospectos
+router.get("/campania-ejecuciones/:id/prospectos", ConfiguracionController.getProspectosByEjecucion);
+router.post("/campania-ejecuciones/:id/prospectos", ConfiguracionController.addProspectosToEjecucion);
+router.delete("/campania-prospectos/:id", ConfiguracionController.deleteCampaniaProspecto);
+
+// Rutas de Prospectos (listado)
+router.get("/prospectos", ConfiguracionController.getProspectos);
+
+// Rutas de Conversaciones
+router.get("/conversaciones", ConfiguracionController.getConversaciones);
+
+// Rutas de Plantillas WhatsApp (via /crm/ path)
+router.get("/plantillas-whatsapp", ConfiguracionController.getPlantillasWhatsapp);
+router.post("/plantillas-whatsapp", ConfiguracionController.createPlantillaWhatsapp);
+router.put("/plantillas-whatsapp/:id", ConfiguracionController.updatePlantillaWhatsapp);
+router.delete("/plantillas-whatsapp/:id", ConfiguracionController.deletePlantillaWhatsapp);
 
 module.exports = router;

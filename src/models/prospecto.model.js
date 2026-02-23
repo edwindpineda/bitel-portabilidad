@@ -98,10 +98,38 @@ class ProspectoModel {
     }
 
     /**
-     * Obtiene todos los registros de consumo por tipo de usuario
-     * @param {string} tipo_usuario - Tipo de usuario
-     * @returns {Promise<Array>} - Array de registros de consumo
+     * Obtiene todos los prospectos filtrados por tipo_usuario, con filtros de rol y empresa
      */
+    async getAllByTipoUsuario(tipoUsuario, userId = null, rolId = null, idEmpresa = null) {
+        try {
+            let query = `
+                SELECT p.*, e.nombre as estado_nombre, e.color as estado_color,
+                       t.nombre as tipificacion_nombre
+                FROM prospecto p
+                LEFT JOIN estado e ON e.id = p.id_estado
+                LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
+                WHERE p.estado_registro = 1 AND p.tipo_usuario = ?`;
+            const params = [tipoUsuario];
+
+            if (idEmpresa) {
+                query += ' AND p.id_empresa = ?';
+                params.push(idEmpresa);
+            }
+
+            if (rolId && rolId >= 3 && userId) {
+                query += ' AND p.id_asesor = ?';
+                params.push(userId);
+            }
+
+            query += ' ORDER BY p.fecha_registro DESC';
+
+            const [rows] = await this.connection.execute(query, params);
+            return rows;
+        } catch (error) {
+            throw new Error(`Error al obtener prospectos: ${error.message}`);
+        }
+    }
+
     async getAsignacionesAsesor() {
         try {
             const [rows] = await this.connection.execute(

@@ -12,10 +12,16 @@ const configuracionRoutes = require("./routes/crm/configuracion.route.js");
 const llamadaRoutes = require("./routes/crm/llamada.route.js");
 const leadsRoutes = require("./routes/crm/leads.route.js");
 const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
-const transcripcionRoutes = require("./controllers/crm/transcripcion.controller.js")
+const transcripcionRoutes = require("./controllers/crm/transcripcion.controller.js");
+const chatRoutes = require("./routes/crm/chat.route.js");
 const encuestaRoutes = require("./routes/encuesta.route.js");
 const pagoRoutes = require("./routes/pago.routes.js");
 const whatsappRoutes = require("./routes/plantillaWhatsapp.route.js");
+const whatsappEmbeddedRoutes = require("./routes/whatsappEmbedded.route.js");
+const adminRoutes = require("./routes/admin.route.js");
+const contactosRoutes = require("./routes/crm/contactos.route.js");
+const contactoRoutes = require("./routes/crm/contacto.route.js");
+const dashboardRoutes = require("./routes/dashboard.route.js");
 
 const app = express();
 
@@ -48,12 +54,18 @@ app.use(responseHandler);
 
 // Rutas publicas (sin auth)
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
-app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes);
+app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes, whatsappEmbeddedRoutes);
 // Rutas protegidas del CRM (requieren auth)
 app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
+app.use("/api/crm/chats", authMiddleware, chatRoutes);
+app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
+app.use("/api/crm/contacto", authMiddleware, contactoRoutes);
+app.use("/api/crm", authMiddleware, whatsappEmbeddedRoutes);
+app.use("/api/admin", authMiddleware, adminRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
+app.use('/api', authMiddleware, dashboardRoutes);
 
 // Ruta de health check
 app.get('/health', (req, res) => {

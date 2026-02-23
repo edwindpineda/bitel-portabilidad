@@ -46,7 +46,7 @@ class ReportesCrmController {
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM prospecto p
-        AND p.estado_registro = 1
+        WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
         ${dateCondition}
@@ -59,7 +59,7 @@ class ReportesCrmController {
         FROM prospecto p
         INNER JOIN contacto c ON c.id_prospecto = p.id
         INNER JOIN mensaje m ON m.id_contacto = c.id
-        AND p.estado_registro = 1
+        WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
         ${dateCondition}
@@ -71,7 +71,7 @@ class ReportesCrmController {
         SELECT COUNT(*) as total
         FROM prospecto p
         INNER JOIN estado e ON e.id = p.id_estado
-        AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
+        WHERE (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
         AND p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -132,7 +132,7 @@ class ReportesCrmController {
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM prospecto p
-        AND p.estado_registro = 1
+        WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
       `, params);
@@ -143,7 +143,7 @@ class ReportesCrmController {
         SELECT COUNT(*) as total
         FROM prospecto p
         INNER JOIN estado e ON e.id = p.id_estado
-        AND (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
+        WHERE (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
         AND p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -154,7 +154,7 @@ class ReportesCrmController {
       const [leadsSemanasResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM prospecto p
-        AND p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        WHERE p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         AND p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -167,7 +167,7 @@ class ReportesCrmController {
         FROM prospecto p
         INNER JOIN contacto c ON c.id_prospecto = p.id
         INNER JOIN mensaje m ON m.id_contacto = c.id
-        AND p.estado_registro = 1
+        WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
       `, params);
