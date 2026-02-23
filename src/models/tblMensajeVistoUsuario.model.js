@@ -96,7 +96,7 @@ class TblMensajeVistoUsuarioModel {
             let query = `
                 SELECT COUNT(DISTINCT c.id) as unread_count
                 FROM contacto c
-                LEFT JOIN prospecto p ON p.id = c.id_prospecto
+                LEFT JOIN persona p ON p.id = c.id_persona
                 LEFT JOIN (
                     SELECT id_contacto, MAX(id) as ultimo_mensaje_id
                     FROM mensaje

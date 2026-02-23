@@ -13,7 +13,7 @@ class ContactosController {
       const { id_estado, id_tipificacion, id_tipificacion_asesor } = req.query;
 
       let query = `
-        SELECT c.id, c.id_prospecto, c.fecha_registro, c.estado_registro,
+        SELECT c.id, c.id_persona, c.fecha_registro, c.estado_registro,
                p.celular, p.nombre_completo, p.id_estado, p.id_tipificacion, p.id_asesor, p.id_empresa,
                e.nombre as estado_nombre, e.color as estado_color,
                t.nombre as tipificacion_nombre,
@@ -21,7 +21,7 @@ class ContactosController {
                (SELECT fecha_hora FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as fecha_ultimo_mensaje,
                (SELECT COUNT(*) FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1) as total_mensajes
         FROM contacto c
-        LEFT JOIN prospecto p ON p.id = c.id_prospecto
+        LEFT JOIN persona p ON p.id = c.id_persona
         LEFT JOIN estado e ON e.id = p.id_estado
         LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
         WHERE c.estado_registro = 1`;
@@ -80,14 +80,14 @@ class ContactosController {
       const searchTerm = `%${searchQuery}%`;
 
       let query = `
-        SELECT c.id, c.id_prospecto, c.fecha_registro, c.estado_registro,
+        SELECT c.id, c.id_persona, c.fecha_registro, c.estado_registro,
                p.celular, p.nombre_completo, p.id_estado, p.id_tipificacion, p.id_asesor, p.id_empresa,
                e.nombre as estado_nombre, e.color as estado_color,
                t.nombre as tipificacion_nombre,
                (SELECT contenido FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as ultimo_mensaje,
                (SELECT fecha_hora FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as fecha_ultimo_mensaje
         FROM contacto c
-        LEFT JOIN prospecto p ON p.id = c.id_prospecto
+        LEFT JOIN persona p ON p.id = c.id_persona
         LEFT JOIN estado e ON e.id = p.id_estado
         LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
         WHERE c.estado_registro = 1

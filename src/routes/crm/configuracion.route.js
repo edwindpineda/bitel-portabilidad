@@ -251,13 +251,13 @@ router.post("/tipos-campania", ConfiguracionController.createTipoCampania);
 router.put("/tipos-campania/:id", ConfiguracionController.updateTipoCampania);
 router.delete("/tipos-campania/:id", ConfiguracionController.deleteTipoCampania);
 
-// Rutas de Campaña Prospectos
-router.get("/campania-ejecuciones/:id/prospectos", ConfiguracionController.getProspectosByEjecucion);
-router.post("/campania-ejecuciones/:id/prospectos", ConfiguracionController.addProspectosToEjecucion);
-router.delete("/campania-prospectos/:id", ConfiguracionController.deleteCampaniaProspecto);
+// Rutas de Campaña Personas
+router.get("/campania-ejecuciones/:id/personas", ConfiguracionController.getPersonasByEjecucion);
+router.post("/campania-ejecuciones/:id/personas", ConfiguracionController.addPersonasToEjecucion);
+router.delete("/campania-personas/:id", ConfiguracionController.deleteCampaniaPersona);
 
-// Rutas de Prospectos (listado)
-router.get("/prospectos", ConfiguracionController.getProspectos);
+// Rutas de Personas (listado)
+router.get("/personas", ConfiguracionController.getPersonas);
 
 // Rutas de Conversaciones
 router.get("/conversaciones", ConfiguracionController.getConversaciones);

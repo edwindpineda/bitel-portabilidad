@@ -1,5 +1,5 @@
 const AssistantService = require("../services/assistant/asistant.service");
-const Prospecto = require("../models/prospecto.model.js");
+const Persona = require("../models/persona.model.js");
 const Cliente = require("../models/cliente.model.js");
 const Usuario = require("../models/usuario.model.js");
 const Chat = require("../models/chat.model.js");
@@ -36,14 +36,15 @@ class MessageProcessingController {
                     });
                 }
             } else {
-                // Flujo prospecto
-                persona = await Prospecto.selectByCelular(phone);
+                // Flujo persona
+                persona = await Persona.selectByCelular(phone);
 
                 if (!persona) {
-                    const asesores = await Usuario.getByRol(3);
+                    const usuarioInstance = new Usuario();
+                    const asesores = await usuarioInstance.getByRol(3);
                     const ids = asesores.map(a => a.id);
 
-                    const ultimoAsignacion = await Prospecto.getAsignacionesAsesor();
+                    const ultimoAsignacion = await Persona.getAsignacionesAsesor();
 
                     let id_asesor = null;
                     if (ids.length > 0) {
@@ -55,7 +56,7 @@ class MessageProcessingController {
                         }
                     }
 
-                    persona = await Prospecto.createProspecto({
+                    persona = await Persona.createPersona({
                         id_estado: 1,
                         celular: phone,
                         id_usuario: id_asesor,
@@ -64,11 +65,11 @@ class MessageProcessingController {
                     });
                 }
 
-                chat = await Chat.findByProspecto(persona.id);
+                chat = await Chat.findByPersona(persona.id);
                 if (!chat) {
                     chat = await Chat.create({
                         id_empresa,
-                        id_prospecto: persona.id,
+                        id_persona: persona.id,
                         usuario_registro: 1
                     });
                 }
@@ -90,7 +91,7 @@ class MessageProcessingController {
             const respuestaTexto = await AssistantService.runProcess({
                 chatId: chat.id || chat,
                 message: question,
-                prospecto: persona,
+                persona: persona,
                 id_empresa
             });
 

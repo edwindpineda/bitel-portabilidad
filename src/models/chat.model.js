@@ -9,11 +9,11 @@ class ChatModel {
 
     async create(data) {
         try {
-            const { id_empresa, id_prospecto = null, id_cliente = null, usuario_registro } = data;
+            const { id_empresa, id_persona = null, id_cliente = null, usuario_registro } = data;
 
             const [result] = await this.connection.execute(
-                'INSERT INTO chat (id_empresa, id_prospecto, id_cliente, usuario_registro) VALUES (?, ?, ?, ?)',
-                [id_empresa, id_prospecto, id_cliente, usuario_registro]
+                'INSERT INTO chat (id_empresa, id_persona, id_cliente, usuario_registro) VALUES (?, ?, ?, ?)',
+                [id_empresa, id_persona, id_cliente, usuario_registro]
             );
 
             return result.insertId;
@@ -31,10 +31,10 @@ class ChatModel {
         return rows[0] || null;
     }
 
-    async findByProspecto(id_prospecto) {
+    async findByPersona(id_persona) {
         const [rows] = await this.connection.execute(
-            'SELECT * FROM chat WHERE id_prospecto = ? AND estado_registro = 1',
-            [id_prospecto]
+            'SELECT * FROM chat WHERE id_persona = ? AND estado_registro = 1',
+            [id_persona]
         );
         return rows.length > 0 ? rows[0] : null;
     }
@@ -63,7 +63,7 @@ class ChatModel {
     }
 
     static UPDATABLE_FIELDS = [
-        'id_empresa', 'id_prospecto', 'estado_registro', 'usuario_actualizacion', 'bot_activo'
+        'id_empresa', 'id_persona', 'estado_registro', 'usuario_actualizacion', 'bot_activo'
     ];
 
     async update(id, data) {

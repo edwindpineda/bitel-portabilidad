@@ -69,7 +69,8 @@ class AdminController {
   // ==================== USUARIOS ====================
   async getUsuarios(req, res) {
     try {
-      const usuarios = await UsuarioModel.getAll();
+      const usuarioModel = new UsuarioModel();
+      const usuarios = await usuarioModel.getAll();
       return res.status(200).json({ data: usuarios });
     } catch (error) {
       logger.error(`[admin.controller.js] Error al obtener usuarios: ${error.message}`);
@@ -80,7 +81,8 @@ class AdminController {
   async getUsuarioById(req, res) {
     try {
       const { id } = req.params;
-      const usuario = await UsuarioModel.getById(id);
+      const usuarioModel = new UsuarioModel();
+      const usuario = await usuarioModel.getById(id);
       if (!usuario) {
         return res.status(404).json({ msg: "Usuario no encontrado" });
       }
@@ -93,7 +95,8 @@ class AdminController {
 
   async createUsuario(req, res) {
     try {
-      const id = await UsuarioModel.create(req.body);
+      const usuarioModel = new UsuarioModel();
+      const id = await usuarioModel.create(req.body);
       return res.status(201).json({ msg: "Usuario creado exitosamente", data: { id } });
     } catch (error) {
       logger.error(`[admin.controller.js] Error al crear usuario: ${error.message}`);
@@ -104,7 +107,8 @@ class AdminController {
   async updateUsuario(req, res) {
     try {
       const { id } = req.params;
-      await UsuarioModel.update(id, req.body);
+      const usuarioModel = new UsuarioModel();
+      await usuarioModel.update(id, req.body);
       return res.status(200).json({ msg: "Usuario actualizado exitosamente" });
     } catch (error) {
       logger.error(`[admin.controller.js] Error al actualizar usuario: ${error.message}`);
@@ -115,7 +119,8 @@ class AdminController {
   async deleteUsuario(req, res) {
     try {
       const { id } = req.params;
-      await UsuarioModel.delete(id);
+      const usuarioModel = new UsuarioModel();
+      await usuarioModel.delete(id);
       return res.status(200).json({ msg: "Usuario eliminado exitosamente" });
     } catch (error) {
       logger.error(`[admin.controller.js] Error al eliminar usuario: ${error.message}`);

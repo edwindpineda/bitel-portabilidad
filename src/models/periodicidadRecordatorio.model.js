@@ -5,14 +5,14 @@ class PeriodicidadRecordatorioModel {
     this.connection = dbConnection || pool;
   }
 
-  async getAll(id_empresa = null) {
-    let query = `SELECT id, nombre, cada_horas, id_empresa, estado_registro, fecha_registro, fecha_actualizacion
+  async getAll(empresa_id = null) {
+    let query = `SELECT id, nombre, cada_horas, empresa_id, estado_registro, fecha_registro, fecha_actualizacion
        FROM periodicidad_recordatorio WHERE estado_registro = 1`;
     const params = [];
 
-    if (id_empresa) {
-      query += ' AND id_empresa = ?';
-      params.push(id_empresa);
+    if (empresa_id) {
+      query += ' AND empresa_id = ?';
+      params.push(empresa_id);
     }
 
     query += ' ORDER BY cada_horas ASC';
@@ -31,36 +31,36 @@ class PeriodicidadRecordatorioModel {
   }
 
   async create(data) {
-    const { nombre, cada_horas, id_empresa = null } = data;
+    const { nombre, cada_horas, empresa_id = null } = data;
     const [result] = await this.connection.execute(
-      `INSERT INTO periodicidad_recordatorio (nombre, cada_horas, id_empresa) VALUES (?, ?, ?)`,
-      [nombre, cada_horas, id_empresa]
+      `INSERT INTO periodicidad_recordatorio (nombre, cada_horas, empresa_id) VALUES (?, ?, ?)`,
+      [nombre, cada_horas, empresa_id]
     );
     return result.insertId;
   }
 
   async update(id, data) {
-    const { nombre, cada_horas, id_empresa = null } = data;
+    const { nombre, cada_horas, empresa_id = null } = data;
 
     let query = `UPDATE periodicidad_recordatorio SET nombre = ?, cada_horas = ? WHERE id = ?`;
     const params = [nombre, cada_horas, id];
 
-    if (id_empresa) {
-      query = `UPDATE periodicidad_recordatorio SET nombre = ?, cada_horas = ? WHERE id = ? AND id_empresa = ?`;
-      params.push(id_empresa);
+    if (empresa_id) {
+      query = `UPDATE periodicidad_recordatorio SET nombre = ?, cada_horas = ? WHERE id = ? AND empresa_id = ?`;
+      params.push(empresa_id);
     }
 
     await this.connection.execute(query, params);
     return true;
   }
 
-  async delete(id, id_empresa = null) {
+  async delete(id, empresa_id = null) {
     let query = `UPDATE periodicidad_recordatorio SET estado_registro = 0 WHERE id = ?`;
     const params = [id];
 
-    if (id_empresa) {
-      query = `UPDATE periodicidad_recordatorio SET estado_registro = 0 WHERE id = ? AND id_empresa = ?`;
-      params.push(id_empresa);
+    if (empresa_id) {
+      query = `UPDATE periodicidad_recordatorio SET estado_registro = 0 WHERE id = ? AND empresa_id = ?`;
+      params.push(empresa_id);
     }
 
     await this.connection.execute(query, params);

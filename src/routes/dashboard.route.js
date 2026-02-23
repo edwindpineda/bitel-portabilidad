@@ -12,9 +12,9 @@ router.get("/dashboard", async (req, res) => {
     let empresaCond = '';
     if (idEmpresa) { empresaCond = ' AND p.id_empresa = ?'; params.push(idEmpresa); }
 
-    const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM prospecto p WHERE p.estado_registro = 1${empresaCond}`, params);
-    const [leadsSemana] = await pool.execute(`SELECT COUNT(*) as total FROM prospecto p WHERE p.estado_registro = 1 AND p.fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)${empresaCond}`, params);
-    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM prospecto p INNER JOIN contacto c ON c.id_prospecto = p.id INNER JOIN mensaje m ON m.id_contacto = c.id WHERE p.estado_registro = 1${empresaCond}`, params);
+    const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1${empresaCond}`, params);
+    const [leadsSemana] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1 AND p.fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)${empresaCond}`, params);
+    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM persona p INNER JOIN contacto c ON c.id_persona = p.id INNER JOIN mensaje m ON m.id_contacto = c.id WHERE p.estado_registro = 1${empresaCond}`, params);
 
     return res.status(200).json({
       data: {
@@ -37,8 +37,8 @@ router.get("/resumen", async (req, res) => {
     let empresaCond = '';
     if (idEmpresa) { empresaCond = ' AND p.id_empresa = ?'; params.push(idEmpresa); }
 
-    const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM prospecto p WHERE p.estado_registro = 1${empresaCond}`, params);
-    const [porEstado] = await pool.execute(`SELECT e.nombre, e.color, COUNT(p.id) as total FROM estado e LEFT JOIN prospecto p ON p.id_estado = e.id AND p.estado_registro = 1${empresaCond} GROUP BY e.id, e.nombre, e.color ORDER BY e.id`, params);
+    const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1${empresaCond}`, params);
+    const [porEstado] = await pool.execute(`SELECT e.nombre, e.color, COUNT(p.id) as total FROM estado e LEFT JOIN persona p ON p.id_estado = e.id AND p.estado_registro = 1${empresaCond} GROUP BY e.id, e.nombre, e.color ORDER BY e.id`, params);
 
     return res.status(200).json({
       data: {
@@ -62,8 +62,8 @@ router.get("/funnel", async (req, res) => {
     if (idEmpresa) { empresaCond = ' AND p.id_empresa = ?'; params.push(idEmpresa); }
     if (dateFrom && dateTo) { dateCond = ' AND p.fecha_registro >= ? AND p.fecha_registro <= ?'; params.push(dateFrom + ' 00:00:00', dateTo + ' 23:59:59'); }
 
-    const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM prospecto p WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
-    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM prospecto p INNER JOIN contacto c ON c.id_prospecto = p.id INNER JOIN mensaje m ON m.id_contacto = c.id WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
+    const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
+    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM persona p INNER JOIN contacto c ON c.id_persona = p.id INNER JOIN mensaje m ON m.id_contacto = c.id WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
 
     const total = totalLeads[0]?.total || 0;
     const cont = contactados[0]?.total || 0;

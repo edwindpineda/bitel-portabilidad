@@ -13,11 +13,11 @@ function loadPromptTemplate() {
     return _cachedPromptTemplate;
 }
 
-function buildSystemPrompt({ prospecto, timestamp }) {
+function buildSystemPrompt({ persona, timestamp }) {
     const template = loadPromptTemplate();
 
     return template
-        .replace("{{datos}}", JSON.stringify(prospecto))
+        .replace("{{datos}}", JSON.stringify(persona))
         .replace("{{timestamp}}", timestamp);
 }
 

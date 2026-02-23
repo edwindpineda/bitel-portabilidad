@@ -1,4 +1,4 @@
-const ProspectoModel = require("../../models/prospecto.model.js");
+const PersonaModel = require("../../models/persona.model.js");
 const UsuarioModel = require("../../models/usuario.model.js");
 const TblPlanesTarifariosModel = require("../../models/tblPlanesTarifarios.model.js");
 const ProveedorModel = require("../../models/proveedor.model.js");
@@ -14,7 +14,7 @@ class LeadsController {
 
       logger.info(`[leads.controller.js] getLeads - userId: ${userId}, rolId: ${rolId}, idEmpresa: ${idEmpresa}`);
 
-      const leads = await ProspectoModel.getAllByTipoUsuario('user', userId, rolId, idEmpresa);
+      const leads = await PersonaModel.getAllByTipoUsuario('user', userId, rolId, idEmpresa);
       return res.status(200).json({ data: leads });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener leads: ${error.message}`);
@@ -25,7 +25,7 @@ class LeadsController {
   async getLeadById(req, res) {
     try {
       const { id } = req.params;
-      const lead = await ProspectoModel.getById(id);
+      const lead = await PersonaModel.getById(id);
 
       if (!lead) {
         return res.status(404).json({ msg: "Lead no encontrado" });
@@ -53,7 +53,7 @@ class LeadsController {
 
       // Actualizar cada lead
       for (const leadId of lead_ids) {
-        await ProspectoModel.updateProspecto(leadId, { id_asesor });
+        await PersonaModel.updatePersona(leadId, { id_asesor });
       }
 
       logger.info(`[leads.controller.js] Asignación masiva: ${lead_ids.length} leads asignados al asesor ${id_asesor}`);
@@ -68,7 +68,8 @@ class LeadsController {
     try {
       const { idEmpresa } = req.user || {};
       // Asesores son usuarios con rol 3
-      const asesores = await UsuarioModel.getByRol(3);
+      const usuarioModel = new UsuarioModel();
+      const asesores = await usuarioModel.getByRol(3);
       return res.status(200).json({ data: asesores });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener asesores: ${error.message}`);
@@ -108,11 +109,11 @@ class LeadsController {
       const preguntaModel = new PreguntaPerfilamientoModel();
       const preguntas = await preguntaModel.getAll(idEmpresa);
 
-      // Buscar respuestas del lead en la tabla prospecto_perfilamiento
+      // Buscar respuestas del lead en la tabla persona_pregunta_perfilamiento
       const [respuestas] = await pool.execute(
         `SELECT pp.id_pregunta, pp.respuesta
-         FROM prospecto_perfilamiento pp
-         WHERE pp.id_prospecto = ?`,
+         FROM persona_pregunta_perfilamiento pp
+         WHERE pp.id_persona = ?`,
         [id]
       );
 
@@ -148,7 +149,7 @@ class LeadsController {
     try {
       const { id } = req.params;
 
-      await ProspectoModel.updateProspecto(id, req.body);
+      await PersonaModel.updatePersona(id, req.body);
       logger.info(`[leads.controller.js] Lead ${id} actualizado correctamente`);
 
       return res.status(200).json({ msg: "Lead actualizado correctamente" });

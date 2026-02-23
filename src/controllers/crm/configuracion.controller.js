@@ -65,6 +65,7 @@ class ConfiguracionController {
         return res.status(400).json({ msg: "El nombre es requerido" });
       }
 
+
       const rolModel = new RolModel();
       const id = await rolModel.create({ nombre, descripcion });
 
@@ -2544,70 +2545,70 @@ class ConfiguracionController {
     }
   }
 
-  // ==================== CAMPANIA PROSPECTOS ====================
-  async getProspectosByEjecucion(req, res) {
+  // ==================== CAMPANIA PERSONAS ====================
+  async getPersonasByEjecucion(req, res) {
     try {
       const { id } = req.params;
       const [rows] = await pool.execute(
         `SELECT cp.*, p.celular, p.nombre_completo, p.dni
-         FROM campania_prospecto cp
-         LEFT JOIN prospecto p ON p.id = cp.id_prospecto
+         FROM campania_persona cp
+         LEFT JOIN persona p ON p.id = cp.id_persona
          WHERE cp.id_campania_ejecucion = ? AND cp.estado_registro = 1
          ORDER BY cp.fecha_registro DESC`,
         [id]
       );
       return res.status(200).json({ data: rows });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener prospectos de ejecución: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener prospectos de la ejecución" });
+      logger.error(`[configuracion.controller.js] Error al obtener personas de ejecución: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener personas de la ejecución" });
     }
   }
 
-  async addProspectosToEjecucion(req, res) {
+  async addPersonasToEjecucion(req, res) {
     try {
       const { id } = req.params;
-      const { prospecto_ids } = req.body;
+      const { persona_ids } = req.body;
       const usuario_registro = req.user?.userId || null;
-      if (!prospecto_ids || !Array.isArray(prospecto_ids) || prospecto_ids.length === 0) {
-        return res.status(400).json({ msg: "Debe seleccionar al menos un prospecto" });
+      if (!persona_ids || !Array.isArray(persona_ids) || persona_ids.length === 0) {
+        return res.status(400).json({ msg: "Debe seleccionar al menos una persona" });
       }
-      for (const prospecto_id of prospecto_ids) {
+      for (const persona_id of persona_ids) {
         await pool.execute(
-          'INSERT INTO campania_prospecto (id_campania_ejecucion, id_prospecto, usuario_registro, estado_registro) VALUES (?, ?, ?, 1)',
-          [id, prospecto_id, usuario_registro]
+          'INSERT INTO campania_persona (id_campania_ejecucion, id_persona, usuario_registro, estado_registro) VALUES (?, ?, ?, 1)',
+          [id, persona_id, usuario_registro]
         );
       }
-      return res.status(201).json({ msg: `${prospecto_ids.length} prospectos agregados exitosamente` });
+      return res.status(201).json({ msg: `${persona_ids.length} personas agregadas exitosamente` });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al agregar prospectos a ejecución: ${error.message}`);
-      return res.status(500).json({ msg: "Error al agregar prospectos" });
+      logger.error(`[configuracion.controller.js] Error al agregar personas a ejecución: ${error.message}`);
+      return res.status(500).json({ msg: "Error al agregar personas" });
     }
   }
 
-  async deleteCampaniaProspecto(req, res) {
+  async deleteCampaniaPersona(req, res) {
     try {
       const { id } = req.params;
-      await pool.execute('UPDATE campania_prospecto SET estado_registro = 0 WHERE id = ?', [id]);
-      return res.status(200).json({ msg: "Prospecto eliminado de la campaña exitosamente" });
+      await pool.execute('UPDATE campania_persona SET estado_registro = 0 WHERE id = ?', [id]);
+      return res.status(200).json({ msg: "Persona eliminada de la campaña exitosamente" });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al eliminar prospecto de campaña: ${error.message}`);
-      return res.status(500).json({ msg: "Error al eliminar prospecto de la campaña" });
+      logger.error(`[configuracion.controller.js] Error al eliminar persona de campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al eliminar persona de la campaña" });
     }
   }
 
-  // ==================== PROSPECTOS (listing) ====================
-  async getProspectos(req, res) {
+  // ==================== PERSONAS (listing) ====================
+  async getPersonas(req, res) {
     try {
       const { idEmpresa } = req.user || {};
       const params = [];
-      let query = 'SELECT id, celular, nombre_completo, dni FROM prospecto WHERE estado_registro = 1';
+      let query = 'SELECT id, celular, nombre_completo, dni FROM persona WHERE estado_registro = 1';
       if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
       query += ' ORDER BY fecha_registro DESC';
       const [rows] = await pool.execute(query, params);
       return res.status(200).json({ data: rows });
     } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener prospectos: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener prospectos" });
+      logger.error(`[configuracion.controller.js] Error al obtener personas: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener personas" });
     }
   }
 
@@ -2617,7 +2618,7 @@ class ConfiguracionController {
       const { idEmpresa } = req.user || {};
       const { limit } = req.query;
       const params = [];
-      let query = `SELECT c.*, p.celular, p.nombre_completo FROM contacto c LEFT JOIN prospecto p ON p.id = c.id_prospecto WHERE c.estado_registro = 1`;
+      let query = `SELECT c.*, p.celular, p.nombre_completo FROM contacto c LEFT JOIN persona p ON p.id = c.id_persona WHERE c.estado_registro = 1`;
       if (idEmpresa) { query += ' AND c.id_empresa = ?'; params.push(idEmpresa); }
       query += ' ORDER BY c.fecha_actualizacion DESC';
       if (limit) { query += ` LIMIT ${parseInt(limit)}`; }

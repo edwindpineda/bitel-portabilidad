@@ -45,7 +45,7 @@ class ReportesCrmController {
       // 1. Total de leads (prospectos con tipo_usuario = 'user')
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
-        FROM prospecto p
+        FROM persona p
         WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -56,8 +56,8 @@ class ReportesCrmController {
       // 2. Contactados (prospectos que tienen al menos un mensaje)
       const [contactadosResult] = await pool.execute(`
         SELECT COUNT(DISTINCT p.id) as total
-        FROM prospecto p
-        INNER JOIN contacto c ON c.id_prospecto = p.id
+        FROM persona p
+        INNER JOIN contacto c ON c.id_persona = p.id
         INNER JOIN mensaje m ON m.id_contacto = c.id
         WHERE p.estado_registro = 1
         ${empresaCondition}
@@ -69,7 +69,7 @@ class ReportesCrmController {
       // 3. Interesados (prospectos con estado line1 o line2)
       const [interesadosResult] = await pool.execute(`
         SELECT COUNT(*) as total
-        FROM prospecto p
+        FROM persona p
         INNER JOIN estado e ON e.id = p.id_estado
         WHERE (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
         AND p.estado_registro = 1
@@ -131,7 +131,7 @@ class ReportesCrmController {
       // 1. Total de leads (prospectos con tipo_usuario = 'user')
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
-        FROM prospecto p
+        FROM persona p
         WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -141,7 +141,7 @@ class ReportesCrmController {
       // 2. Interesados (prospectos con estado line1 o line2) = Tasa de conversion
       const [interesadosResult] = await pool.execute(`
         SELECT COUNT(*) as total
-        FROM prospecto p
+        FROM persona p
         INNER JOIN estado e ON e.id = p.id_estado
         WHERE (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
         AND p.estado_registro = 1
@@ -153,7 +153,7 @@ class ReportesCrmController {
       // 3. Leads nuevos esta semana
       const [leadsSemanasResult] = await pool.execute(`
         SELECT COUNT(*) as total
-        FROM prospecto p
+        FROM persona p
         WHERE p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         AND p.estado_registro = 1
         ${empresaCondition}
@@ -164,8 +164,8 @@ class ReportesCrmController {
       // 4. Contactados (prospectos que tienen al menos un mensaje)
       const [contactadosResult] = await pool.execute(`
         SELECT COUNT(DISTINCT p.id) as total
-        FROM prospecto p
-        INNER JOIN contacto c ON c.id_prospecto = p.id
+        FROM persona p
+        INNER JOIN contacto c ON c.id_persona = p.id
         INNER JOIN mensaje m ON m.id_contacto = c.id
         WHERE p.estado_registro = 1
         ${empresaCondition}
@@ -177,7 +177,7 @@ class ReportesCrmController {
       let pipelineQuery = `
         SELECT e.nombre, e.color, COUNT(p.id) as total
         FROM estado e
-        LEFT JOIN prospecto p ON p.id_estado = e.id AND p.tipo_usuario = 'user'`;
+        LEFT JOIN persona p ON p.id_estado = e.id AND p.tipo_usuario = 'user'`;
 
       if (idEmpresa) {
         pipelineQuery += ` AND p.id_empresa = ?`;

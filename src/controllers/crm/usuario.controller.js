@@ -27,7 +27,8 @@ class UsuarioController {
     try {
       const { username, password } = req.body;
 
-      const usuario = await UsuarioModel.getByUserAndPass(username, password);
+      const usuarioModel = new UsuarioModel();
+      const usuario = await usuarioModel.getByUserAndPass(username, password);
 
       console.log('=== BACKEND LOGIN DEBUG ===');
       console.log('Usuario from DB:', usuario);
