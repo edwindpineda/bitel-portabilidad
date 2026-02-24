@@ -17,6 +17,8 @@ const encuestaRoutes = require("./routes/encuesta.route.js");
 const pagoRoutes = require("./routes/pago.routes.js");
 const whatsappRoutes = require("./routes/plantillaWhatsapp.route.js");
 const tipificacionLlamadaRoutes = require("./routes/tipificacion_llamada.route.js");
+const clientesRoutes = require("./routes/crm/clientes.route.js");
+const contactosRoutes = require("./routes/crm/contactos.route.js");
 
 const app = express();
 
@@ -53,6 +55,8 @@ app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pa
 // Rutas protegidas del CRM (requieren auth)
 app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes);
 app.use("/api/crm/leads", authMiddleware, leadsRoutes);
+app.use("/api/crm/clientes", authMiddleware, clientesRoutes);
+app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
 

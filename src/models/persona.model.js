@@ -169,6 +169,44 @@ class PersonaModel {
         }
     }
 
+    async getAllClientes(userId = null, rolId = null, idEmpresa = null) {
+        try {
+            let query = `
+                SELECT p.*,
+                       e.nombre as estado_nombre, e.color as estado_color,
+                       t.nombre as tipificacion_nombre, t.color as tipificacion_color,
+                       tb.nombre as tipificacion_bot_nombre, tb.color as tipificacion_bot_color,
+                       c.nombre as plan_nombre,
+                       u.username as asesor_nombre
+                FROM persona p
+                LEFT JOIN estado e ON e.id = p.id_estado
+                LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
+                LEFT JOIN tipificacion tb ON tb.id = p.id_tipificacion_bot
+                LEFT JOIN catalogo c ON c.id = p.id_catalogo
+                LEFT JOIN usuario u ON u.id = p.id_usuario
+                WHERE p.estado_registro = 1
+                AND p.id_tipo_persona = 2`;
+            const params = [];
+
+            if (idEmpresa) {
+                query += ' AND p.id_empresa = ?';
+                params.push(idEmpresa);
+            }
+
+            if (rolId && rolId >= 3 && userId) {
+                query += ' AND p.id_usuario = ?';
+                params.push(userId);
+            }
+
+            query += ' ORDER BY p.fecha_registro DESC';
+
+            const [rows] = await this.connection.execute(query, params);
+            return rows;
+        } catch (error) {
+            throw new Error(`Error al obtener clientes: ${error.message}`);
+        }
+    }
+
     async getAsignacionesAsesor() {
         try {
             const [rows] = await this.connection.execute(
