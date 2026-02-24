@@ -9,9 +9,9 @@ class ContactoController {
       const { id } = req.params;
 
       const [rows] = await pool.execute(
-        `SELECT m.id, m.id_contacto, m.direccion, m.tipo_mensaje, m.contenido, m.fecha_hora, m.estado_registro
+        `SELECT m.id, m.id_chat, m.direccion, m.tipo_mensaje, m.contenido, m.fecha_hora, m.estado_registro
          FROM mensaje m
-         WHERE m.id_contacto = ? AND m.estado_registro = 1
+         WHERE m.id_chat = ? AND m.estado_registro = 1
          ORDER BY m.id ASC`,
         [id]
       );
@@ -47,20 +47,19 @@ class ContactoController {
     try {
       const { id } = req.params;
 
-      // Obtener estado actual del bot para este contacto
       const [rows] = await pool.execute(
-        `SELECT bot_activo FROM contacto WHERE id = ?`,
+        `SELECT bot_activo FROM chat WHERE id = ?`,
         [id]
       );
 
       if (rows.length === 0) {
-        return res.status(404).json({ msg: "Contacto no encontrado" });
+        return res.status(404).json({ msg: "Chat no encontrado" });
       }
 
       const newBotActivo = rows[0].bot_activo === 1 ? 0 : 1;
 
       await pool.execute(
-        `UPDATE contacto SET bot_activo = ? WHERE id = ?`,
+        `UPDATE chat SET bot_activo = ? WHERE id = ?`,
         [newBotActivo, id]
       );
 
@@ -82,7 +81,7 @@ class ContactoController {
       }
 
       const [result] = await pool.execute(
-        `INSERT INTO mensaje (id_contacto, direccion, tipo_mensaje, contenido, fecha_hora, estado_registro, usuario_registro)
+        `INSERT INTO mensaje (id_chat, direccion, tipo_mensaje, contenido, fecha_hora, estado_registro, usuario_registro)
          VALUES (?, 'out', 'text', ?, NOW(), 1, ?)`,
         [id, contenido, userId || 'system']
       );

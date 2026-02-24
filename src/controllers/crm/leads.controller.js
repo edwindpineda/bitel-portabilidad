@@ -14,7 +14,7 @@ class LeadsController {
 
       logger.info(`[leads.controller.js] getLeads - userId: ${userId}, rolId: ${rolId}, idEmpresa: ${idEmpresa}`);
 
-      const leads = await PersonaModel.getAllByTipoUsuario('user', userId, rolId, idEmpresa);
+      const leads = await PersonaModel.getAllByTipoUsuario(userId, rolId, idEmpresa);
       return res.status(200).json({ data: leads });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener leads: ${error.message}`);
@@ -53,7 +53,7 @@ class LeadsController {
 
       // Actualizar cada lead
       for (const leadId of lead_ids) {
-        await PersonaModel.updatePersona(leadId, { id_asesor });
+        await PersonaModel.updatePersona(leadId, { id_usuario: id_asesor });
       }
 
       logger.info(`[leads.controller.js] Asignación masiva: ${lead_ids.length} leads asignados al asesor ${id_asesor}`);
@@ -85,7 +85,7 @@ class LeadsController {
       return res.status(200).json({ data: proveedores });
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener proveedores: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener proveedores" });
+      return res.status(200).json({ data: [] });
     }
   }
 
@@ -148,8 +148,10 @@ class LeadsController {
   async updateLead(req, res) {
     try {
       const { id } = req.params;
+      const { userId } = req.user || {};
 
-      await PersonaModel.updatePersona(id, req.body);
+      logger.info(`[leads.controller.js] updateLead body: ${JSON.stringify(req.body)}`);
+      await PersonaModel.updatePersona(id, { ...req.body, usuario_actualizacion: userId });
       logger.info(`[leads.controller.js] Lead ${id} actualizado correctamente`);
 
       return res.status(200).json({ msg: "Lead actualizado correctamente" });

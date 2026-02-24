@@ -6,10 +6,8 @@ class ReportesCrmController {
     try {
       const { dateFrom, dateTo } = req.query;
 
-      // Obtener info del usuario autenticado
       const { userId, rolId, idEmpresa } = req.user || {};
 
-      // Filtrar por id_empresa del usuario
       let empresaCondition = '';
       const empresaParams = [];
       if (idEmpresa) {
@@ -17,11 +15,11 @@ class ReportesCrmController {
         empresaParams.push(idEmpresa);
       }
 
-      // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
+      // Si el rol es >= 3, filtrar solo las personas asignadas a este asesor
       let asesorCondition = '';
       const asesorParams = [];
       if (rolId && rolId >= 3 && userId) {
-        asesorCondition = ' AND p.id_asesor = ?';
+        asesorCondition = ' AND p.id_usuario = ?';
         asesorParams.push(userId);
       }
 
@@ -30,19 +28,19 @@ class ReportesCrmController {
       const dateParams = [];
 
       if (dateFrom && dateTo) {
-        dateCondition = ' AND p.created_at >= ? AND p.created_at <= ?';
+        dateCondition = ' AND p.fecha_registro >= ? AND p.fecha_registro <= ?';
         dateParams.push(dateFrom + ' 00:00:00', dateTo + ' 23:59:59');
       } else if (dateFrom) {
-        dateCondition = ' AND p.created_at >= ?';
+        dateCondition = ' AND p.fecha_registro >= ?';
         dateParams.push(dateFrom + ' 00:00:00');
       } else if (dateTo) {
-        dateCondition = ' AND p.created_at <= ?';
+        dateCondition = ' AND p.fecha_registro <= ?';
         dateParams.push(dateTo + ' 23:59:59');
       }
 
       const params = [...empresaParams, ...asesorParams, ...dateParams];
 
-      // 1. Total de leads (prospectos con tipo_usuario = 'user')
+      // 1. Total de leads
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM persona p
@@ -53,12 +51,12 @@ class ReportesCrmController {
       `, params);
       const totalLeads = totalLeadsResult[0]?.total || 0;
 
-      // 2. Contactados (prospectos que tienen al menos un mensaje)
+      // 2. Contactadas (personas que tienen al menos un mensaje via chat)
       const [contactadosResult] = await pool.execute(`
         SELECT COUNT(DISTINCT p.id) as total
         FROM persona p
-        INNER JOIN contacto c ON c.id_persona = p.id
-        INNER JOIN mensaje m ON m.id_contacto = c.id
+        INNER JOIN chat c ON c.id_persona = p.id
+        INNER JOIN mensaje m ON m.id_chat = c.id
         WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -66,20 +64,18 @@ class ReportesCrmController {
       `, params);
       const contactados = contactadosResult[0]?.total || 0;
 
-      // 3. Interesados (prospectos con estado line1 o line2)
-      const [interesadosResult] = await pool.execute(`
+      // 3. Convertidos (personas que ya son Clientes: id_tipo_persona = 2)
+      const [convertidosResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM persona p
-        INNER JOIN estado e ON e.id = p.id_estado
-        WHERE (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
+        WHERE p.id_tipo_persona = 2
         AND p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
         ${dateCondition}
       `, params);
-      const interesados = interesadosResult[0]?.total || 0;
+      const convertidos = convertidosResult[0]?.total || 0;
 
-      // Calcular porcentajes
       const funnelData = {
         totalLeads: {
           nombre: 'Total Leads',
@@ -92,9 +88,9 @@ class ReportesCrmController {
           porcentaje: totalLeads > 0 ? Math.round((contactados / totalLeads) * 100) : 0
         },
         interesados: {
-          nombre: 'Interesados',
-          valor: interesados,
-          porcentaje: totalLeads > 0 ? Math.round((interesados / totalLeads) * 100) : 0
+          nombre: 'Convertidos',
+          valor: convertidos,
+          porcentaje: totalLeads > 0 ? Math.round((convertidos / totalLeads) * 100) : 0
         }
       };
 
@@ -107,10 +103,8 @@ class ReportesCrmController {
 
   async getDashboardStats(req, res) {
     try {
-      // Obtener info del usuario autenticado
       const { userId, rolId, idEmpresa } = req.user || {};
 
-      // Filtrar por id_empresa del usuario
       let empresaCondition = '';
       const empresaParams = [];
       if (idEmpresa) {
@@ -118,17 +112,17 @@ class ReportesCrmController {
         empresaParams.push(idEmpresa);
       }
 
-      // Si el rol es >= 3, filtrar solo los prospectos asignados a este asesor
+      // Si el rol es >= 3, filtrar solo las personas asignadas a este asesor
       let asesorCondition = '';
       const asesorParams = [];
       if (rolId && rolId >= 3 && userId) {
-        asesorCondition = ' AND p.id_asesor = ?';
+        asesorCondition = ' AND p.id_usuario = ?';
         asesorParams.push(userId);
       }
 
       const params = [...empresaParams, ...asesorParams];
 
-      // 1. Total de leads (prospectos con tipo_usuario = 'user')
+      // 1. Total de leads
       const [totalLeadsResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM persona p
@@ -138,35 +132,46 @@ class ReportesCrmController {
       `, params);
       const totalLeads = totalLeadsResult[0]?.total || 0;
 
-      // 2. Interesados (prospectos con estado line1 o line2) = Tasa de conversion
+      // 2. Convertidos (Clientes: id_tipo_persona = 2)
       const [interesadosResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM persona p
-        INNER JOIN estado e ON e.id = p.id_estado
-        WHERE (LOWER(e.nombre) LIKE '%line1%' OR LOWER(e.nombre) LIKE '%line2%')
+        WHERE p.id_tipo_persona = 2
         AND p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
       `, params);
       const interesados = interesadosResult[0]?.total || 0;
 
+      // 2b. Prospectos que se convirtieron (fue_prospecto = 1 y ya son clientes)
+      const [fueProspectoResult] = await pool.execute(`
+        SELECT COUNT(*) as total
+        FROM persona p
+        WHERE p.fue_prospecto = 1
+        AND p.id_tipo_persona = 2
+        AND p.estado_registro = 1
+        ${empresaCondition}
+        ${asesorCondition}
+      `, params);
+      const fueProspecto = fueProspectoResult[0]?.total || 0;
+
       // 3. Leads nuevos esta semana
       const [leadsSemanasResult] = await pool.execute(`
         SELECT COUNT(*) as total
         FROM persona p
-        WHERE p.created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        WHERE p.fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
         AND p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
       `, params);
       const leadsSemana = leadsSemanasResult[0]?.total || 0;
 
-      // 4. Contactados (prospectos que tienen al menos un mensaje)
+      // 4. Contactadas (personas que tienen al menos un mensaje via chat)
       const [contactadosResult] = await pool.execute(`
         SELECT COUNT(DISTINCT p.id) as total
         FROM persona p
-        INNER JOIN contacto c ON c.id_persona = p.id
-        INNER JOIN mensaje m ON m.id_contacto = c.id
+        INNER JOIN chat c ON c.id_persona = p.id
+        INNER JOIN mensaje m ON m.id_chat = c.id
         WHERE p.estado_registro = 1
         ${empresaCondition}
         ${asesorCondition}
@@ -177,14 +182,13 @@ class ReportesCrmController {
       let pipelineQuery = `
         SELECT e.nombre, e.color, COUNT(p.id) as total
         FROM estado e
-        LEFT JOIN persona p ON p.id_estado = e.id AND p.tipo_usuario = 'user'`;
+        LEFT JOIN persona p ON p.id_estado = e.id AND p.estado_registro = 1`;
 
       if (idEmpresa) {
         pipelineQuery += ` AND p.id_empresa = ?`;
       }
-
       if (rolId && rolId >= 3 && userId) {
-        pipelineQuery += ` AND p.id_asesor = ?`;
+        pipelineQuery += ` AND p.id_usuario = ?`;
       }
 
       pipelineQuery += `
@@ -193,12 +197,13 @@ class ReportesCrmController {
 
       const [pipelineResult] = await pool.execute(pipelineQuery, params);
 
-      // Calcular tasa de conversion
       const tasaConversion = totalLeads > 0 ? Math.round((interesados / totalLeads) * 100) : 0;
 
       const dashboardStats = {
         totalLeads,
-        interesados,
+        clientes: interesados,
+        interesados,           // alias para no romper frontend existente
+        fueProspecto,
         leadsSemana,
         contactados,
         tasaConversion,

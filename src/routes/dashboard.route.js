@@ -14,7 +14,7 @@ router.get("/dashboard", async (req, res) => {
 
     const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1${empresaCond}`, params);
     const [leadsSemana] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1 AND p.fecha_registro >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)${empresaCond}`, params);
-    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM persona p INNER JOIN contacto c ON c.id_persona = p.id INNER JOIN mensaje m ON m.id_contacto = c.id WHERE p.estado_registro = 1${empresaCond}`, params);
+    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM persona p INNER JOIN chat c ON c.id_persona = p.id INNER JOIN mensaje m ON m.id_chat = c.id WHERE p.estado_registro = 1${empresaCond}`, params);
 
     return res.status(200).json({
       data: {
@@ -63,7 +63,7 @@ router.get("/funnel", async (req, res) => {
     if (dateFrom && dateTo) { dateCond = ' AND p.fecha_registro >= ? AND p.fecha_registro <= ?'; params.push(dateFrom + ' 00:00:00', dateTo + ' 23:59:59'); }
 
     const [totalLeads] = await pool.execute(`SELECT COUNT(*) as total FROM persona p WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
-    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM persona p INNER JOIN contacto c ON c.id_persona = p.id INNER JOIN mensaje m ON m.id_contacto = c.id WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
+    const [contactados] = await pool.execute(`SELECT COUNT(DISTINCT p.id) as total FROM persona p INNER JOIN chat c ON c.id_persona = p.id INNER JOIN mensaje m ON m.id_chat = c.id WHERE p.estado_registro = 1${empresaCond}${dateCond}`, params);
 
     const total = totalLeads[0]?.total || 0;
     const cont = contactados[0]?.total || 0;
@@ -126,7 +126,7 @@ router.get("/whatsapp-dashboard", async (req, res) => {
     let empresaCond = '';
     if (idEmpresa) { empresaCond = ' AND id_empresa = ?'; params.push(idEmpresa); }
 
-    const [totalContactos] = await pool.execute(`SELECT COUNT(*) as total FROM contacto WHERE estado_registro = 1${empresaCond}`, params);
+    const [totalContactos] = await pool.execute(`SELECT COUNT(*) as total FROM chat WHERE estado_registro = 1${empresaCond}`, params);
     const [totalMensajes] = await pool.execute(`SELECT COUNT(*) as total FROM mensaje WHERE 1=1${empresaCond}`, params);
 
     return res.status(200).json({

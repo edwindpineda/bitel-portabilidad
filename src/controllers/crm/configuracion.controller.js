@@ -19,6 +19,7 @@ const CampaniaBaseNumeroModel = require("../../models/campaniaBaseNumero.model.j
 const CampaniaEjecucionModel = require("../../models/campaniaEjecucion.model.js");
 const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
 const ProveedorModel = require("../../models/proveedor.model.js");
+const TipoPersonaModel = require("../../models/tipoPersona.model.js");
 const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
 const xlsx = require('xlsx');
@@ -148,6 +149,7 @@ class ConfiguracionController {
   async createUsuario(req, res) {
     try {
       const { id_rol, username, password, id_sucursal, id_padre } = req.body;
+      const { idEmpresa } = req.user || {};
 
       if (!username || !password || !id_rol) {
         return res.status(400).json({ msg: "Username, password y rol son requeridos" });
@@ -165,7 +167,8 @@ class ConfiguracionController {
         username,
         password,
         id_sucursal,
-        id_padre
+        id_padre,
+        id_empresa: idEmpresa
       });
 
       return res.status(201).json({ msg: "Usuario creado exitosamente", data: { id } });
@@ -179,6 +182,7 @@ class ConfiguracionController {
     try {
       const { id } = req.params;
       const { id_rol, username, password, id_sucursal, id_padre } = req.body;
+      const { idEmpresa } = req.user || {};
 
       if (!username || !id_rol) {
         return res.status(400).json({ msg: "Username y rol son requeridos" });
@@ -196,7 +200,8 @@ class ConfiguracionController {
         username,
         password,
         id_sucursal,
-        id_padre
+        id_padre,
+        id_empresa: idEmpresa
       });
 
       return res.status(200).json({ msg: "Usuario actualizado exitosamente" });
@@ -1237,11 +1242,12 @@ class ConfiguracionController {
 
   async createBaseNumero(req, res) {
     try {
-      const { id_empresa, id_formato, nombre, descripcion } = req.body;
+      const { id_formato, nombre, descripcion } = req.body;
+      const id_empresa = req.user?.idEmpresa || null;
       const usuario_registro = req.user?.userId || null;
 
       if (!id_empresa || !id_formato || !nombre) {
-        return res.status(400).json({ msg: "La empresa, formato y nombre son requeridos" });
+        return res.status(400).json({ msg: "El formato y nombre son requeridos" });
       }
 
       const baseNumeroModel = new BaseNumeroModel();
@@ -2618,7 +2624,7 @@ class ConfiguracionController {
       const { idEmpresa } = req.user || {};
       const { limit } = req.query;
       const params = [];
-      let query = `SELECT c.*, p.celular, p.nombre_completo FROM contacto c LEFT JOIN persona p ON p.id = c.id_persona WHERE c.estado_registro = 1`;
+      let query = `SELECT c.*, p.celular, p.nombre_completo FROM chat c LEFT JOIN persona p ON p.id = c.id_persona WHERE c.estado_registro = 1`;
       if (idEmpresa) { query += ' AND c.id_empresa = ?'; params.push(idEmpresa); }
       query += ' ORDER BY c.fecha_actualizacion DESC';
       if (limit) { query += ` LIMIT ${parseInt(limit)}`; }
@@ -2682,6 +2688,17 @@ class ConfiguracionController {
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al eliminar plantilla WhatsApp: ${error.message}`);
       return res.status(500).json({ msg: "Error al eliminar plantilla WhatsApp" });
+    }
+  }
+
+  async getTiposPersona(req, res) {
+    try {
+      const model = new TipoPersonaModel();
+      const tipos = await model.getAll();
+      return res.status(200).json({ data: tipos });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener tipos de persona: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener tipos de persona" });
     }
   }
 }

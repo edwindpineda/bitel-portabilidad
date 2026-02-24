@@ -52,36 +52,6 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 // Middleware para respuestas JSON consistentes
 app.use(responseHandler);
 
-// Ruta para ejecutar migración prospecto -> persona
-app.post('/migrate-persona', async (req, res) => {
-  try {
-    const { pool } = require('./config/dbConnection.js');
-    const queries = [
-      `CREATE TABLE IF NOT EXISTS tipo_persona (id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(50) NOT NULL, estado_registro INT DEFAULT 1, fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-      `INSERT IGNORE INTO tipo_persona (id, nombre) VALUES (1, 'Prospecto'), (2, 'Cliente')`,
-      `ALTER TABLE prospecto RENAME TO persona`,
-      `ALTER TABLE persona ADD COLUMN id_tipo_persona INT DEFAULT 1 AFTER id_empresa`,
-      `ALTER TABLE prospecto_pregunta_perfilamiento RENAME TO persona_pregunta_perfilamiento`,
-      `ALTER TABLE persona_pregunta_perfilamiento CHANGE COLUMN id_prospecto id_persona INT`,
-      `ALTER TABLE chat CHANGE COLUMN id_prospecto id_persona INT`,
-      `RENAME TABLE campania_prospecto TO campania_persona`,
-      `ALTER TABLE campania_persona CHANGE COLUMN id_prospecto id_persona INT`,
-    ];
-    const results = [];
-    for (const q of queries) {
-      try {
-        await pool.execute(q);
-        results.push({ query: q.substring(0, 60), status: 'OK' });
-      } catch (err) {
-        results.push({ query: q.substring(0, 60), status: 'ERROR', error: err.message });
-      }
-    }
-    return res.status(200).json({ msg: 'Migration completed', results });
-  } catch (error) {
-    return res.status(500).json({ msg: 'Migration failed', error: error.message });
-  }
-});
-
 // Ruta para ver estructura de la BD
 app.get('/db-structure', async (req, res) => {
   try {

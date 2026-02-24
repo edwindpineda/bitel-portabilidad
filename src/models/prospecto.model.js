@@ -9,7 +9,7 @@ class ProspectoModel {
 
     async getById(id) {
         const [rows] = await this.connection.execute(
-            "SELECT * FROM prospecto WHERE id = ? AND estado_registro = 1",
+            "SELECT * FROM persona WHERE id = ? AND estado_registro = 1",
             [id]
         );
 
@@ -18,7 +18,7 @@ class ProspectoModel {
 
     async selectByCelular(phone, id_empresa = null) {
         try {
-            let query = `SELECT * FROM prospecto WHERE celular = ? AND estado_registro = 1`;
+            let query = `SELECT * FROM persona WHERE celular = ? AND estado_registro = 1`;
 
             const params = [phone];
 
@@ -35,28 +35,21 @@ class ProspectoModel {
         }
     }
 
-
-    /**
-     * Crea un nuevo registro de consumo
-     * @param {string} fechaConsumo - Fecha del consumo (formato: YYYY-MM-DD)
-     * @param {string} tipo_usuario - Tipo de usuario
-     * @returns {Promise<number>} - ID del registro creado
-     */
     async createProspecto({ id_estado, celular, id_usuario, id_empresa, usuario_registro }) {
         try {
             const [result] = await this.connection.execute(
-                'INSERT INTO prospecto (id_estado, celular, id_usuario, id_empresa, usuario_registro, usuario_actualizacion) VALUES (?, ?, ?, ?, ?, 1)',
+                'INSERT INTO persona (id_estado, celular, id_usuario, id_empresa, usuario_registro, usuario_actualizacion) VALUES (?, ?, ?, ?, ?, 1)',
                 [id_estado, celular, id_usuario, id_empresa, usuario_registro]
             );
 
             const [rows] = await this.connection.execute(
-                `SELECT * FROM prospecto WHERE id = ? AND estado_registro = 1`,
+                `SELECT * FROM persona WHERE id = ? AND estado_registro = 1`,
                 [result.insertId]
             );
 
             return rows[0];
         } catch (error) {
-            throw new Error(`Error al crear prospecto: ${error.message}`);
+            throw new Error(`Error al crear persona: ${error.message}`);
         }
     }
 
@@ -83,33 +76,30 @@ class ProspectoModel {
 
             values.push(id);
 
-            const query = `UPDATE prospecto SET ${fields.join(', ')} WHERE id = ?`;
+            const query = `UPDATE persona SET ${fields.join(', ')} WHERE id = ?`;
             const [result] = await this.connection.execute(query, values);
 
             if (result.affectedRows === 0) {
-                throw new Error('Prospecto no encontrado');
+                throw new Error('Persona no encontrada');
             }
 
             return true;
         } catch (error) {
-            logger.error(`[prospecto.model.js] Error al actualizar prospecto: ${error.message}`);
-            throw new Error(`Error al actualizar prospecto: ${error.message}`);
+            logger.error(`[prospecto.model.js] Error al actualizar persona: ${error.message}`);
+            throw new Error(`Error al actualizar persona: ${error.message}`);
         }
     }
 
-    /**
-     * Obtiene todos los prospectos filtrados por tipo_usuario, con filtros de rol y empresa
-     */
-    async getAllByTipoUsuario(tipoUsuario, userId = null, rolId = null, idEmpresa = null) {
+    async getAllByTipoUsuario(userId = null, rolId = null, idEmpresa = null) {
         try {
             let query = `
                 SELECT p.*, e.nombre as estado_nombre, e.color as estado_color,
                        t.nombre as tipificacion_nombre
-                FROM prospecto p
+                FROM persona p
                 LEFT JOIN estado e ON e.id = p.id_estado
                 LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
-                WHERE p.estado_registro = 1 AND p.tipo_usuario = ?`;
-            const params = [tipoUsuario];
+                WHERE p.estado_registro = 1`;
+            const params = [];
 
             if (idEmpresa) {
                 query += ' AND p.id_empresa = ?';
@@ -117,7 +107,7 @@ class ProspectoModel {
             }
 
             if (rolId && rolId >= 3 && userId) {
-                query += ' AND p.id_asesor = ?';
+                query += ' AND p.id_usuario = ?';
                 params.push(userId);
             }
 
@@ -126,14 +116,14 @@ class ProspectoModel {
             const [rows] = await this.connection.execute(query, params);
             return rows;
         } catch (error) {
-            throw new Error(`Error al obtener prospectos: ${error.message}`);
+            throw new Error(`Error al obtener personas: ${error.message}`);
         }
     }
 
     async getAsignacionesAsesor() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT id_usuario FROM prospecto WHERE estado_registro = 1 ORDER BY fecha_registro DESC LIMIT 1',
+                'SELECT id_usuario FROM persona WHERE estado_registro = 1 ORDER BY fecha_registro DESC LIMIT 1',
             );
             return rows.length > 0 ? rows[0] : null;
         } catch (error) {

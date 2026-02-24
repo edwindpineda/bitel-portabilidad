@@ -259,6 +259,9 @@ router.delete("/campania-personas/:id", ConfiguracionController.deleteCampaniaPe
 // Rutas de Personas (listado)
 router.get("/personas", ConfiguracionController.getPersonas);
 
+// Tipos de persona (global)
+router.get("/tipos-persona", ConfiguracionController.getTiposPersona);
+
 // Rutas de Conversaciones
 router.get("/conversaciones", ConfiguracionController.getConversaciones);
 

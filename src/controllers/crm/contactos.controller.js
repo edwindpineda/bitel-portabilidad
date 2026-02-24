@@ -14,13 +14,13 @@ class ContactosController {
 
       let query = `
         SELECT c.id, c.id_persona, c.fecha_registro, c.estado_registro,
-               p.celular, p.nombre_completo, p.id_estado, p.id_tipificacion, p.id_asesor, p.id_empresa,
+               p.celular, p.nombre_completo, p.id_estado, p.id_tipificacion, p.id_usuario, p.id_empresa,
                e.nombre as estado_nombre, e.color as estado_color,
                t.nombre as tipificacion_nombre,
-               (SELECT contenido FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as ultimo_mensaje,
-               (SELECT fecha_hora FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as fecha_ultimo_mensaje,
-               (SELECT COUNT(*) FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1) as total_mensajes
-        FROM contacto c
+               (SELECT contenido FROM mensaje WHERE id_chat = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as ultimo_mensaje,
+               (SELECT fecha_hora FROM mensaje WHERE id_chat = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as fecha_ultimo_mensaje,
+               (SELECT COUNT(*) FROM mensaje WHERE id_chat = c.id AND estado_registro = 1) as total_mensajes
+        FROM chat c
         LEFT JOIN persona p ON p.id = c.id_persona
         LEFT JOIN estado e ON e.id = p.id_estado
         LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
@@ -34,7 +34,7 @@ class ContactosController {
       }
 
       if (rolId && rolId >= 3 && userId) {
-        query += ' AND p.id_asesor = ?';
+        query += ' AND p.id_usuario = ?';
         params.push(userId);
       }
 
@@ -49,19 +49,19 @@ class ContactosController {
       }
 
       if (id_tipificacion_asesor) {
-        query += ' AND p.id_asesor = ?';
+        query += ' AND p.id_usuario = ?';
         params.push(id_tipificacion_asesor);
       }
 
       // Count total
-      const countQuery = query.replace(/SELECT[\s\S]*?FROM contacto c/, 'SELECT COUNT(*) as total FROM contacto c');
+      const countQuery = query.replace(/SELECT[\s\S]*?FROM chat c/, 'SELECT COUNT(*) as total FROM chat c');
       const [countResult] = await pool.execute(countQuery, params);
       const total = countResult[0]?.total || 0;
 
       query += ' ORDER BY fecha_ultimo_mensaje DESC LIMIT ? OFFSET ?';
       params.push(LIMIT, offset);
 
-      const [rows] = await pool.execute(query, params);
+      const [rows] = await pool.query(query, params);
 
       return res.status(200).json({ data: rows, total });
     } catch (error) {
@@ -81,12 +81,12 @@ class ContactosController {
 
       let query = `
         SELECT c.id, c.id_persona, c.fecha_registro, c.estado_registro,
-               p.celular, p.nombre_completo, p.id_estado, p.id_tipificacion, p.id_asesor, p.id_empresa,
+               p.celular, p.nombre_completo, p.id_estado, p.id_tipificacion, p.id_usuario, p.id_empresa,
                e.nombre as estado_nombre, e.color as estado_color,
                t.nombre as tipificacion_nombre,
-               (SELECT contenido FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as ultimo_mensaje,
-               (SELECT fecha_hora FROM mensaje WHERE id_contacto = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as fecha_ultimo_mensaje
-        FROM contacto c
+               (SELECT contenido FROM mensaje WHERE id_chat = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as ultimo_mensaje,
+               (SELECT fecha_hora FROM mensaje WHERE id_chat = c.id AND estado_registro = 1 ORDER BY id DESC LIMIT 1) as fecha_ultimo_mensaje
+        FROM chat c
         LEFT JOIN persona p ON p.id = c.id_persona
         LEFT JOIN estado e ON e.id = p.id_estado
         LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
@@ -101,7 +101,7 @@ class ContactosController {
       }
 
       if (rolId && rolId >= 3 && userId) {
-        query += ' AND p.id_asesor = ?';
+        query += ' AND p.id_usuario = ?';
         params.push(userId);
       }
 
@@ -116,18 +116,18 @@ class ContactosController {
       }
 
       if (id_tipificacion_asesor) {
-        query += ' AND p.id_asesor = ?';
+        query += ' AND p.id_usuario = ?';
         params.push(id_tipificacion_asesor);
       }
 
-      const countQuery = query.replace(/SELECT[\s\S]*?FROM contacto c/, 'SELECT COUNT(*) as total FROM contacto c');
+      const countQuery = query.replace(/SELECT[\s\S]*?FROM chat c/, 'SELECT COUNT(*) as total FROM chat c');
       const [countResult] = await pool.execute(countQuery, params);
       const total = countResult[0]?.total || 0;
 
       query += ' ORDER BY fecha_ultimo_mensaje DESC LIMIT ? OFFSET ?';
       params.push(LIMIT, offset);
 
-      const [rows] = await pool.execute(query, params);
+      const [rows] = await pool.query(query, params);
 
       return res.status(200).json({ data: rows, total });
     } catch (error) {
