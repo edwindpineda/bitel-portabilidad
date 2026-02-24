@@ -1,7 +1,6 @@
 const PersonaModel = require("../../models/persona.model.js");
 const UsuarioModel = require("../../models/usuario.model.js");
 const TblPlanesTarifariosModel = require("../../models/tblPlanesTarifarios.model.js");
-const ProveedorModel = require("../../models/proveedor.model.js");
 const PreguntaPerfilamientoModel = require("../../models/preguntaPerfilamiento.model.js");
 const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
@@ -74,18 +73,6 @@ class LeadsController {
     } catch (error) {
       logger.error(`[leads.controller.js] Error al obtener asesores: ${error.message}`);
       return res.status(500).json({ msg: "Error al obtener asesores" });
-    }
-  }
-
-  async getProveedores(req, res) {
-    try {
-      const { idEmpresa } = req.user || {};
-      const proveedorModel = new ProveedorModel();
-      const proveedores = await proveedorModel.getAll(idEmpresa);
-      return res.status(200).json({ data: proveedores });
-    } catch (error) {
-      logger.error(`[leads.controller.js] Error al obtener proveedores: ${error.message}`);
-      return res.status(200).json({ data: [] });
     }
   }
 

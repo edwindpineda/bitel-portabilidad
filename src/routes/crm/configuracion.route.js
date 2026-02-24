@@ -195,13 +195,6 @@ router.get("/campania-ejecuciones/:id", ConfiguracionController.getEjecucionById
 router.patch("/campania-ejecuciones/:id/estado", ConfiguracionController.updateEstadoEjecucion);
 router.patch("/campania-ejecuciones/:id/cancelar", ConfiguracionController.cancelarEjecucion);
 
-// Rutas de Proveedores
-router.get("/proveedores", ConfiguracionController.getProveedores);
-router.get("/proveedores/:id", ConfiguracionController.getProveedorById);
-router.post("/proveedores", ConfiguracionController.createProveedor);
-router.put("/proveedores/:id", ConfiguracionController.updateProveedor);
-router.delete("/proveedores/:id", ConfiguracionController.deleteProveedor);
-
 // Rutas de Prompt Asistente (Bot WhatsApp)
 router.get("/prompt-asistente", ConfiguracionController.getPromptAsistente);
 router.post("/prompt-asistente", ConfiguracionController.savePromptAsistente);
