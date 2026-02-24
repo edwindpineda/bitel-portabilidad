@@ -4,14 +4,14 @@ const logger = require('../../config/logger/loggerClient.js');
 class ChatController {
   async create(req, res) {
     try {
-      const { id_prospecto, id_empresa } = req.body;
+      const { id_persona, id_empresa } = req.body;
       const { userId } = req.user || {};
 
-      if (!id_prospecto) {
-        return res.status(400).json({ msg: "id_prospecto es requerido" });
+      if (!id_persona) {
+        return res.status(400).json({ msg: "id_persona es requerido" });
       }
 
-      const chat = await ChatModel.create({ id_prospecto, id_empresa, usuario_registro: userId });
+      const chat = await ChatModel.create({ id_persona, id_empresa, usuario_registro: userId });
       return res.status(201).json({ data: chat });
     } catch (error) {
       logger.error(`[chat.controller.js] Error al crear chat: ${error.message}`);
@@ -35,13 +35,13 @@ class ChatController {
     }
   }
 
-  async findByProspecto(req, res) {
+  async findByPersona(req, res) {
     try {
-      const { id_prospecto } = req.params;
-      const chats = await ChatModel.findByProspecto(id_prospecto);
+      const { id_persona } = req.params;
+      const chats = await ChatModel.findByPersona(id_persona);
       return res.status(200).json({ data: chats });
     } catch (error) {
-      logger.error(`[chat.controller.js] Error al obtener chats por prospecto: ${error.message}`);
+      logger.error(`[chat.controller.js] Error al obtener chats por persona: ${error.message}`);
       return res.status(500).json({ msg: "Error al obtener chats" });
     }
   }

@@ -145,6 +145,35 @@ class UsuarioModel {
     }
   }
 
+  async existsUsername(username, excludeId = null) {
+    try {
+      let query = `SELECT id FROM usuario WHERE username = ? AND estado_registro = 1`;
+      const params = [username];
+
+      if (excludeId) {
+        query += ` AND id != ?`;
+        params.push(excludeId);
+      }
+
+      const [rows] = await this.connection.execute(query, params);
+      return rows.length > 0;
+    } catch (error) {
+      throw new Error(`Error al verificar username: ${error.message}`);
+    }
+  }
+
+  async verifyPassword(id, password) {
+    try {
+      const [rows] = await this.connection.execute(
+        `SELECT id FROM usuario WHERE id = ? AND password = ?`,
+        [id, password]
+      );
+      return rows.length > 0;
+    } catch (error) {
+      throw new Error(`Error al verificar contraseña: ${error.message}`);
+    }
+  }
+
   async updatePassword(id, newPassword) {
     try {
       const [result] = await this.connection.execute(
@@ -158,4 +187,4 @@ class UsuarioModel {
   }
 }
 
-module.exports = new UsuarioModel();
+module.exports = UsuarioModel;
