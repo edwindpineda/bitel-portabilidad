@@ -21,14 +21,14 @@ class AssistantService {
      * @param {Object} params
      * @param {number} params.chatId - ID del chat para historial
      * @param {string} params.message - Mensaje actual del usuario
-     * @param {Object} params.prospecto - Registro del prospecto desde DB
+     * @param {Object} params.persona - Registro de la persona desde DB
      * @param {number} params.id_empresa - ID de la empresa
      * @returns {Promise<string>} - Respuesta de texto del LLM
      */
-    async runProcess({ chatId, message, prospecto, id_empresa }) {
+    async runProcess({ chatId, message, persona, id_empresa }) {
         try {
             const systemPrompt = buildSystemPrompt({
-                prospecto,
+                persona,
                 timestamp: getLocalDateWithDay()
             });
 

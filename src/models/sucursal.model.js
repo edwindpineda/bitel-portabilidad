@@ -7,13 +7,13 @@ class SucursalModel {
 
   async getAll(id_empresa = null) {
     try {
-      let query = `SELECT id, nombre, direccion, telefono, email, estado, fecha_registro, id_empresa
+      let query = `SELECT id, empresa_id, nombre, direccion, telefono, email, estado, fecha_registro, usuario_registro
          FROM sucursal
          WHERE estado = 'activo'`;
       const params = [];
 
       if (id_empresa) {
-        query += ` AND id_empresa = ?`;
+        query += ` AND empresa_id = ?`;
         params.push(id_empresa);
       }
 
@@ -43,7 +43,7 @@ class SucursalModel {
   async create({ nombre, direccion, telefono, email, id_empresa }) {
     try {
       const [result] = await this.connection.execute(
-        `INSERT INTO sucursal (nombre, direccion, telefono, email, estado, fecha_registro, usuario_registro, id_empresa)
+        `INSERT INTO sucursal (nombre, direccion, telefono, email, estado, fecha_registro, usuario_registro, empresa_id)
          VALUES (?, ?, ?, ?, 'activo', NOW(), 'admin', ?)`,
         [nombre, direccion, telefono, email, id_empresa]
       );
@@ -59,7 +59,7 @@ class SucursalModel {
       const params = [nombre, direccion, telefono, email, id];
 
       if (id_empresa) {
-        query = `UPDATE sucursal SET nombre = ?, direccion = ?, telefono = ?, email = ? WHERE id = ? AND id_empresa = ?`;
+        query = `UPDATE sucursal SET nombre = ?, direccion = ?, telefono = ?, email = ? WHERE id = ? AND empresa_id = ?`;
         params.push(id_empresa);
       }
 
@@ -76,7 +76,7 @@ class SucursalModel {
       const params = [id];
 
       if (id_empresa) {
-        query = `UPDATE sucursal SET estado = 'inactivo' WHERE id = ? AND id_empresa = ?`;
+        query = `UPDATE sucursal SET estado = 'inactivo' WHERE id = ? AND empresa_id = ?`;
         params.push(id_empresa);
       }
 
