@@ -60,7 +60,7 @@ class PersonaModel {
     static UPDATABLE_FIELDS = [
         'id_estado', 'id_usuario', 'nombre_completo', 'dni', 'direccion',
         'celular', 'id_tipificacion', 'id_tipificacion_bot', 'usuario_actualizacion', 'id_empresa', 'id_tipo_persona',
-        'id_catalogo', 'id_proveedor', 'fue_prospecto'
+        'id_catalogo', 'fue_prospecto'
     ];
 
     // Campos que no pueden ser null en la BD
@@ -71,7 +71,6 @@ class PersonaModel {
         'id_tipificacion_asesor': 'id_tipificacion',
         'id_asesor': 'id_usuario',
         'id_plan': 'id_catalogo',
-        'id_provedor': 'id_proveedor'
     };
 
     async updatePersona(id, data) {

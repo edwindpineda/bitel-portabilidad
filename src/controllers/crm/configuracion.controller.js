@@ -18,7 +18,6 @@ const CampaniaModel = require("../../models/campania.model.js");
 const CampaniaBaseNumeroModel = require("../../models/campaniaBaseNumero.model.js");
 const CampaniaEjecucionModel = require("../../models/campaniaEjecucion.model.js");
 const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
-const ProveedorModel = require("../../models/proveedor.model.js");
 const TipoPersonaModel = require("../../models/tipoPersona.model.js");
 const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
@@ -1758,7 +1757,7 @@ class ConfiguracionController {
 
   async createCampania(req, res) {
     try {
-      const { nombre, descripcion } = req.body;
+      const { nombre, descripcion, id_tipo_campania } = req.body;
       const id_empresa = req.user?.id_empresa || 1;
       const usuario_registro = req.user?.userId || null;
 
@@ -1771,6 +1770,7 @@ class ConfiguracionController {
         id_empresa,
         nombre,
         descripcion,
+        id_tipo_campania: id_tipo_campania || null,
         usuario_registro
       });
 
@@ -1784,7 +1784,7 @@ class ConfiguracionController {
   async updateCampania(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, descripcion } = req.body;
+      const { nombre, descripcion, id_tipo_campania } = req.body;
       const usuario_actualizacion = req.user?.userId || null;
 
       if (!nombre) {
@@ -1795,6 +1795,7 @@ class ConfiguracionController {
       const updated = await campaniaModel.update(id, {
         nombre,
         descripcion,
+        id_tipo_campania: id_tipo_campania !== undefined ? id_tipo_campania : null,
         usuario_actualizacion
       });
 
@@ -2084,72 +2085,6 @@ class ConfiguracionController {
       return res.status(500).json({ msg: "Error al guardar prompt asistente" });
     }
   }
-  // ==================== PROVEEDORES ====================
-  async getProveedores(req, res) {
-    try {
-      const { idEmpresa } = req.user || {};
-      const proveedorModel = new ProveedorModel();
-      const proveedores = await proveedorModel.getAll(idEmpresa);
-      return res.status(200).json({ data: proveedores });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener proveedores: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener proveedores" });
-    }
-  }
-
-  async getProveedorById(req, res) {
-    try {
-      const { id } = req.params;
-      const proveedorModel = new ProveedorModel();
-      const proveedor = await proveedorModel.getById(id);
-      if (!proveedor) {
-        return res.status(404).json({ msg: "Proveedor no encontrado" });
-      }
-      return res.status(200).json({ data: proveedor });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al obtener proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al obtener proveedor" });
-    }
-  }
-
-  async createProveedor(req, res) {
-    try {
-      const { nombre } = req.body;
-      const { idEmpresa } = req.user || {};
-      const proveedorModel = new ProveedorModel();
-      const id = await proveedorModel.create({ nombre, id_empresa: idEmpresa });
-      return res.status(201).json({ msg: "Proveedor creado exitosamente", data: { id } });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al crear proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al crear proveedor" });
-    }
-  }
-
-  async updateProveedor(req, res) {
-    try {
-      const { id } = req.params;
-      const { nombre } = req.body;
-      const proveedorModel = new ProveedorModel();
-      await proveedorModel.update(id, { nombre });
-      return res.status(200).json({ msg: "Proveedor actualizado exitosamente" });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al actualizar proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al actualizar proveedor" });
-    }
-  }
-
-  async deleteProveedor(req, res) {
-    try {
-      const { id } = req.params;
-      const proveedorModel = new ProveedorModel();
-      await proveedorModel.delete(id);
-      return res.status(200).json({ msg: "Proveedor eliminado exitosamente" });
-    } catch (error) {
-      logger.error(`[configuracion.controller.js] Error al eliminar proveedor: ${error.message}`);
-      return res.status(500).json({ msg: "Error al eliminar proveedor" });
-    }
-  }
-
   // ==================== PROYECTOS ====================
   async getProyectos(req, res) {
     try {
@@ -2578,13 +2513,20 @@ class ConfiguracionController {
       if (!persona_ids || !Array.isArray(persona_ids) || persona_ids.length === 0) {
         return res.status(400).json({ msg: "Debe seleccionar al menos una persona" });
       }
+      let agregadas = 0;
       for (const persona_id of persona_ids) {
+        const [existing] = await pool.execute(
+          'SELECT id FROM campania_persona WHERE id_campania_ejecucion = ? AND id_persona = ? AND estado_registro = 1',
+          [id, persona_id]
+        );
+        if (existing.length > 0) continue; // ya existe, saltar
         await pool.execute(
           'INSERT INTO campania_persona (id_campania_ejecucion, id_persona, usuario_registro, estado_registro) VALUES (?, ?, ?, 1)',
           [id, persona_id, usuario_registro]
         );
+        agregadas++;
       }
-      return res.status(201).json({ msg: `${persona_ids.length} personas agregadas exitosamente` });
+      return res.status(201).json({ msg: `${agregadas} persona(s) agregada(s) exitosamente` });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al agregar personas a ejecución: ${error.message}`);
       return res.status(500).json({ msg: "Error al agregar personas" });
@@ -2607,9 +2549,11 @@ class ConfiguracionController {
     try {
       const { idEmpresa } = req.user || {};
       const params = [];
-      let query = 'SELECT id, celular, nombre_completo, dni FROM persona WHERE estado_registro = 1';
-      if (idEmpresa) { query += ' AND id_empresa = ?'; params.push(idEmpresa); }
-      query += ' ORDER BY fecha_registro DESC';
+      let query = `SELECT p.id, p.celular, p.nombre_completo, p.dni, p.id_tipo_persona, tp.nombre AS tipo_persona_nombre
+                   FROM persona p LEFT JOIN tipo_persona tp ON p.id_tipo_persona = tp.id
+                   WHERE p.estado_registro = 1`;
+      if (idEmpresa) { query += ' AND p.id_empresa = ?'; params.push(idEmpresa); }
+      query += ' ORDER BY p.nombre_completo ASC';
       const [rows] = await pool.execute(query, params);
       return res.status(200).json({ data: rows });
     } catch (error) {
