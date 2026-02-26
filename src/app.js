@@ -53,8 +53,7 @@ app.use(responseHandler);
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
 app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes);
 // Rutas protegidas del CRM (requieren auth)
-app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes);
-app.use("/api/crm/persona", authMiddleware, personaRoutes);
+app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes, personaRoutes);
 app.use("/api/crm/clientes", authMiddleware, clientesRoutes);
 app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
