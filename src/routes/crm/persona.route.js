@@ -3,9 +3,9 @@ const PersonaController = require("../../controllers/crm/persona.controller.js")
 
 const router = Router();
 
-router.get("/:id", PersonaController.getById);
-router.post("/", PersonaController.create);
-router.put("/:id", PersonaController.update);
-router.post("/bulk-assign", PersonaController.bulkAssign);
+router.get("/persona/:id", PersonaController.getById);
+router.post("/persona", PersonaController.create);
+router.put("/persona/:id", PersonaController.update);
+router.post("/persona/bulk-assign", PersonaController.bulkAssign);
 
 module.exports = router;
