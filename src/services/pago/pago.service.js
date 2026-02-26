@@ -10,8 +10,8 @@ class PagoService {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        cliente_id: "CALLBOT-23",
-        cliente_secreto: "RUDcm3TR0VWhL7wG68uZF6dsWsQcjdyicxCrQpEZoLjnuDn2LVA25uFPmXnnDHkW",
+        cliente_id: process.env.CLIENTE_ID,
+        cliente_secreto: process.env.CLIENTE_SECRETO,
         tipo_acceso: "client_call_credentials",
         alcance: alcance
       })
@@ -23,7 +23,7 @@ class PagoService {
   }
 
 
-  async generarLinkPago() {
+  async generarLinkPago(grupo_familiar) {
     const token = await this.obtenerToken("PagoCuota/CrearEnlace");
 
     const response = await fetch(url_pago, {
@@ -33,7 +33,7 @@ class PagoService {
         "X-Authorization": token,
       },
       body: JSON.stringify({
-        grupo_familiar: "0051340047",
+        grupo_familiar: grupo_familiar,
         ope_origen: 36,
         ope_call: "23"
       })
@@ -48,7 +48,7 @@ class PagoService {
     }
   }
 
-  async generarLinkCambio() {
+  async generarLinkCambio(grupo_familiar) {
     const token = await this.obtenerToken("CambioTarjeta/CrearEnlace");
 
     const response = await fetch(url_cambio, {
@@ -58,7 +58,7 @@ class PagoService {
         "X-Authorization": token,
       },
       body: JSON.stringify({
-        grupo_familiar: "0051340047",
+        grupo_familiar: grupo_familiar,
         ope_origen: 36,
         ope_call: "23"
       })
