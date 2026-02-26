@@ -18,7 +18,7 @@ class BaseNumeroDetalleModel {
 
             // Use query instead of execute for LIMIT/OFFSET (MySQL2 limitation with prepared statements)
             const [rows] = await this.connection.query(
-                `SELECT bnd.*, e.nombre_comercial
+                `SELECT bnd.*, e.nombre_comercial, e.id as id_empresa
                 FROM base_numero_detalle bnd
                 INNER JOIN base_numero bn ON bn.id = bnd.id_base_numero
                 INNER JOIN empresa e ON e.id = bn.id_empresa
