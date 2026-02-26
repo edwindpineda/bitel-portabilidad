@@ -59,12 +59,12 @@ class PersonaModel {
 
     static UPDATABLE_FIELDS = [
         'id_estado', 'id_usuario', 'nombre_completo', 'dni', 'direccion',
-        'celular', 'id_tipificacion', 'id_tipificacion_bot', 'usuario_actualizacion', 'id_empresa', 'id_tipo_persona',
-        'id_catalogo', 'fue_prospecto'
+        'celular', 'id_tipificacion', 'id_tipificacion_llamada', 'id_empresa', 'id_tipo_persona',
+        'id_catalogo', 'fue_prospecto', 'usuario_actualizacion'
     ];
 
     // Campos que no pueden ser null en la BD
-    static NOT_NULL_FIELDS = ['id_usuario', 'id_estado'];
+    static NOT_NULL_FIELDS = ['id_estado', 'id_empresa'];
 
     // Campos del frontend que se mapean a columnas reales de la BD
     static FIELD_MAP = {
