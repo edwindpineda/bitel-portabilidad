@@ -43,7 +43,7 @@ class PersonaModel {
         try {
             const [result] = await this.connection.execute(
                 'INSERT INTO persona (id_estado, celular, id_usuario, id_empresa, id_tipo_persona, usuario_registro, usuario_actualizacion) VALUES (?, ?, ?, ?, ?, ?, 1)',
-                [id_estado, celular, id_usuario, id_empresa, id_tipo_persona, usuario_registro]
+                [id_estado, celular, id_usuario || null, id_empresa, id_tipo_persona, usuario_registro]
             );
 
             const [rows] = await this.connection.execute(

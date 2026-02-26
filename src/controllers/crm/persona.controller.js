@@ -20,8 +20,8 @@ class PersonaController {
 
   async create(req, res) {
     try {
-      const { userId } = req.user || {};
-      const persona = await PersonaModel.createPersona({ ...req.body, usuario_registro: userId });
+      const { userId, idEmpresa } = req.user || {};
+      const persona = await PersonaModel.createPersona({ ...req.body, usuario_registro: userId, id_empresa: idEmpresa });
 
       return res.status(201).json({ data: persona });
     } catch (error) {
