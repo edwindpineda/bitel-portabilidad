@@ -3,7 +3,7 @@ const { Router } = require("express");
 
 const router = Router();
 
-router.get("/link-pago", PagoController.linkPago);
-router.get("/link-cambio", PagoController.linkCambio);
+router.post("/link-pago", PagoController.linkPago);
+router.post("/link-cambio", PagoController.linkCambio);
 
 module.exports = router;
