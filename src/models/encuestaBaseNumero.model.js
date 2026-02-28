@@ -11,7 +11,7 @@ class EncuestaBaseNumeroModel {
             const params = [];
 
             // Construir WHERE dinámico
-            let whereClause = 'WHERE estado_registro = 1';
+            let whereClause = 'WHERE estado_registro = 1 AND prioridad IN (1, 2, 3)';
 
             if (estadoLlamada !== null && estadoLlamada !== 'todos') {
                 whereClause += ' AND estado_llamada = ?';
@@ -263,7 +263,7 @@ class EncuestaBaseNumeroModel {
 
     async getStats(prioridad = null) {
         try {
-            let whereClause = 'WHERE estado_registro = 1';
+            let whereClause = 'WHERE estado_registro = 1 AND prioridad IN (1, 2, 3)';
             const params = [];
 
             if (prioridad !== null && prioridad !== 'todos') {

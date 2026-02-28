@@ -1,4 +1,5 @@
 const { pool } = require("../config/dbConnection.js");
+const bcrypt = require("bcrypt");
 
 class UsuarioModel {
   constructor(dbConnection = null) {
@@ -91,10 +92,22 @@ class UsuarioModel {
         `SELECT u.*, r.nombre as rol_nombre
          FROM usuario u
          INNER JOIN rol r ON u.id_rol = r.id
-         WHERE u.username = ? AND u.password = ? AND u.estado_registro = 1`,
-        [username, password]
+         WHERE u.username = ? AND u.estado_registro = 1`,
+        [username]
       );
-      return rows[0];
+
+      if (rows.length === 0) {
+        return null;
+      }
+
+      const usuario = rows[0];
+      const passwordMatch = await bcrypt.compare(password, usuario.password);
+
+      if (passwordMatch) {
+        return usuario;
+      }
+
+      return null;
     } catch (error) {
       throw new Error(`Error al obtener usuario: ${error.message}`);
     }
