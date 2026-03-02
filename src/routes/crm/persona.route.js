@@ -3,6 +3,7 @@ const PersonaController = require("../../controllers/crm/persona.controller.js")
 
 const router = Router();
 
+router.get("/persona/celular/:celular", PersonaController.searchByCelular);
 router.get("/persona/:id", PersonaController.getById);
 router.post("/persona", PersonaController.create);
 router.put("/persona/:id", PersonaController.update);
