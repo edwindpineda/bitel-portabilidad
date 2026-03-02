@@ -1,4 +1,5 @@
 const { pool } = require("../config/dbConnection.js");
+const bcrypt = require("bcrypt");
 
 class UsuarioModel {
   constructor(dbConnection = null) {
