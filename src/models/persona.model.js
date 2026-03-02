@@ -75,6 +75,10 @@ class PersonaModel {
 
     async updatePersona(id, data) {
         try {
+            if (!data.usuario_actualizacion) {
+                data.usuario_actualizacion = 1;
+            }
+
             const fields = [];
             const values = [];
             const resolved = {};
