@@ -2,6 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const path = require('path');
+const setupSwagger = require('./config/swagger');
 
 const messageProcessingRoutes = require('./routes/messageProcessing.route.js');
 const { responseHandler } = require('./middlewares/response.middleware.js');
@@ -52,10 +53,9 @@ app.use(responseHandler);
 
 // Rutas publicas (sin auth)
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
-app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes);
+app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes, personaRoutes);
 // Rutas protegidas del CRM (requieren auth)
-app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes);
-app.use("/api/crm/persona", authMiddleware, personaRoutes);
+app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes, personaRoutes);
 app.use("/api/crm/clientes", authMiddleware, clientesRoutes);
 app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
 app.use("/api/crm/contacto", authMiddleware, contactoRoutes);
@@ -66,6 +66,9 @@ app.use('/api/assistant', messageProcessingRoutes);
 app.get('/health', (req, res) => {
   res.success(200, 'Health check');
 });
+
+// Swagger UI (DESPUÉS de registrar todas las rutas para auto-discovery)
+setupSwagger(app);
 
 // Manejo de rutas no encontradas
 app.use((req, res) => {

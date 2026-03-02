@@ -6,7 +6,7 @@ class EncuestaModel {
   }
 
   async getAll(prioridad = null) {
-    let whereClause = 'WHERE ebn.estado_llamada = 3';
+    let whereClause = 'WHERE ebn.estado_llamada = 3 AND ebn.prioridad IN (1, 2, 3)';
     const params = [];
 
     if (prioridad !== null && prioridad !== 'todos') {
@@ -15,9 +15,17 @@ class EncuestaModel {
     }
 
     const [rows] = await this.connection.execute(
-      `SELECT e.*, ebn.departamento, ebn.municipio, ebn.referente, ebn.estado_llamada, ebn.prioridad
+      `SELECT e.*,
+       ebn.telefono AS telefono_base,
+       ebn.nombre AS nombre_base,
+       ebn.apellido AS apellido_base,
+       ebn.departamento AS departamento_base,
+       ebn.municipio AS municipio_base,
+       ebn.referente AS referente_base,
+       ebn.estado_llamada,
+       ebn.prioridad
        FROM encuesta e
-       LEFT JOIN encuesta_base_numero ebn ON e.id_encuesta_base_numero = ebn.id
+       INNER JOIN encuesta_base_numero ebn ON e.id_encuesta_base_numero = ebn.id
        ${whereClause}
        ORDER BY e.id`,
       params
