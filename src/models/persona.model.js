@@ -143,7 +143,7 @@ class PersonaModel {
                 FROM persona p
                 LEFT JOIN estado e ON e.id = p.id_estado
                 LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
-                LEFT JOIN tipificacion tb ON tb.id = p.id_tipificacion_bot
+                LEFT JOIN tipificacion tb ON tb.id = p.id_tipificacion_llamada
                 LEFT JOIN catalogo c ON c.id = p.id_catalogo
                 LEFT JOIN usuario u ON u.id = p.id_usuario
                 WHERE p.estado_registro = 1`;
@@ -180,7 +180,7 @@ class PersonaModel {
                 FROM persona p
                 LEFT JOIN estado e ON e.id = p.id_estado
                 LEFT JOIN tipificacion t ON t.id = p.id_tipificacion
-                LEFT JOIN tipificacion tb ON tb.id = p.id_tipificacion_bot
+                LEFT JOIN tipificacion tb ON tb.id = p.id_tipificacion_llamada
                 LEFT JOIN catalogo c ON c.id = p.id_catalogo
                 LEFT JOIN usuario u ON u.id = p.id_usuario
                 WHERE p.estado_registro = 1
