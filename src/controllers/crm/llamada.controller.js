@@ -70,15 +70,19 @@ class LlamadaController {
 
     async actualizarTipificacion(req, res) {
         try {
-            const { providerCallId, id_tipificacion_llamada } = req.body;
+            const { provider_call_id, id_tipificacion_llamada } = req.body;
+
+            if (!provider_call_id || !id_tipificacion_llamada) {
+                return res.status(400).json({ msg: "Los campos provider_call_id e id_tipificacion_llamada son requeridos" });
+            }
 
             const llamadaModel = new LlamadaModel();
-            await llamadaModel.actualizarTipificacion(providerCallId, id_tipificacion_llamada);
+            await llamadaModel.actualizarTipificacion(provider_call_id, id_tipificacion_llamada);
 
-            return res.status(201).json({ msg: "Llamada creada exitosamente", data: { id } });
+            return res.status(200).json({ msg: "Tipificacion actualizada exitosamente" });
         } catch (error) {
-            logger.error(`[llamada.controller.js] Error al crear llamada: ${error.message}`);
-            return res.status(500).json({ msg: error.message || "Error al crear llamada" });
+            logger.error(`[llamada.controller.js] Error al actualizar tipificacion: ${error.message}`);
+            return res.status(500).json({ msg: error.message || "Error al actualizar tipificacion" });
         }
     }
 }
