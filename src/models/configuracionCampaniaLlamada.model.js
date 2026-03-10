@@ -17,28 +17,32 @@ class ConfiguracionCampaniaLlamadaModel {
         }
     }
 
-    async upsert({ id_campania, dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento, usuario }) {
+    async upsert({ id_campania, dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento, horarios_por_dia, usuario }) {
         try {
             // Verificar si ya existe configuración para esta campaña
             const existing = await this.getByCampaniaId(id_campania);
+
+            // Convertir horarios_por_dia a JSON string si viene como objeto
+            const horariosPorDiaStr = horarios_por_dia ?
+                (typeof horarios_por_dia === 'string' ? horarios_por_dia : JSON.stringify(horarios_por_dia)) : null;
 
             if (existing) {
                 // UPDATE
                 const [result] = await this.connection.execute(
                     `UPDATE configuracion_campania_llamada
                      SET dias_llamada = ?, hora_inicio = ?, hora_fin = ?, max_intentos = ?,
-                         intervalo_reintento = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
+                         intervalo_reintento = ?, horarios_por_dia = ?, usuario_actualizacion = ?, fecha_actualizacion = NOW()
                      WHERE id_campania = ?`,
-                    [dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento || 60, usuario || null, id_campania]
+                    [dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento || 60, horariosPorDiaStr, usuario || null, id_campania]
                 );
                 return { id: existing.id, updated: true };
             } else {
                 // INSERT
                 const [result] = await this.connection.execute(
                     `INSERT INTO configuracion_campania_llamada
-                     (id_campania, dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento, estado_registro, usuario_registro)
-                     VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
-                    [id_campania, dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento || 60, usuario || null]
+                     (id_campania, dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento, horarios_por_dia, estado_registro, usuario_registro)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+                    [id_campania, dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento || 60, horariosPorDiaStr, usuario || null]
                 );
                 return { id: result.insertId, updated: false };
             }

@@ -15,6 +15,23 @@ class LlamadaController {
         }
     }
 
+    async getById(req, res) {
+        try {
+            const { id } = req.params;
+            const llamadaModel = new LlamadaModel();
+            const llamada = await llamadaModel.getById(id);
+
+            if (!llamada) {
+                return res.status(404).json({ msg: "Llamada no encontrada" });
+            }
+
+            return res.status(200).json({ data: llamada });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al obtener llamada por ID: ${error.message}`);
+            return res.status(500).json({ msg: "Error al obtener llamada" });
+        }
+    }
+
     async getByProviderCallId(req, res) {
         try {
             const { providerCallId } = req.params;
@@ -41,6 +58,18 @@ class LlamadaController {
         } catch (error) {
             logger.error(`[llamada.controller.js] Error al obtener llamadas por campania: ${error.message}`);
             return res.status(500).json({ msg: "Error al obtener llamadas por campania" });
+        }
+    }
+
+    async getByCampaniaEjecucion(req, res) {
+        try {
+            const { idCampaniaEjecucion } = req.params;
+            const llamadaModel = new LlamadaModel();
+            const llamadas = await llamadaModel.getByCampaniaEjecucion(idCampaniaEjecucion);
+            return res.status(200).json({ data: llamadas });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al obtener llamadas por ejecucion: ${error.message}`);
+            return res.status(500).json({ msg: "Error al obtener llamadas por ejecucion" });
         }
     }
 

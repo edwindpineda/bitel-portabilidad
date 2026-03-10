@@ -2534,10 +2534,10 @@ class ConfiguracionController {
   async saveConfiguracionCampaniaLlamada(req, res) {
     try {
       const { id_campania } = req.params;
-      const { dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento } = req.body;
+      const { dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento, horarios_por_dia } = req.body;
       const usuario = req.user?.username || null;
 
-      if (!dias_llamada) {
+      if (!dias_llamada && !horarios_por_dia) {
         return res.status(400).json({ msg: "Debe seleccionar al menos un día" });
       }
 
@@ -2549,6 +2549,7 @@ class ConfiguracionController {
         hora_fin,
         max_intentos: max_intentos || 3,
         intervalo_reintento: intervalo_reintento || 60,
+        horarios_por_dia,
         usuario
       });
 

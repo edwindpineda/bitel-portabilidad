@@ -6,7 +6,9 @@ const router = Router();
 // Rutas de Llamadas
 router.get("/llamadas", LlamadaController.getAll);
 router.get("/llamadas/campania/:idCampania", LlamadaController.getByCampania);
+router.get("/llamadas/ejecucion/:idCampaniaEjecucion", LlamadaController.getByCampaniaEjecucion);
 router.get("/llamadas/provider/:providerCallId", LlamadaController.getByProviderCallId);
+router.get("/llamadas/:id", LlamadaController.getById);
 router.post("/llamadas", LlamadaController.create);
 router.put("/llamadas/nuevaTipificacion", LlamadaController.actualizarTipificacion);
 
