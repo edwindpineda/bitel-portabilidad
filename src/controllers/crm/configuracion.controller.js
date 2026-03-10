@@ -1745,8 +1745,10 @@ class ConfiguracionController {
   // ==================== CAMPANIAS ====================
   async getCampanias(req, res) {
     try {
+      const id_empresa  = req.user.idEmpresa;
+      console.log("[Empresa]: ", id_empresa);
       const campaniaModel = new CampaniaModel();
-      const campanias = await campaniaModel.getAll();
+      const campanias = await campaniaModel.getAll(id_empresa);
       return res.status(200).json({ data: campanias });
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener campanias: ${error.message}`);
@@ -1774,7 +1776,7 @@ class ConfiguracionController {
   async createCampania(req, res) {
     try {
       const { nombre, descripcion, id_tipo_campania, id_formato, id_plantilla } = req.body;
-      const id_empresa = req.user?.id_empresa || 1;
+      const id_empresa = req.user?.idEmpresa || 1;
       const usuario_registro = req.user?.userId || null;
 
       logger.info(`[createCampania] req.body completo: ${JSON.stringify(req.body)}`);
@@ -1889,7 +1891,7 @@ class ConfiguracionController {
   async addBaseToCampania(req, res) {
     try {
       const { id_campania, id_base_numero } = req.body;
-      const id_empresa = req.user?.id_empresa || 1;
+      const id_empresa = req.user?.idEmpresa || 1;
       const usuario_registro = req.user?.userId || null;
 
       if (!id_campania || !id_base_numero) {
