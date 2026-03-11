@@ -115,21 +115,22 @@ class LlamadaModel {
         }
     }
 
-    async create({ id_empresa, id_campania, id_base_numero, id_base_numero_detalle, provider_call_id }) {
+    async create({ id_empresa, id_campania, id_base_numero, id_base_numero_detalle, provider_call_id, usuario_registro = null }) {
         try {
             const codigo_llamada = await this.getNextCodigoLlamada(id_empresa);
 
             const [result] = await this.connection.execute(
                 `INSERT INTO llamada
-                (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, provider_call_id, codigo_llamada, id_estado_llamada, estado_registro)
-                VALUES (?, ?, ?, ?, ?, ?, 1, 1)`,
+                (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, provider_call_id, codigo_llamada, id_estado_llamada, estado_registro, usuario_registro)
+                VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?)`,
                 [
                     id_empresa,
                     id_campania,
                     id_base_numero,
                     id_base_numero_detalle || null,
                     provider_call_id,
-                    codigo_llamada
+                    codigo_llamada,
+                    usuario_registro
                 ]
             );
             return result.insertId;

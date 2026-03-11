@@ -136,11 +136,11 @@ class CampaniaModel {
         }
     }
 
-    async delete(id) {
+    async delete(id, usuario_actualizacion = null) {
         try {
             const [result] = await this.connection.execute(
-                'UPDATE campania SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?',
-                [id]
+                'UPDATE campania SET estado_registro = 0, usuario_actualizacion = ?, fecha_actualizacion = NOW() WHERE id = ?',
+                [usuario_actualizacion, id]
             );
             return result.affectedRows > 0;
         } catch (error) {

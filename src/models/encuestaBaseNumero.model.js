@@ -69,12 +69,12 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async create({ telefono, nombre, apellido, departamento, municipio, referente }) {
+    async create({ telefono, nombre, apellido, departamento, municipio, referente, usuario_registro = null }) {
         try {
             const [result] = await this.connection.execute(
-                `INSERT INTO encuesta_base_numero (telefono, nombre, apellido, departamento, municipio, referente, estado_registro)
-                VALUES (?, ?, ?, ?, ?, ?, 1)`,
-                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null]
+                `INSERT INTO encuesta_base_numero (telefono, nombre, apellido, departamento, municipio, referente, estado_registro, usuario_registro)
+                VALUES (?, ?, ?, ?, ?, ?, 1, ?)`,
+                [telefono, nombre || null, apellido || null, departamento || null, municipio || null, referente || null, usuario_registro]
             );
             return result.insertId;
         } catch (error) {
@@ -218,7 +218,7 @@ class EncuestaBaseNumeroModel {
 
     async update(id, data) {
         try {
-            const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intentos', 'estado_llamada'];
+            const allowedFields = ['telefono', 'nombre', 'apellido', 'departamento', 'municipio', 'referente', 'intentos', 'estado_llamada', 'usuario_actualizacion'];
             const fields = [];
             const values = [];
 
@@ -249,11 +249,11 @@ class EncuestaBaseNumeroModel {
         }
     }
 
-    async delete(id) {
+    async delete(id, usuario_actualizacion = null) {
         try {
             const [result] = await this.connection.execute(
-                `UPDATE encuesta_base_numero SET estado_registro = 0, fecha_actualizacion = NOW() WHERE id = ?`,
-                [id]
+                `UPDATE encuesta_base_numero SET estado_registro = 0, usuario_actualizacion = ?, fecha_actualizacion = NOW() WHERE id = ?`,
+                [usuario_actualizacion, id]
             );
             return result.affectedRows > 0;
         } catch (error) {
@@ -359,7 +359,6 @@ class EncuestaBaseNumeroModel {
                     }
 
                 } catch (batchError) {
-                    console.error('Batch error:', batchError.message);
                     try {
                         await connection.rollback();
                     } catch (e) {}
@@ -426,7 +425,6 @@ class EncuestaBaseNumeroModel {
                 totalLotes
             };
         } catch (error) {
-            console.error('Fatal error:', error.message);
             return {
                 nuevos,
                 omitidos,

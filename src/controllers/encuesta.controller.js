@@ -22,6 +22,7 @@ class EncuestaController {
         id_encuesta_base_numero
       } = req.body;
 
+      const { userId } = req.user || {};
       const encuesta = new EncuestaModel();
 
       const id = await encuesta.create({
@@ -36,7 +37,8 @@ class EncuestaController {
         p4_autoriza_whatsapp,
         whatsapp_contacto,
         notas_adicionales,
-        id_encuesta_base_numero
+        id_encuesta_base_numero,
+        usuario_registro: userId
       });
 
       return res.status(201).json({ msg: "Encuesta guardada exitosamente", data: { id } });
@@ -137,13 +139,14 @@ class EncuestaController {
       if (!telefono) {
         return res.status(400).json({ msg: "El telefono es requerido" });
       }
+      const { userId } = req.user || {};
       const model = new EncuestaBaseNumeroModel();
-      const id = await model.create({ telefono, nombre, apellido, departamento, municipio, referente });
+      const id = await model.create({ telefono, nombre, apellido, departamento, municipio, referente, usuario_registro: userId });
       return res.status(201).json({ msg: "Persona creada exitosamente", data: { id } });
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al crear persona: ${error.message}`);
       if (error.message.includes('Ya existe')) {
-        return res.status(400).json({ msg: error.message });
+        return res.status(400).json({ msg: "Ya existe una persona con ese telefono" });
       }
       return res.status(500).json({ msg: "Error al crear persona" });
     }
@@ -165,6 +168,8 @@ class EncuestaController {
         return res.status(400).json({ msg: "Debe enviar al menos un campo para actualizar" });
       }
 
+      const { userId } = req.user || {};
+      data.usuario_actualizacion = userId;
       const model = new EncuestaBaseNumeroModel();
       const updated = await model.update(id, data);
       if (!updated) {
@@ -174,7 +179,7 @@ class EncuestaController {
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al actualizar persona: ${error.message}`);
       if (error.message.includes('Ya existe')) {
-        return res.status(400).json({ msg: error.message });
+        return res.status(400).json({ msg: "Ya existe una persona con ese telefono" });
       }
       return res.status(500).json({ msg: "Error al actualizar persona" });
     }
@@ -182,9 +187,10 @@ class EncuestaController {
 
   async deletePersona(req, res) {
     try {
+      const { userId } = req.user || {};
       const { id } = req.params;
       const model = new EncuestaBaseNumeroModel();
-      const deleted = await model.delete(id);
+      const deleted = await model.delete(id, userId);
       if (!deleted) {
         return res.status(404).json({ msg: "Persona no encontrada" });
       }
@@ -377,7 +383,7 @@ class EncuestaController {
     } catch (error) {
       logger.error(`[encuesta.controller.js] Error al cargar archivo: ${error.message}`);
       try {
-        res.write(`data: ${JSON.stringify({ tipo: 'error', mensaje: 'Error al procesar el archivo: ' + error.message })}\n\n`);
+        res.write(`data: ${JSON.stringify({ tipo: 'error', mensaje: 'Error al procesar el archivo' })}\n\n`);
       } catch (e) {
         // Si ya se envio una respuesta, ignorar
       }
