@@ -16,6 +16,7 @@ const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
 const transcripcionRoutes = require("./controllers/crm/transcripcion.controller.js")
 const encuestaRoutes = require("./routes/encuesta.route.js");
 const pagoRoutes = require("./routes/pago.routes.js");
+const consumoIndicadoresRoutes = require("./routes/crm/consumo_indicadores.route.js");
 const whatsappRoutes = require("./routes/plantillaWhatsapp.route.js");
 const tipificacionLlamadaRoutes = require("./routes/tipificacion_llamada.route.js");
 const clientesRoutes = require("./routes/crm/clientes.route.js");
@@ -23,7 +24,7 @@ const contactosRoutes = require("./routes/crm/contactos.route.js");
 const contactoRoutes = require("./routes/crm/contacto.route.js");
 
 const app = express();
-
+app.use("/uploads", require("express").static("uploads"));
 // CORS - permitir todas las peticiones (debe ir primero)
 app.use(cors({
   origin: '*',
@@ -55,7 +56,16 @@ app.use(responseHandler);
 app.use("/api/crm", usuarioRoutes, transcripcionRoutes);
 app.use("/api/crm/tools", configuracionRoutes, llamadaRoutes, encuestaRoutes, pagoRoutes, whatsappRoutes, personaRoutes);
 // Rutas protegidas del CRM (requieren auth)
-app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes, personaRoutes);
+app.use(
+  "/api/crm",
+  authMiddleware,
+  auditoriaRoutes,
+  configuracionRoutes,
+  llamadaRoutes,
+  tipificacionLlamadaRoutes,
+  personaRoutes,
+  consumoIndicadoresRoutes
+);
 app.use("/api/crm/clientes", authMiddleware, clientesRoutes);
 app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
 app.use("/api/crm/contacto", authMiddleware, contactoRoutes);

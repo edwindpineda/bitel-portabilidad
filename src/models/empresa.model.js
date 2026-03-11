@@ -16,7 +16,7 @@ class EmpresaModel {
       throw new Error(`Error al obtener empresas: ${error.message}`);
     }
   }
-
+  
   async updateEstado(id, estado) {
     try {
       const [result] = await this.connection.execute(
