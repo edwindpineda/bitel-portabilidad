@@ -213,18 +213,38 @@ class WhatsappGraphService {
       }
     };
 
-    logger.info(`[WhatsappGraph] Enviando mensaje de texto a ${formattedPhone}`);
-
-    const response = await axios.post(url, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${credenciales.accessToken}`
-      },
-      timeout: 30000
+    logger.info(`[WhatsappGraph] Enviando mensaje de texto a ${formattedPhone}`, {
+      url,
+      phoneNumberId: credenciales.phoneNumberId,
+      tokenLength: credenciales.accessToken?.length || 0,
+      messageLength: message?.length || 0
     });
 
-    const wid_mensaje = response.data?.messages?.[0]?.id || null;
-    return { success: true, wid_mensaje, response: response.data };
+    try {
+      const response = await axios.post(url, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${credenciales.accessToken}`
+        },
+        timeout: 30000
+      });
+
+      logger.info(`[WhatsappGraph] Respuesta OK: ${response.status}`, {
+        data: JSON.stringify(response.data)
+      });
+
+      const wid_mensaje = response.data?.messages?.[0]?.id || null;
+      return { success: true, wid_mensaje, response: response.data };
+    } catch (error) {
+      logger.error(`[WhatsappGraph] Error enviarMensajeTexto: ${error.message}`, {
+        status: error.response?.status,
+        data: JSON.stringify(error.response?.data || {}),
+        url,
+        phoneNumberId: credenciales.phoneNumberId,
+        to: formattedPhone
+      });
+      throw error;
+    }
   }
 
   /**
