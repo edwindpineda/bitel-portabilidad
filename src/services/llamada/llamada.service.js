@@ -135,6 +135,7 @@ class LlamadaService {
                         this.realizarLlamada(body)
                             .then(async (result) => {
                                 completadas++;
+                                console.log(result);
                                 if (result?.channelId) {
                                     await llamadaModel.create({
                                         id_empresa: idEmpresa,
