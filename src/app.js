@@ -14,7 +14,6 @@ const llamadaRoutes = require("./routes/crm/llamada.route.js");
 const personaRoutes = require("./routes/crm/persona.route.js");
 const reportesCrmRoutes = require("./routes/crm/reportes.route.js");
 const transcripcionRoutes = require("./routes/crm/transcripcion.route.js");
-const encuestaRoutes = require("./routes/encuesta.route.js");
 const pagoRoutes = require("./routes/pago.routes.js");
 const consumoIndicadoresRoutes = require("./routes/crm/consumo_indicadores.route.js");
 const whatsappRoutes = require("./routes/plantillaWhatsapp.route.js");

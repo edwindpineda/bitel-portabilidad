@@ -197,16 +197,6 @@ class UsuarioModel {
     }
   }
 
-    if (rows.length === 0) return false;
-
-    const isMatch = await bcrypt.compare(password, rows[0].password);
-
-    return isMatch;
-
-  } catch (error) {
-    throw new Error(`Error al verificar contraseña: ${error.message}`);
-  }
-}
   async updatePassword(id, newPassword) {
   try {
     const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
