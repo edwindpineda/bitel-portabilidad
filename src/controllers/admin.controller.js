@@ -32,8 +32,9 @@ class AdminController {
 
   async createEmpresa(req, res) {
     try {
+      const { userId } = req.user || {};
       const empresaModel = new EmpresaModel();
-      const id = await empresaModel.create(req.body);
+      const id = await empresaModel.create({ ...req.body, usuario_registro: userId });
       return res.success(201, 'Empresa creada exitosamente', { id });
     } catch (error) {
       logger.error(`[admin.controller.js] Error al crear empresa: ${error.message}`);
@@ -43,9 +44,10 @@ class AdminController {
 
   async updateEmpresa(req, res) {
     try {
+      const { userId } = req.user || {};
       const { id } = req.params;
       const empresaModel = new EmpresaModel();
-      await empresaModel.update(id, req.body);
+      await empresaModel.update(id, { ...req.body, usuario_actualizacion: userId });
       return res.success(200, 'Empresa actualizada exitosamente');
     } catch (error) {
       logger.error(`[admin.controller.js] Error al actualizar empresa: ${error.message}`);
@@ -55,10 +57,11 @@ class AdminController {
 
   async updateEmpresaEstado(req, res) {
     try {
+      const { userId } = req.user || {};
       const { id } = req.params;
       const { estado } = req.body;
       const empresaModel = new EmpresaModel();
-      await empresaModel.updateEstado(id, estado);
+      await empresaModel.updateEstado(id, estado, userId);
       return res.success(200, 'Estado de empresa actualizado exitosamente');
     } catch (error) {
       logger.error(`[admin.controller.js] Error al actualizar estado de empresa: ${error.message}`);
@@ -95,8 +98,9 @@ class AdminController {
 
   async createUsuario(req, res) {
     try {
+      const { userId } = req.user || {};
       const usuarioModel = new UsuarioModel();
-      const id = await usuarioModel.create(req.body);
+      const id = await usuarioModel.create({ ...req.body, usuario_registro: userId });
       return res.success(201, 'Usuario creado exitosamente', { id });
     } catch (error) {
       logger.error(`[admin.controller.js] Error al crear usuario: ${error.message}`);
@@ -106,9 +110,10 @@ class AdminController {
 
   async updateUsuario(req, res) {
     try {
+      const { userId } = req.user || {};
       const { id } = req.params;
       const usuarioModel = new UsuarioModel();
-      await usuarioModel.update(id, req.body);
+      await usuarioModel.update(id, { ...req.body, usuario_actualizacion: userId });
       return res.success(200, 'Usuario actualizado exitosamente');
     } catch (error) {
       logger.error(`[admin.controller.js] Error al actualizar usuario: ${error.message}`);
@@ -118,9 +123,10 @@ class AdminController {
 
   async deleteUsuario(req, res) {
     try {
+      const { userId } = req.user || {};
       const { id } = req.params;
       const usuarioModel = new UsuarioModel();
-      await usuarioModel.delete(id);
+      await usuarioModel.delete(id, userId);
       return res.success(200, 'Usuario eliminado exitosamente');
     } catch (error) {
       logger.error(`[admin.controller.js] Error al eliminar usuario: ${error.message}`);
