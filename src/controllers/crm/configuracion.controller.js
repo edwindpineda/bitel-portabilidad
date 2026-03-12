@@ -1520,17 +1520,24 @@ class ConfiguracionController {
       const columnasFaltantes = [];
 
       for (const colReq of columnasRequeridas) {
+        // Usar normalización para comparar columnas (ignora espacios vs guiones bajos, mayúsculas, tildes)
         const existe = columnasArchivo.some(colArch =>
-          colArch === colReq.nombre || colArch === colReq.etiqueta
+          normalizeFieldName(colArch) === normalizeFieldName(colReq.nombre) ||
+          normalizeFieldName(colArch) === normalizeFieldName(colReq.etiqueta)
         );
         if (!existe) {
           columnasFaltantes.push(colReq.etiqueta || colReq.nombre);
         }
       }
 
-      // Identificar columnas del archivo que no estan en el formato
-      const columnasValidas = columnasEsperadas.map(c => [c.nombre, c.etiqueta]).flat().filter(Boolean);
-      const columnasSobrantes = columnasArchivo.filter(col => !columnasValidas.includes(col));
+      // Identificar columnas del archivo que no estan en el formato (usando normalización)
+      const columnasValidasNormalizadas = columnasEsperadas
+        .map(c => [normalizeFieldName(c.nombre), normalizeFieldName(c.etiqueta)])
+        .flat()
+        .filter(Boolean);
+      const columnasSobrantes = columnasArchivo.filter(col =>
+        !columnasValidasNormalizadas.includes(normalizeFieldName(col))
+      );
 
       // Validar estructura: columnas faltantes o sobrantes
       if (columnasFaltantes.length > 0 || columnasSobrantes.length > 0) {
@@ -2159,11 +2166,12 @@ class ConfiguracionController {
         [id_empresa]
       );
 
-      // Obtener tipificaciones
-      const prompt = await pool.execute(
+      // Obtener prompt (valor único del campo prompt de la plantilla)
+      const [promptRows] = await pool.execute(
         `SELECT p.prompt FROM campania c INNER JOIN plantilla p ON c.id_plantilla = p.id WHERE c.id_empresa = ? AND c.id = ?`,
         [id_empresa, id_campania]
       );
+      const prompt = promptRows[0]?.prompt || '';
 
       // Responder inmediatamente
       res.status(202).json({
@@ -2177,7 +2185,8 @@ class ConfiguracionController {
         idCampania: id_campania,
         idsBaseNumero: ids_base_numero,
         idEmpresa: id_empresa,
-        tipificaciones
+        tipificaciones,
+        prompt: prompt,
       });
 
     } catch (error) {
