@@ -4,13 +4,12 @@
  */
 
 const axios = require('axios');
-// const configuracionWhatsappRepository = require('../../repositories/configuracionWhatsapp.repository.js');
+const configuracionWhatsappRepository = require('../../repositories/configuracionWhatsapp.repository.js');
 const logger = require('../../config/logger/loggerClient.js');
 
 const GRAPH_API_VERSION = 'v21.0';
 const GRAPH_API_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
-const WHATSAPP_NUM_ID = process.env.WHATSAPP_NUM_ID;
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
+const MARAVIA_ACCESS_TOKEN = process.env.MARAVIA_ACCESS_TOKEN;
 
 class WhatsappGraphService {
   /**
@@ -21,8 +20,14 @@ class WhatsappGraphService {
     if (!config) {
       throw new Error(`No se encontraron credenciales de WhatsApp para la empresa ${idEmpresa}`);
     }
+    if (!config.numero_telefono_id) {
+      throw new Error(`No se encontró numero_telefono_id para la empresa ${idEmpresa}`);
+    }
+    if (!MARAVIA_ACCESS_TOKEN) {
+      throw new Error('MARAVIA_ACCESS_TOKEN no está configurado en las variables de entorno');
+    }
     return {
-      accessToken: config.token_whatsapp,
+      accessToken: MARAVIA_ACCESS_TOKEN,
       phoneNumberId: config.numero_telefono_id,
       wabaId: config.waba_id,
       appId: config.app_id
@@ -190,11 +195,220 @@ class WhatsappGraphService {
   }
 
   /**
+   * Envía un mensaje de texto simple
+   */
+  async enviarMensajeTexto(idEmpresa, phone, message) {
+    const credenciales = await this.obtenerCredenciales(idEmpresa);
+    const url = `${GRAPH_API_URL}/${credenciales.phoneNumberId}/messages`;
+    const formattedPhone = this.formatearNumeroTelefono(phone);
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: formattedPhone,
+      type: 'text',
+      text: {
+        preview_url: true,
+        body: message
+      }
+    };
+
+    logger.info(`[WhatsappGraph] Enviando mensaje de texto a ${formattedPhone}`, {
+      url,
+      phoneNumberId: credenciales.phoneNumberId,
+      tokenLength: credenciales.accessToken?.length || 0,
+      messageLength: message?.length || 0
+    });
+
+    try {
+      const response = await axios.post(url, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${credenciales.accessToken}`
+        },
+        timeout: 30000
+      });
+
+      logger.info(`[WhatsappGraph] Respuesta OK: ${response.status}`, {
+        data: JSON.stringify(response.data)
+      });
+
+      const wid_mensaje = response.data?.messages?.[0]?.id || null;
+      return { success: true, wid_mensaje, response: response.data };
+    } catch (error) {
+      logger.error(`[WhatsappGraph] Error enviarMensajeTexto: ${error.message}`, {
+        status: error.response?.status,
+        data: JSON.stringify(error.response?.data || {}),
+        url,
+        phoneNumberId: credenciales.phoneNumberId,
+        to: formattedPhone
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Envía una imagen
+   */
+  async enviarImagen(idEmpresa, phone, imageUrl, caption = '') {
+    const credenciales = await this.obtenerCredenciales(idEmpresa);
+    const url = `${GRAPH_API_URL}/${credenciales.phoneNumberId}/messages`;
+    const formattedPhone = this.formatearNumeroTelefono(phone);
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: formattedPhone,
+      type: 'image',
+      image: { link: imageUrl }
+    };
+
+    if (caption) {
+      payload.image.caption = caption;
+    }
+
+    logger.info(`[WhatsappGraph] Enviando imagen a ${formattedPhone}`);
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${credenciales.accessToken}`
+      },
+      timeout: 30000
+    });
+
+    const wid_mensaje = response.data?.messages?.[0]?.id || null;
+    return { success: true, wid_mensaje, response: response.data };
+  }
+
+  /**
+   * Envía un documento
+   */
+  async enviarDocumento(idEmpresa, phone, documentUrl, filename, caption = '') {
+    const credenciales = await this.obtenerCredenciales(idEmpresa);
+    const url = `${GRAPH_API_URL}/${credenciales.phoneNumberId}/messages`;
+    const formattedPhone = this.formatearNumeroTelefono(phone);
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: formattedPhone,
+      type: 'document',
+      document: { link: documentUrl, filename: filename }
+    };
+
+    if (caption) {
+      payload.document.caption = caption;
+    }
+
+    logger.info(`[WhatsappGraph] Enviando documento a ${formattedPhone}`);
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${credenciales.accessToken}`
+      },
+      timeout: 30000
+    });
+
+    const wid_mensaje = response.data?.messages?.[0]?.id || null;
+    return { success: true, wid_mensaje, response: response.data };
+  }
+
+  /**
+   * Envía un audio
+   */
+  async enviarAudio(idEmpresa, phone, audioUrl) {
+    const credenciales = await this.obtenerCredenciales(idEmpresa);
+    const url = `${GRAPH_API_URL}/${credenciales.phoneNumberId}/messages`;
+    const formattedPhone = this.formatearNumeroTelefono(phone);
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: formattedPhone,
+      type: 'audio',
+      audio: { link: audioUrl }
+    };
+
+    logger.info(`[WhatsappGraph] Enviando audio a ${formattedPhone}`);
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${credenciales.accessToken}`
+      },
+      timeout: 30000
+    });
+
+    const wid_mensaje = response.data?.messages?.[0]?.id || null;
+    return { success: true, wid_mensaje, response: response.data };
+  }
+
+  /**
+   * Envía un video
+   */
+  async enviarVideo(idEmpresa, phone, videoUrl, caption = '') {
+    const credenciales = await this.obtenerCredenciales(idEmpresa);
+    const url = `${GRAPH_API_URL}/${credenciales.phoneNumberId}/messages`;
+    const formattedPhone = this.formatearNumeroTelefono(phone);
+
+    const payload = {
+      messaging_product: 'whatsapp',
+      recipient_type: 'individual',
+      to: formattedPhone,
+      type: 'video',
+      video: { link: videoUrl }
+    };
+
+    if (caption) {
+      payload.video.caption = caption;
+    }
+
+    logger.info(`[WhatsappGraph] Enviando video a ${formattedPhone}`);
+
+    const response = await axios.post(url, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${credenciales.accessToken}`
+      },
+      timeout: 30000
+    });
+
+    const wid_mensaje = response.data?.messages?.[0]?.id || null;
+    return { success: true, wid_mensaje, response: response.data };
+  }
+
+  /**
+   * Envía un mensaje según el tipo detectado
+   */
+  async enviarMensaje(idEmpresa, phone, message, type = 'text', fileUrl = null, filename = null) {
+    try {
+      switch (type) {
+        case 'image':
+          return await this.enviarImagen(idEmpresa, phone, fileUrl, message);
+        case 'document':
+          return await this.enviarDocumento(idEmpresa, phone, fileUrl, filename || 'documento', message);
+        case 'audio':
+          return await this.enviarAudio(idEmpresa, phone, fileUrl);
+        case 'video':
+          return await this.enviarVideo(idEmpresa, phone, fileUrl, message);
+        case 'text':
+        default:
+          return await this.enviarMensajeTexto(idEmpresa, phone, message);
+      }
+    } catch (error) {
+      logger.error(`[WhatsappGraph] Error enviando mensaje tipo ${type}: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
    * Envía un mensaje de plantilla
    */
   async enviarPlantilla(idEmpresa, phone, templateName, language = 'es', components = []) {
-    // const credenciales = await this.obtenerCredenciales(idEmpresa);
-    const url = `${GRAPH_API_URL}/${WHATSAPP_NUM_ID}/messages`;
+    const credenciales = await this.obtenerCredenciales(idEmpresa);
+    const url = `${GRAPH_API_URL}/${credenciales.phoneNumberId}/messages`;
 
     const formattedPhone = this.formatearNumeroTelefono(phone);
 
@@ -204,18 +418,9 @@ class WhatsappGraphService {
       to: formattedPhone,
       type: "template",
       template: {
-        name: "enlace_lili",
-        language: { code: language },
-        components: [
-          {
-            type: "body",
-            parameters: [
-              {type: "text", text: templateName}
-            ]
-          }
-        ]
+        name: templateName,
+        language: { code: language }
       }
-      
     };
 
     if (components && components.length > 0) {
@@ -227,7 +432,7 @@ class WhatsappGraphService {
     const response = await axios.post(url, payload, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${WHATSAPP_TOKEN}`
+        Authorization: `Bearer ${credenciales.accessToken}`
       },
       timeout: 30000
     });

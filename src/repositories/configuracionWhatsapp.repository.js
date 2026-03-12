@@ -42,6 +42,10 @@ class ConfiguracionWhatsappRepository {
     }
   }
 
+  async findByEmpresaId(idEmpresa) {
+    return this.getByEmpresaId(idEmpresa);
+  }
+
   async getByEmpresaId(idEmpresa) {
     try {
       const [rows] = await pool.execute(
