@@ -1,4 +1,5 @@
 const AssistantService = require("../services/assistant/asistant.service");
+const WhatsappGraphService = require("../services/whatsapp/whatsappGraph.service.js");
 const Persona = require("../models/persona.model.js");
 const Usuario = require("../models/usuario.model.js");
 const Chat = require("../models/chat.model.js");
@@ -85,12 +86,22 @@ class MessageProcessingController {
                 id_empresa: empresaId
             });
 
+            // Enviar respuesta por WhatsApp
+            let widRespuesta = null;
+            try {
+                const envio = await WhatsappGraphService.enviarMensajeTexto(empresaId, phoneTrimmed, respuestaTexto);
+                widRespuesta = envio.wid_mensaje;
+                logger.info(`[messageProcessing.controller.js] Mensaje enviado por WhatsApp, wid: ${widRespuesta}`);
+            } catch (whatsappError) {
+                logger.error(`[messageProcessing.controller.js] Error enviando WhatsApp: ${whatsappError.message}`);
+            }
+
             // Guardar mensaje saliente
             await Mensaje.create({
                 id_chat: chat.id || chat,
                 contenido: respuestaTexto,
                 direccion: "out",
-                wid_mensaje: widTrimmed,
+                wid_mensaje: widRespuesta || widTrimmed,
                 tipo_mensaje: "texto",
                 fecha_hora: new Date(),
                 usuario_registro: null
