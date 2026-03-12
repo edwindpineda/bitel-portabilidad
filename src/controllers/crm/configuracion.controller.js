@@ -1411,24 +1411,39 @@ class ConfiguracionController {
 
   // ==================== CARGA MASIVA ====================
   async uploadBaseNumero(req, res) {
+    // Configurar SSE
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    const sendEvent = (data) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
     try {
       if (!req.file) {
-        return res.status(400).json({ msg: "No se ha proporcionado un archivo" });
+        sendEvent({ tipo: 'error', mensaje: 'No se ha proporcionado un archivo' });
+        return res.end();
       }
 
       const { id_base_numero } = req.body;
       const usuario_registro = req.user?.userId || null;
 
       if (!id_base_numero) {
-        return res.status(400).json({ msg: "El ID de la base es requerido" });
+        sendEvent({ tipo: 'error', mensaje: 'El ID de la base es requerido' });
+        return res.end();
       }
+
+      sendEvent({ tipo: 'inicio', mensaje: 'Leyendo archivo...' });
 
       // Obtener la base y su formato
       const baseNumeroModel = new BaseNumeroModel();
       const base = await baseNumeroModel.getById(id_base_numero);
 
       if (!base) {
-        return res.status(404).json({ msg: "Base de numeros no encontrada" });
+        sendEvent({ tipo: 'error', mensaje: 'Base de numeros no encontrada' });
+        return res.end();
       }
 
       // Obtener campos del formato
@@ -1436,7 +1451,8 @@ class ConfiguracionController {
       const formato = await formatoModel.getByIdWithCampos(base.id_formato);
 
       if (!formato) {
-        return res.status(404).json({ msg: "Formato no encontrado" });
+        sendEvent({ tipo: 'error', mensaje: 'Formato no encontrado' });
+        return res.end();
       }
 
       // Leer el archivo Excel/CSV
@@ -1446,8 +1462,11 @@ class ConfiguracionController {
       const jsonData = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
 
       if (jsonData.length === 0) {
-        return res.status(400).json({ msg: "El archivo esta vacio" });
+        sendEvent({ tipo: 'error', mensaje: 'El archivo esta vacio' });
+        return res.end();
       }
+
+      sendEvent({ tipo: 'inicio', mensaje: `Validando estructura... (${jsonData.length} filas)` });
 
       // Campos fijos de base_numero_detalle
       const camposFijos = ['telefono', 'nombre', 'correo', 'tipo_documento', 'numero_documento', 'tipo_persona'];
@@ -1506,9 +1525,9 @@ class ConfiguracionController {
           mensaje = "El archivo tiene columnas que no estan definidas en el formato";
         }
 
-        return res.status(400).json({
-          msg: mensaje,
-          error: "estructura_invalida",
+        sendEvent({
+          tipo: 'error_estructura',
+          mensaje: mensaje,
           columnasFaltantes: columnasFaltantes.length > 0 ? columnasFaltantes : undefined,
           columnasSobrantes: columnasSobrantes.length > 0 ? columnasSobrantes : undefined,
           columnasEsperadas: columnasEsperadas.map(c => ({
@@ -1517,11 +1536,24 @@ class ConfiguracionController {
           })),
           columnasArchivo: Object.keys(jsonData[0])
         });
+        return res.end();
       }
 
       // ========== PROCESAR LOS DATOS ==========
       const registros = [];
       const erroresValidacion = [];
+      const totalFilas = jsonData.length;
+      const BATCH_SIZE = 100; // Procesar en lotes para mejor rendimiento
+
+      sendEvent({
+        tipo: 'progreso',
+        mensaje: 'Validando datos...',
+        total: totalFilas,
+        procesados: 0,
+        nuevos: 0,
+        omitidos: 0,
+        porcentaje: 0
+      });
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
@@ -1649,27 +1681,88 @@ class ConfiguracionController {
         } else {
           registros.push(registro);
         }
+
+        // Enviar progreso cada BATCH_SIZE registros
+        if ((i + 1) % BATCH_SIZE === 0 || i === jsonData.length - 1) {
+          const porcentaje = Math.round(((i + 1) / totalFilas) * 50); // 50% para validacion
+          sendEvent({
+            tipo: 'progreso',
+            mensaje: `Validando datos... (${i + 1}/${totalFilas})`,
+            total: totalFilas,
+            procesados: i + 1,
+            nuevos: registros.length,
+            omitidos: erroresValidacion.length,
+            porcentaje: porcentaje
+          });
+        }
       }
 
-      // Insertar registros validos
+      // Insertar registros validos en lotes
       const detalleModel = new BaseNumeroDetalleModel();
-      const resultado = await detalleModel.bulkCreate(id_base_numero, registros, usuario_registro);
+      let totalInsertados = 0;
+      let erroresDuplicados = [];
+      const INSERT_BATCH_SIZE = 500;
+      const totalLotes = Math.ceil(registros.length / INSERT_BATCH_SIZE);
 
-      return res.status(200).json({
-        msg: "Carga completada",
+      sendEvent({
+        tipo: 'progreso',
+        mensaje: 'Insertando registros en base de datos...',
+        total: totalFilas,
+        procesados: totalFilas,
+        nuevos: 0,
+        omitidos: erroresValidacion.length,
+        porcentaje: 50
+      });
+
+      for (let lote = 0; lote < totalLotes; lote++) {
+        const inicio = lote * INSERT_BATCH_SIZE;
+        const fin = Math.min(inicio + INSERT_BATCH_SIZE, registros.length);
+        const loteRegistros = registros.slice(inicio, fin);
+
+        try {
+          const resultado = await detalleModel.bulkCreate(id_base_numero, loteRegistros, usuario_registro);
+          totalInsertados += resultado.total;
+          if (resultado.errores && resultado.errores.length > 0) {
+            erroresDuplicados = erroresDuplicados.concat(resultado.errores);
+          }
+        } catch (err) {
+          logger.error(`[configuracion.controller.js] Error en lote ${lote + 1}: ${err.message}`);
+        }
+
+        const porcentajeInsercion = 50 + Math.round(((lote + 1) / totalLotes) * 50);
+        sendEvent({
+          tipo: 'progreso',
+          mensaje: `Insertando lote ${lote + 1} de ${totalLotes}...`,
+          total: totalFilas,
+          procesados: totalFilas,
+          nuevos: totalInsertados,
+          omitidos: erroresValidacion.length + erroresDuplicados.length,
+          porcentaje: porcentajeInsercion,
+          loteActual: lote + 1,
+          totalLotes: totalLotes
+        });
+      }
+
+      // Enviar resultado final
+      sendEvent({
+        tipo: 'completado',
+        exito: true,
         data: {
           totalProcesados: jsonData.length,
-          insertados: resultado.total,
+          insertados: totalInsertados,
           erroresValidacion: erroresValidacion.length,
-          erroresDuplicados: resultado.errores.length,
-          detalleErroresValidacion: erroresValidacion.slice(0, 10), // Primeros 10 errores
-          detalleErroresDuplicados: resultado.errores.slice(0, 10)
+          erroresDuplicados: erroresDuplicados.length,
+          detalleErroresValidacion: erroresValidacion.slice(0, 10),
+          detalleErroresDuplicados: erroresDuplicados.slice(0, 10)
         }
       });
 
+      return res.end();
+
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error en carga masiva: ${error.message}`);
-      return res.status(500).json({ msg: "Error al procesar el archivo" });
+      sendEvent({ tipo: 'error', mensaje: 'Error al procesar el archivo' });
+      return res.end();
     }
   }
 
