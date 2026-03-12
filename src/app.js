@@ -21,6 +21,7 @@ const clientesRoutes = require("./routes/crm/clientes.route.js");
 const contactosRoutes = require("./routes/crm/contactos.route.js");
 const contactoRoutes = require("./routes/crm/contacto.route.js");
 const adminRoutes = require("./routes/admin.route.js");
+const whatsappEmbeddedRoutes = require("./routes/whatsappEmbedded.route.js");
 const sandboxRoutes = require("./routes/sandbox.route.js");
 
 const app = express();
@@ -61,7 +62,9 @@ app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
 app.use("/api/crm/contacto", authMiddleware, contactoRoutes);
 app.use("/api/crm/reportes", authMiddleware, reportesCrmRoutes);
 app.use("/api/crm/admin", authMiddleware, adminRoutes);
+app.use("/api/crm", authMiddleware, whatsappEmbeddedRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
+
 
 // Ruta de health check
 app.get('/health', (req, res) => {
