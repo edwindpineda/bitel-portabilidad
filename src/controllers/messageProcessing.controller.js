@@ -1,4 +1,5 @@
 const AssistantService = require("../services/assistant/asistant.service");
+const WhatsappGraphService = require("../services/whatsapp/whatsappGraph.service.js");
 const Persona = require("../models/persona.model.js");
 const Usuario = require("../models/usuario.model.js");
 const Chat = require("../models/chat.model.js");
@@ -9,7 +10,7 @@ class MessageProcessingController {
 
     async processMessage(req, res) {
         try {
-            const { phone, question, wid, id_empresa } = req.body;
+            const { phone, question, wid, id_empresa, messageType, files } = req.body;
 
             if (!phone || !question || !id_empresa) {
                 return res.serverError(400, "Campos requeridos: phone, question, id_empresa");
@@ -19,6 +20,8 @@ class MessageProcessingController {
             const questionTrimmed = question.trim();
             const widTrimmed = wid ? wid.trim() : null;
             const empresaId = parseInt(id_empresa, 10);
+            const tipoMensaje = messageType || "texto";
+            const archivos = Array.isArray(files) ? files : [];
 
             let persona = await Persona.selectByCelular(phoneTrimmed, empresaId);
 
@@ -63,25 +66,42 @@ class MessageProcessingController {
                 contenido: questionTrimmed,
                 direccion: "in",
                 wid_mensaje: widTrimmed,
-                tipo_mensaje: "texto",
+                tipo_mensaje: tipoMensaje,
                 fecha_hora: new Date(),
                 usuario_registro: null
             });
 
+            // Construir mensaje para el asistente incluyendo archivos si existen
+            let messageForAssistant = questionTrimmed;
+            if (archivos.length > 0) {
+                const fileDescriptions = archivos.map(f => `[Archivo: ${f.type || 'archivo'} - ${f.url || ''}]`).join('\n');
+                messageForAssistant = `${fileDescriptions}\n${questionTrimmed}`;
+            }
+
             // Procesar con el asistente
             const respuestaTexto = await AssistantService.runProcess({
                 chatId: chat.id || chat,
-                message: questionTrimmed,
+                message: messageForAssistant,
                 persona: persona,
                 id_empresa: empresaId
             });
+
+            // Enviar respuesta por WhatsApp
+            let widRespuesta = null;
+            try {
+                const envio = await WhatsappGraphService.enviarMensajeTexto(empresaId, phoneTrimmed, respuestaTexto);
+                widRespuesta = envio.wid_mensaje;
+                logger.info(`[messageProcessing.controller.js] Mensaje enviado por WhatsApp, wid: ${widRespuesta}`);
+            } catch (whatsappError) {
+                logger.error(`[messageProcessing.controller.js] Error enviando WhatsApp: ${whatsappError.message}`);
+            }
 
             // Guardar mensaje saliente
             await Mensaje.create({
                 id_chat: chat.id || chat,
                 contenido: respuestaTexto,
                 direccion: "out",
-                wid_mensaje: widTrimmed,
+                wid_mensaje: widRespuesta || widTrimmed,
                 tipo_mensaje: "texto",
                 fecha_hora: new Date(),
                 usuario_registro: null
