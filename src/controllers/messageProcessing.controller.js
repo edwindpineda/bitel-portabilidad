@@ -16,20 +16,7 @@ class MessageProcessingController {
      * @returns {Promise<{wid: string|null}>}
      */
     async enviarPlantillaEnlace(empresaId, phone, enlaceUrl) {
-        const result = await WhatsappGraphService.enviarPlantilla(
-            empresaId,
-            phone,
-            'enlace_lili',
-            'es',
-            [
-                {
-                    type: 'body',
-                    parameters: [
-                        { type: 'text', text: enlaceUrl }
-                    ]
-                }
-            ]
-        );
+        const result = await WhatsappGraphService.enviarEnlaceLili(empresaId, phone, enlaceUrl);
         return { wid: result.response?.messages?.[0]?.id || null };
     }
 
