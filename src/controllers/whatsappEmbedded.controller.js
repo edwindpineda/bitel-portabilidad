@@ -12,7 +12,7 @@ const logger = require('../config/logger/loggerClient.js');
 
 // Configuración fija para Viva en Maravia
 const VIVA_ID_EMPRESA = 1;      // id_empresa fijo para Viva en Maravia
-const VIVA_ID_PLATAFORMA = 2;   // id_plataforma para identificar a Viva
+const VIVA_ID_PLATAFORMA = 4;   // id_plataforma para identificar a Viva
 
 class WhatsappEmbeddedController {
   /**

@@ -2,6 +2,7 @@ const axios = require('axios');
 const logger = require('../../config/logger/loggerClient.js');
 
 const MARAVIA_API_URL = process.env.MARAVIA_API_URL || 'https://api.maravia.pe/servicio';
+const MARAVIA_API_KEY = process.env.MARAVIA_API_KEY || '';
 
 class MaraviaApiService {
   constructor() {
@@ -9,7 +10,8 @@ class MaraviaApiService {
       baseURL: MARAVIA_API_URL,
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${MARAVIA_API_KEY}`
       },
       timeout: 30000
     });
