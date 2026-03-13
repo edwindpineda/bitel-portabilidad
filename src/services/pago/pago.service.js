@@ -23,7 +23,7 @@ class PagoService {
   }
 
 
-  async generarLinkPago(grupo_familiar) {
+  async generarLinkPago(grupo_familiar, telefono) {
     const token = await this.obtenerToken("PagoCuota/CrearEnlace");
 
     const response = await fetch(url_pago, {
@@ -34,6 +34,7 @@ class PagoService {
       },
       body: JSON.stringify({
         grupo_familiar: grupo_familiar,
+        telefono: telefono,
         ope_origen: 36,
         ope_call: "93"
       })
@@ -48,7 +49,7 @@ class PagoService {
     }
   }
 
-  async generarLinkCambio(grupo_familiar) {
+  async generarLinkCambio(grupo_familiar, telefono) {
     const token = await this.obtenerToken("CambioTarjeta/CrearEnlace");
 
     const response = await fetch(url_cambio, {
@@ -59,6 +60,7 @@ class PagoService {
       },
       body: JSON.stringify({
         grupo_familiar: grupo_familiar,
+        telefono: telefono,
         ope_origen: 36,
         ope_call: "93"
       })

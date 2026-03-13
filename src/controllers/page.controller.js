@@ -4,8 +4,8 @@ const logger = require('../config/logger/loggerClient');
 class PagoController {
   async linkPago(req, res) {
     try {
-      const { grupo_familiar } = req.body;
-      const enlace = await PagoService.generarLinkPago(grupo_familiar);
+      const { grupo_familiar, telefono } = req.body;
+      const enlace = await PagoService.generarLinkPago(grupo_familiar, telefono);
       if (enlace) {
         return res.status(200).json({ msg: "Enlace creado con exito", enlace: enlace });
       } else {
@@ -20,8 +20,8 @@ class PagoController {
 
   async linkCambio(req, res) {
     try {
-      const { grupo_familiar } = req.body;
-      const enlace = await PagoService.generarLinkCambio(grupo_familiar);
+      const { grupo_familiar, telefono } = req.body;
+      const enlace = await PagoService.generarLinkCambio(grupo_familiar, telefono);
       if (enlace) {
         return res.status(200).json({ msg: "Enlace creado con exito", enlace: enlace });
       } else {
