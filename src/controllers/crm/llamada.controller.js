@@ -156,13 +156,24 @@ class LlamadaController {
 
     async guardarTranscripcion(req, res) {
         try {
-            const { id_llamada, id_ultravox_call, metadata_ultravox_call, transcripcion } = req.body;
+            const { provider_call_id, id_ultravox_call, metadata_ultravox_call, transcripcion } = req.body;
 
-            if (!id_llamada) {
-                return res.status(400).json({ msg: "El campo id_llamada es requerido" });
+            if (!provider_call_id) {
+                return res.status(400).json({ msg: "El campo provider_call_id es requerido" });
             }
 
             const llamadaModel = new LlamadaModel();
+            const TranscripcionModel = require("../../models/transcripcion.model.js");
+            const transcripcionModel = new TranscripcionModel();
+
+            // Obtener la llamada a partir del provider_call_id
+            const llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+
+            if (!llamada) {
+                return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
+            }
+
+            const id_llamada = llamada.id;
 
             // Actualizar la llamada con id_ultravox_call y metadata
             if (id_ultravox_call || metadata_ultravox_call) {
@@ -183,9 +194,6 @@ class LlamadaController {
 
             // Guardar transcripción si viene
             if (transcripcion && Array.isArray(transcripcion) && transcripcion.length > 0) {
-                const TranscripcionModel = require("../../models/transcripcion.model.js");
-                const transcripcionModel = new TranscripcionModel();
-
                 // Insertar cada mensaje de la transcripción
                 for (const mensaje of transcripcion) {
                     // Mapear role: agent -> ai, user -> humano
@@ -205,6 +213,7 @@ class LlamadaController {
             return res.status(200).json({
                 msg: "Transcripción guardada exitosamente",
                 data: {
+                    provider_call_id,
                     id_llamada,
                     id_ultravox_call,
                     transcripcion_count: transcripcion ? transcripcion.length : 0
