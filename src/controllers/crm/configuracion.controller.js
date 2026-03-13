@@ -2169,12 +2169,17 @@ class ConfiguracionController {
         [id_empresa]
       );
 
-      // Obtener prompt (valor único del campo prompt de la plantilla)
-      const [promptRows] = await pool.execute(
-        `SELECT p.prompt FROM campania c INNER JOIN plantilla p ON c.id_plantilla = p.id WHERE c.id_empresa = ? AND c.id = ?`,
+      // Obtener prompt y voice_code de la campaña
+      const [campaniaRows] = await pool.execute(
+        `SELECT p.prompt, v.voice_code
+         FROM campania c
+         INNER JOIN plantilla p ON c.id_plantilla = p.id
+         LEFT JOIN voz v ON c.id_voz = v.id
+         WHERE c.id_empresa = ? AND c.id = ?`,
         [id_empresa, id_campania]
       );
-      const prompt = promptRows[0]?.prompt || '';
+      const prompt = campaniaRows[0]?.prompt || '';
+      const voiceCode = campaniaRows[0]?.voice_code || null;
 
       // Responder inmediatamente
       res.status(202).json({
@@ -2190,6 +2195,7 @@ class ConfiguracionController {
         idEmpresa: id_empresa,
         tipificaciones,
         prompt: prompt,
+        voiceCode: voiceCode,
       });
 
     } catch (error) {

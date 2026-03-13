@@ -74,7 +74,7 @@ class LlamadaService {
      * Inicia el procesamiento async de llamadas.
      * Mantiene hasta 200 llamadas concurrentes, polleando cada 10s.
      */
-    async procesarLlamadasAsync({ idEjecucion, idCampania, idsBaseNumero, idEmpresa, tipificaciones, prompt }) {
+    async procesarLlamadasAsync({ idEjecucion, idCampania, idsBaseNumero, idEmpresa, tipificaciones, prompt, voiceCode }) {
         const ejecucionModel = new CampaniaEjecucionModel();
         const llamadaModel = new LlamadaModel();
 
@@ -122,7 +122,7 @@ class LlamadaService {
                             ...(num.json_adicional || {})
                         },
                         extras: {
-                            voice: "12063647-093a-43fb-9e23-2e4ad5a2bde1",
+                            voice: voiceCode,
                             tipificaciones,
                             prompt: prompt,
                             empresa: {
