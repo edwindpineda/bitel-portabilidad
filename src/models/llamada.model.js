@@ -143,13 +143,13 @@ class LlamadaModel {
         try {
             const codigo_llamada = await this.getNextCodigoLlamada(id_empresa);
 
-            // Fecha inicio con zona horaria Lima, Perú (UTC-5) en formato MySQL
-            const fecha_inicio = getFechaLima();
+            // Fecha con zona horaria Lima, Perú (UTC-5) en formato MySQL
+            const fechaLima = getFechaLima();
 
             const [result] = await this.connection.execute(
                 `INSERT INTO llamada
-                (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, id_campania_ejecucion, provider_call_id, codigo_llamada, id_estado_llamada, fecha_inicio, estado_registro, usuario_registro)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, 1, ?)`,
+                (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, id_campania_ejecucion, provider_call_id, codigo_llamada, id_estado_llamada, fecha_inicio, fecha_registro, estado_registro, usuario_registro)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, ?, 1, ?)`,
                 [
                     id_empresa,
                     id_campania,
@@ -158,7 +158,8 @@ class LlamadaModel {
                     id_campania_ejecucion || null,
                     provider_call_id,
                     codigo_llamada,
-                    fecha_inicio,
+                    fechaLima,
+                    fechaLima,
                     usuario_registro
                 ]
             );
