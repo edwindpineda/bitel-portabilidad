@@ -191,23 +191,36 @@ class LlamadaController {
             const id_llamada = llamada.id;
             logger.info(`[llamada.controller.js] Encontrada llamada con id: ${id_llamada}`);
 
-            // Actualizar la llamada con id_ultravox_call y metadata
-            if (id_ultravox_call || metadataInput) {
-                // Convertir metadata a string JSON si viene como objeto
-                let metadataString = null;
-                if (metadataInput) {
-                    if (typeof metadataInput === 'string') {
-                        metadataString = metadataInput;
-                    } else {
-                        metadataString = JSON.stringify(metadataInput);
-                    }
+            // Actualizar la llamada con id_ultravox_call, metadata, fecha_fin y duracion_seg
+            // Convertir metadata a string JSON si viene como objeto
+            let metadataString = null;
+            if (metadataInput) {
+                if (typeof metadataInput === 'string') {
+                    metadataString = metadataInput;
+                } else {
+                    metadataString = JSON.stringify(metadataInput);
                 }
-
-                await llamadaModel.actualizarMetadataUltravox(id_llamada, {
-                    id_ultravox_call: id_ultravox_call || null,
-                    metadata_ultravox_call: metadataString
-                });
             }
+
+            // Fecha fin es NOW() al momento de guardar la transcripción (zona horaria Lima, Perú UTC-5)
+            const fecha_fin = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
+
+            // Calcular duracion_seg a partir de fecha_inicio y fecha_fin
+            let duracion_seg = null;
+            if (llamada.fecha_inicio) {
+                const fecha_inicio = new Date(llamada.fecha_inicio);
+                duracion_seg = Math.round((fecha_fin - fecha_inicio) / 1000);
+                if (duracion_seg < 0) duracion_seg = 0;
+            }
+
+            logger.info(`[llamada.controller.js] Calculando duracion_seg: ${duracion_seg}s (fecha_inicio: ${llamada.fecha_inicio}, fecha_fin: ${fecha_fin})`);
+
+            await llamadaModel.actualizarMetadataUltravox(id_llamada, {
+                id_ultravox_call: id_ultravox_call || null,
+                metadata_ultravox_call: metadataString,
+                fecha_fin,
+                duracion_seg
+            });
 
             // Guardar transcripción si viene
             if (transcripcion && Array.isArray(transcripcion) && transcripcion.length > 0) {

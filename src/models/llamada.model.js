@@ -125,10 +125,13 @@ class LlamadaModel {
         try {
             const codigo_llamada = await this.getNextCodigoLlamada(id_empresa);
 
+            // Fecha inicio con zona horaria Lima, Perú (UTC-5)
+            const fecha_inicio = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Lima' }));
+
             const [result] = await this.connection.execute(
                 `INSERT INTO llamada
                 (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, id_campania_ejecucion, provider_call_id, codigo_llamada, id_estado_llamada, fecha_inicio, estado_registro, usuario_registro)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, NOW(), 1, ?)`,
+                VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, 1, ?)`,
                 [
                     id_empresa,
                     id_campania,
@@ -137,6 +140,7 @@ class LlamadaModel {
                     id_campania_ejecucion || null,
                     provider_call_id,
                     codigo_llamada,
+                    fecha_inicio,
                     usuario_registro
                 ]
             );
@@ -193,16 +197,21 @@ class LlamadaModel {
         }
     }
 
-    async actualizarMetadataUltravox(id, { id_ultravox_call, metadata_ultravox_call }) {
+    async actualizarMetadataUltravox(id, { id_ultravox_call, metadata_ultravox_call, fecha_fin, duracion_seg }) {
         try {
             const [result] = await this.connection.execute(
                 `UPDATE llamada
                 SET id_ultravox_call = COALESCE(?, id_ultravox_call),
-                    metadata_ultravox_call = COALESCE(?, metadata_ultravox_call)
+                    metadata_ultravox_call = COALESCE(?, metadata_ultravox_call),
+                    fecha_fin = COALESCE(?, fecha_fin),
+                    duracion_seg = COALESCE(?, duracion_seg),
+                    id_estado_llamada = 4
                 WHERE id = ?`,
                 [
                     id_ultravox_call || null,
                     metadata_ultravox_call || null,
+                    fecha_fin || null,
+                    duracion_seg || null,
                     id
                 ]
             );
