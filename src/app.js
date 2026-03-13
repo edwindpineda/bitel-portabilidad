@@ -64,7 +64,7 @@ app.use("/api/sandbox", sandboxRoutes);
 app.use("/api/asterisk", asteriskRoutes);
 app.post("/api/crm/tipificaciones", ConfiguracionController.createTipificacion);
 // Rutas protegidas del CRM (requieren auth)
-app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes, personaRoutes, whatsappRoutes, transcripcionRoutes, configuracionWhatsappRoutes);
+app.use("/api/crm", authMiddleware, auditoriaRoutes, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes, personaRoutes, whatsappRoutes, transcripcionRoutes, configuracionWhatsappRoutes, consumoIndicadoresRoutes);
 app.use("/api/crm/clientes", authMiddleware, clientesRoutes);
 app.use("/api/crm/contactos", authMiddleware, contactosRoutes);
 app.use("/api/crm/contacto", authMiddleware, contactoRoutes);
