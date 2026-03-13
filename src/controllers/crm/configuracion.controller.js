@@ -20,6 +20,7 @@ const CampaniaEjecucionModel = require("../../models/campaniaEjecucion.model.js"
 const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
 const ConfiguracionCampaniaLlamadaModel = require("../../models/configuracionCampaniaLlamada.model.js");
 const TipoPersonaModel = require("../../models/tipoPersona.model.js");
+const VozModel = require("../../models/voz.model.js");
 const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
 const xlsx = require('xlsx');
@@ -1967,12 +1968,12 @@ class ConfiguracionController {
 
   async createCampania(req, res) {
     try {
-      const { nombre, descripcion, id_tipo_campania, id_formato, id_plantilla } = req.body;
+      const { nombre, descripcion, id_tipo_campania, id_formato, id_plantilla, id_voz } = req.body;
       const id_empresa = req.user?.idEmpresa;
       const usuario_registro = req.user?.userId || null;
 
       logger.info(`[createCampania] req.body completo: ${JSON.stringify(req.body)}`);
-      logger.info(`[createCampania] Datos recibidos: nombre=${nombre}, id_tipo_campania=${id_tipo_campania}, id_formato=${id_formato}, id_plantilla=${id_plantilla}, tipo de id_plantilla=${typeof id_plantilla}`);
+      logger.info(`[createCampania] Datos recibidos: nombre=${nombre}, id_tipo_campania=${id_tipo_campania}, id_formato=${id_formato}, id_plantilla=${id_plantilla}, id_voz=${id_voz}`);
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
@@ -1994,6 +1995,7 @@ class ConfiguracionController {
         id_tipo_campania,
         id_formato,
         id_plantilla,
+        id_voz,
         usuario_registro
       });
 
@@ -2007,11 +2009,11 @@ class ConfiguracionController {
   async updateCampania(req, res) {
     try {
       const { id } = req.params;
-      const { nombre, descripcion, id_tipo_campania, id_formato, id_plantilla } = req.body;
+      const { nombre, descripcion, id_tipo_campania, id_formato, id_plantilla, id_voz } = req.body;
       const usuario_actualizacion = req.user?.userId || null;
 
       logger.info(`[updateCampania] req.body completo: ${JSON.stringify(req.body)}`);
-      logger.info(`[updateCampania] id=${id}, id_plantilla=${id_plantilla}, tipo=${typeof id_plantilla}`);
+      logger.info(`[updateCampania] id=${id}, id_plantilla=${id_plantilla}, id_voz=${id_voz}`);
 
       if (!nombre) {
         return res.status(400).json({ msg: "El nombre es requerido" });
@@ -2032,6 +2034,7 @@ class ConfiguracionController {
         id_tipo_campania,
         id_formato,
         id_plantilla,
+        id_voz,
         usuario_actualizacion
       });
 
@@ -2740,7 +2743,7 @@ class ConfiguracionController {
     try {
       const { id_campania } = req.params;
       const { dias_llamada, hora_inicio, hora_fin, max_intentos, intervalo_reintento, horarios_por_dia } = req.body;
-      const usuario = req.user?.username || null;
+      const usuario = req.user?.id || null;
 
       if (!dias_llamada && !horarios_por_dia) {
         return res.status(400).json({ msg: "Debe seleccionar al menos un día" });
@@ -2910,6 +2913,18 @@ class ConfiguracionController {
     } catch (error) {
       logger.error(`[configuracion.controller.js] Error al obtener tipos de persona: ${error.message}`);
       return res.status(500).json({ msg: "Error al obtener tipos de persona" });
+    }
+  }
+
+  // ==================== VOCES ====================
+  async getVoces(req, res) {
+    try {
+      const vozModel = new VozModel();
+      const voces = await vozModel.getAll();
+      return res.status(200).json({ data: voces });
+    } catch (error) {
+      logger.error(`[ConfiguracionController] Error al obtener voces: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener voces" });
     }
   }
 }

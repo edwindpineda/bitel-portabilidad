@@ -143,6 +143,7 @@ class LlamadaService {
                                         id_campania: idCampania,
                                         id_base_numero: num._idBase,
                                         id_base_numero_detalle: num.id,
+                                        id_campania_ejecucion: idEjecucion,
                                         provider_call_id: result.data.channelId
                                     });
                                 }

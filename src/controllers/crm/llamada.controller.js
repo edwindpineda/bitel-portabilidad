@@ -120,7 +120,7 @@ class LlamadaController {
     async uploadAudio(req, res) {
         try {
             const { idEmpresa } = req.user;
-            const { id_llamada, id_ultravox_call, metadata_ultravox_call, provider_call_id } = req.body;
+            const { id_llamada } = req.body;
 
             if (!req.file) {
                 return res.status(400).json({ msg: "No se proporcionó ningún archivo de audio" });
@@ -133,24 +133,9 @@ class LlamadaController {
             // Subir audio a S3 con folder 'llamadas'
             const archivo_llamada = await s3Service.uploadFile(req.file, 'llamadas', idEmpresa);
 
-            // Parsear metadata si viene como string
-            let metadataParsed = metadata_ultravox_call;
-            if (typeof metadata_ultravox_call === 'string') {
-                try {
-                    metadataParsed = JSON.parse(metadata_ultravox_call);
-                } catch (e) {
-                    metadataParsed = metadata_ultravox_call;
-                }
-            }
-
-            // Actualizar la llamada con los datos del audio por ID
+            // Actualizar la llamada con el archivo de audio
             const llamadaModel = new LlamadaModel();
-            const updated = await llamadaModel.actualizarAudioLlamada(id_llamada, {
-                archivo_llamada,
-                id_ultravox_call: id_ultravox_call || null,
-                metadata_ultravox_call: metadataParsed || null,
-                provider_call_id: provider_call_id || null
-            });
+            const updated = await llamadaModel.actualizarArchivoLlamada(id_llamada, archivo_llamada);
 
             if (!updated) {
                 return res.status(404).json({ msg: "No se encontró la llamada con el id proporcionado" });
@@ -160,14 +145,74 @@ class LlamadaController {
                 msg: "Audio subido exitosamente",
                 data: {
                     id_llamada,
-                    archivo_llamada,
-                    id_ultravox_call,
-                    provider_call_id
+                    archivo_llamada
                 }
             });
         } catch (error) {
             logger.error(`[llamada.controller.js] Error al subir audio: ${error.message}`);
             return res.status(500).json({ msg: "Error al subir audio de llamada" });
+        }
+    }
+
+    async guardarTranscripcion(req, res) {
+        try {
+            const { id_llamada, id_ultravox_call, metadata_ultravox_call, transcripcion } = req.body;
+
+            if (!id_llamada) {
+                return res.status(400).json({ msg: "El campo id_llamada es requerido" });
+            }
+
+            const llamadaModel = new LlamadaModel();
+
+            // Actualizar la llamada con id_ultravox_call y metadata
+            if (id_ultravox_call || metadata_ultravox_call) {
+                let metadataParsed = metadata_ultravox_call;
+                if (typeof metadata_ultravox_call === 'string') {
+                    try {
+                        metadataParsed = JSON.parse(metadata_ultravox_call);
+                    } catch (e) {
+                        metadataParsed = metadata_ultravox_call;
+                    }
+                }
+
+                await llamadaModel.actualizarMetadataUltravox(id_llamada, {
+                    id_ultravox_call: id_ultravox_call || null,
+                    metadata_ultravox_call: metadataParsed || null
+                });
+            }
+
+            // Guardar transcripción si viene
+            if (transcripcion && Array.isArray(transcripcion) && transcripcion.length > 0) {
+                const TranscripcionModel = require("../../models/transcripcion.model.js");
+                const transcripcionModel = new TranscripcionModel();
+
+                // Insertar cada mensaje de la transcripción
+                for (const mensaje of transcripcion) {
+                    // Mapear role: agent -> ai, user -> humano
+                    let speaker = 'sistema';
+                    if (mensaje.role === 'agent') speaker = 'ai';
+                    else if (mensaje.role === 'user') speaker = 'humano';
+
+                    await transcripcionModel.create({
+                        id_llamada,
+                        speaker,
+                        texto: mensaje.text || '',
+                        ordinal: mensaje.ordinal !== undefined ? mensaje.ordinal : null
+                    });
+                }
+            }
+
+            return res.status(200).json({
+                msg: "Transcripción guardada exitosamente",
+                data: {
+                    id_llamada,
+                    id_ultravox_call,
+                    transcripcion_count: transcripcion ? transcripcion.length : 0
+                }
+            });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al guardar transcripción: ${error.message}`);
+            return res.status(500).json({ msg: "Error al guardar transcripción" });
         }
     }
 }
