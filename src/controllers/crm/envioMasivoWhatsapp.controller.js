@@ -1,6 +1,10 @@
 const EnvioMasivoWhatsappModel = require("../../models/envioMasivoWhatsapp.model.js");
 const EnvioPersonaModel = require("../../models/envioPersona.model.js");
+const PlantillaWhatsappModel = require("../../models/plantillaWhatsapp.model.js");
+const whatsappGraphService = require("../../services/whatsapp/whatsappGraph.service.js");
 const logger = require('../../config/logger/loggerClient.js');
+
+const DELAY_BETWEEN_MESSAGES = 500;
 
 class EnvioMasivoWhatsappController {
     async listAll(req, res) {
@@ -112,6 +116,89 @@ class EnvioMasivoWhatsappController {
         } catch (error) {
             logger.error(`[envioMasivoWhatsapp.controller.js] Error al eliminar envío masivo: ${error.message}`);
             return res.status(500).json({ msg: "Error al eliminar envío masivo" });
+        }
+    }
+
+    async ejecutarEnvio(req, res) {
+        try {
+            const { id } = req.params;
+            const { idEmpresa, userId } = req.user || {};
+
+            // Obtener el envio masivo
+            const envio = await EnvioMasivoWhatsappModel.getById(id);
+            if (!envio) {
+                return res.status(404).json({ msg: "Envío masivo no encontrado" });
+            }
+
+            // Obtener la plantilla para saber name y language
+            const plantilla = await PlantillaWhatsappModel.getById(envio.id_plantilla);
+            if (!plantilla) {
+                return res.status(400).json({ msg: "La plantilla asociada no fue encontrada" });
+            }
+
+            // Obtener los envio_persona pendientes
+            const envioPersonas = await EnvioPersonaModel.getByEnvioMasivo(id);
+            if (envioPersonas.length === 0) {
+                return res.status(400).json({ msg: "No hay personas asociadas a este envío" });
+            }
+
+            // Actualizar estado del envio masivo a en_proceso
+            await EnvioMasivoWhatsappModel.updateEstado(id, 'en_proceso', userId);
+
+            let cantidadExitosos = 0;
+            let cantidadFallidos = 0;
+
+            for (const ep of envioPersonas) {
+                // Solo procesar los que estan pendientes
+                if (ep.estado !== 'pendiente') {
+                    if (ep.estado === 'completado' || ep.estado === 'enviado') cantidadExitosos++;
+                    if (ep.estado === 'fallido') cantidadFallidos++;
+                    continue;
+                }
+
+                const celular = ep.persona_celular;
+                if (!celular) {
+                    await EnvioPersonaModel.updateEstado(ep.id, 'fallido', 'Sin número de celular', userId);
+                    cantidadFallidos++;
+                    continue;
+                }
+
+                try {
+                    await whatsappGraphService.enviarPlantilla(
+                        idEmpresa,
+                        celular,
+                        plantilla.name,
+                        plantilla.language || 'es'
+                    );
+
+                    await EnvioPersonaModel.updateEstado(ep.id, 'enviado', null, userId);
+                    cantidadExitosos++;
+                } catch (error) {
+                    const errorMsg = error.response?.data?.error?.message || error.message || 'Error desconocido';
+                    await EnvioPersonaModel.updateEstado(ep.id, 'fallido', errorMsg, userId);
+                    cantidadFallidos++;
+                    logger.error(`[envioMasivoWhatsapp.controller.js] Error enviando a ${celular}: ${errorMsg}`);
+                }
+
+                // Delay entre mensajes para evitar rate limiting
+                if (DELAY_BETWEEN_MESSAGES > 0) {
+                    await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_MESSAGES));
+                }
+            }
+
+            // Actualizar contadores y estado final
+            await EnvioMasivoWhatsappModel.updateContadores(id, cantidadExitosos, cantidadFallidos);
+            await EnvioMasivoWhatsappModel.updateEstado(id, 'completado', userId);
+
+            logger.info(`[envioMasivoWhatsapp.controller.js] Envío masivo ${id} completado: ${cantidadExitosos} exitosos, ${cantidadFallidos} fallidos`);
+
+            return res.status(200).json({
+                msg: "Envío masivo ejecutado",
+                data: { cantidadExitosos, cantidadFallidos }
+            });
+        } catch (error) {
+            logger.error(`[envioMasivoWhatsapp.controller.js] Error al ejecutar envío masivo: ${error.message}`);
+            return res.status(500).json({ msg: "Error al ejecutar envío masivo" });
         }
     }
 
