@@ -144,9 +144,9 @@ class LlamadaController {
             }
 
             const llamadaModel = new LlamadaModel();
-            await llamadaModel.actualizarEstadoLlamada(provider_call_id, id_estado_llamada);
+            const data = await llamadaModel.actualizarEstadoLlamada(provider_call_id, id_estado_llamada);
 
-            return res.status(200).json({ msg: "Estado actualizada exitosamente" });
+            return res.status(200).json({ msg: "Estado actualizada exitosamente", data: data });
         } catch (error) {
             logger.error(`[llamada.controller.js] Error al actualizar estado: ${error.message}`);
             return res.status(500).json({ msg: "Error al actualizar estado" });
