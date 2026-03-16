@@ -8,7 +8,7 @@ class EnvioMasivoWhatsappModel {
     async getAll(id_empresa = null) {
         try {
             let query = `
-                SELECT emw.*, pw.nombre as plantilla_nombre, e.nombre as empresa_nombre
+                SELECT emw.*, pw.name as plantilla_nombre, e.nombre_comercial as empresa_nombre
                 FROM envio_masivo_whatsapp emw
                 LEFT JOIN plantilla_whatsapp pw ON emw.id_plantilla = pw.id
                 LEFT JOIN empresa e ON emw.id_empresa = e.id
@@ -33,7 +33,7 @@ class EnvioMasivoWhatsappModel {
     async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT emw.*, pw.nombre as plantilla_nombre, e.nombre as empresa_nombre
+                `SELECT emw.*, pw.name as plantilla_nombre, e.nombre_comercial as empresa_nombre
                 FROM envio_masivo_whatsapp emw
                 LEFT JOIN plantilla_whatsapp pw ON emw.id_plantilla = pw.id
                 LEFT JOIN empresa e ON emw.id_empresa = e.id

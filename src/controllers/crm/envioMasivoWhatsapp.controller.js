@@ -142,8 +142,8 @@ class EnvioMasivoWhatsappController {
                 return res.status(400).json({ msg: "No hay personas asociadas a este envío" });
             }
 
-            // Actualizar estado del envio masivo a en_proceso
-            await EnvioMasivoWhatsappModel.updateEstado(id, 'en_proceso', userId);
+            // Actualizar estado del envio masivo a enviado (en proceso de envio)
+            await EnvioMasivoWhatsappModel.updateEstado(id, 'enviado', userId);
 
             let cantidadExitosos = 0;
             let cantidadFallidos = 0;
@@ -151,14 +151,14 @@ class EnvioMasivoWhatsappController {
             for (const ep of envioPersonas) {
                 // Solo procesar los que estan pendientes
                 if (ep.estado !== 'pendiente') {
-                    if (ep.estado === 'completado' || ep.estado === 'enviado') cantidadExitosos++;
-                    if (ep.estado === 'fallido') cantidadFallidos++;
+                    if (ep.estado === 'enviado' || ep.estado === 'entregado') cantidadExitosos++;
+                    if (ep.estado === 'cancelado') cantidadFallidos++;
                     continue;
                 }
 
                 const celular = ep.persona_celular;
                 if (!celular) {
-                    await EnvioPersonaModel.updateEstado(ep.id, 'fallido', 'Sin número de celular', userId);
+                    await EnvioPersonaModel.updateEstado(ep.id, 'cancelado', 'Sin número de celular', userId);
                     cantidadFallidos++;
                     continue;
                 }
@@ -175,7 +175,7 @@ class EnvioMasivoWhatsappController {
                     cantidadExitosos++;
                 } catch (error) {
                     const errorMsg = error.response?.data?.error?.message || error.message || 'Error desconocido';
-                    await EnvioPersonaModel.updateEstado(ep.id, 'fallido', errorMsg, userId);
+                    await EnvioPersonaModel.updateEstado(ep.id, 'cancelado', errorMsg, userId);
                     cantidadFallidos++;
                     logger.error(`[envioMasivoWhatsapp.controller.js] Error enviando a ${celular}: ${errorMsg}`);
                 }
@@ -188,7 +188,7 @@ class EnvioMasivoWhatsappController {
 
             // Actualizar contadores y estado final
             await EnvioMasivoWhatsappModel.updateContadores(id, cantidadExitosos, cantidadFallidos);
-            await EnvioMasivoWhatsappModel.updateEstado(id, 'completado', userId);
+            await EnvioMasivoWhatsappModel.updateEstado(id, 'entregado', userId);
 
             logger.info(`[envioMasivoWhatsapp.controller.js] Envío masivo ${id} completado: ${cantidadExitosos} exitosos, ${cantidadFallidos} fallidos`);
 
