@@ -1,6 +1,7 @@
 const plantillaWhatsappRepository = require("../repositories/plantillaWhatsapp.repository.js");
 const whatsappGraphService = require("../services/whatsapp/whatsappGraph.service.js");
 const logger = require('../config/logger/loggerClient.js');
+const Usuario = require("../models/usuario.model.js");
 const Persona = require("../models/persona.model.js");
 const Chat = require("../models/chat.model.js");
 const Mensaje = require("../models/mensaje.model.js");
@@ -308,26 +309,50 @@ class PlantillaWhatsappController {
       // Crear chat si no existe y guardar mensaje saliente
       try {
         const persona = await Persona.selectByCelular(phone, id_empresa);
-        if (persona) {
-          let chat = await Chat.findByPersona(persona.id);
-          if (!chat) {
-            chat = await Chat.create({
-              id_empresa,
-              id_persona: persona.id,
-              usuario_registro: null
-            });
+        if (!persona) {
+          const usuarioInstance = new Usuario();
+          const asesores = await usuarioInstance.getByRol(3);
+          const ids = asesores.map(a => a.id);
+
+          const ultimoAsignacion = await Persona.getAsignacionesAsesor();
+
+          let id_asesor = null;
+          if (ids.length > 0) {
+              if (ultimoAsignacion?.id_usuario) {
+                  const indice = (ids.indexOf(ultimoAsignacion.id_usuario) + 1) % ids.length;
+                  id_asesor = ids[indice];
+              } else {
+                  id_asesor = ids[0];
+              }
           }
 
-          await Mensaje.create({
-            id_chat: chat.id || chat,
-            contenido: `Hola soy Lili, aqui te comparto el link de operación: ${template_name}`,
-            direccion: "out",
-            wid_mensaje: null,
-            tipo_mensaje: "texto",
-            fecha_hora: new Date(),
+          persona = await Persona.createPersona({
+              id_estado: 1,
+              celular: phone,
+              id_usuario: id_asesor,
+              id_empresa: id_empresa,
+              usuario_registro: null
+          });
+        }
+        
+        let chat = await Chat.findByPersona(persona.id);
+        if (!chat) {
+          chat = await Chat.create({
+            id_empresa,
+            id_persona: persona.id,
             usuario_registro: null
           });
         }
+
+        await Mensaje.create({
+          id_chat: chat.id || chat,
+          contenido: `Hola soy Lili, aqui te comparto el link de operación: ${template_name}`,
+          direccion: "out",
+          wid_mensaje: null,
+          tipo_mensaje: "texto",
+          fecha_hora: new Date(),
+          usuario_registro: null
+        });
       } catch (chatError) {
         logger.error(`[plantillaWhatsapp.controller.js] Error al crear chat/mensaje: ${chatError.message}`);
       }
