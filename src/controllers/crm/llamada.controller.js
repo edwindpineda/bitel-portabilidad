@@ -4,24 +4,6 @@ const logger = require('../../config/logger/loggerClient.js');
 const llamadaService = require('../../services/llamada/llamada.service.js');
 const s3Service = require('../../services/s3.service.js');
 
-// Función para obtener fecha en formato MySQL con zona horaria Lima, Perú
-const getFechaLima = () => {
-    const options = {
-        timeZone: 'America/Lima',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    };
-    const formatter = new Intl.DateTimeFormat('en-CA', options);
-    const parts = formatter.formatToParts(new Date());
-    const get = (type) => parts.find(p => p.type === type)?.value || '00';
-    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
-};
-
 class LlamadaController {
     async getAll(req, res) {
         try {
@@ -245,24 +227,21 @@ class LlamadaController {
                 }
             }
 
-            // Fecha fin es CURRENT_TIMESTAMP al momento de guardar la transcripción (zona horaria Lima, Perú UTC-5)
-            const fecha_fin = getFechaLima();
-
-            // Calcular duracion_seg a partir de fecha_inicio y fecha_fin
+            // Calcular duracion_seg a partir de fecha_inicio y el momento actual
+            // PostgreSQL maneja fecha_fin con CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
             let duracion_seg = null;
             if (llamada.fecha_inicio) {
                 const fecha_inicio = new Date(llamada.fecha_inicio);
-                const fecha_fin_date = new Date(fecha_fin);
-                duracion_seg = Math.round((fecha_fin_date - fecha_inicio) / 1000);
+                const ahora = Date.now();
+                duracion_seg = Math.round((ahora - fecha_inicio.getTime()) / 1000);
                 if (duracion_seg < 0) duracion_seg = 0;
             }
 
-            logger.info(`[llamada.controller.js] Calculando duracion_seg: ${duracion_seg}s (fecha_inicio: ${llamada.fecha_inicio}, fecha_fin: ${fecha_fin})`);
+            logger.info(`[llamada.controller.js] Calculando duracion_seg: ${duracion_seg}s (fecha_inicio: ${llamada.fecha_inicio})`);
 
             await llamadaModel.actualizarMetadataUltravox(id_llamada, {
                 id_ultravox_call: id_ultravox_call || null,
                 metadata_ultravox_call: metadataString,
-                fecha_fin,
                 duracion_seg
             });
 
@@ -337,6 +316,62 @@ class LlamadaController {
                 return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
             }
 
+            // Si el status es ANSWER, iniciar la llamada (estado 2 + fecha_inicio) y devolver config
+            if (status === 'ANSWER') {
+                const updated = await llamadaModel.iniciarLlamada(provider_call_id);
+
+                if (!updated) {
+                    logger.warn(`[llamada.controller.js] No se pudo iniciar llamada ${provider_call_id} (ya iniciada o no existe)`);
+                }
+
+                // Obtener configuración completa de la llamada
+                const config = await llamadaModel.getConfigByProviderCallId(provider_call_id);
+
+                // Obtener tipificaciones de la empresa
+                const TipificacionModel = require("../../models/tipificacion_llamada.model.js");
+                const tipificaciones = await TipificacionModel.getAll(llamada.id_empresa);
+
+                // Obtener tools de la plantilla si existe
+                let tools = [];
+                if (config?.id_plantilla) {
+                    const PlantillaModel = require("../../models/plantilla.model.js");
+                    const plantillaModel = new PlantillaModel();
+                    tools = await plantillaModel.getTools(config.id_plantilla);
+                }
+
+                // Construir tool_ruta (primera tool si existe)
+                const toolRuta = tools.length > 0 ? tools[0].ruta : null;
+
+                logger.info(`[llamada.controller.js] Llamada ${provider_call_id} iniciada (ANSWER): estado_llamada=2, fecha_inicio=NOW`);
+
+                return res.status(200).json({
+                    msg: "Llamada iniciada exitosamente",
+                    data: {
+                        provider_call_id,
+                        id_llamada: llamada.id,
+                        status: 'ANSWER',
+                        id_estado_llamada: 2,
+                        contacto: {
+                            nombre_completo: config?.contacto_nombre || null,
+                            celular: config?.telefono || null,
+                            numero_documento: config?.numero_documento || null,
+                            ...(config?.json_adicional || {})
+                        },
+                        extras: {
+                            voice: config?.voice_code || null,
+                            tipificaciones,
+                            prompt: config?.prompt || null,
+                            tool_ruta: toolRuta,
+                            canal: config?.canal || null,
+                            empresa: {
+                                id: llamada.id_empresa,
+                                nombre: config?.empresa_nombre || null
+                            }
+                        }
+                    }
+                });
+            }
+
             // Buscar el estado de Asterisk por código
             const estadoAsterisk = await estadoAsteriskModel.getByCodigo(status);
             if (!estadoAsterisk) {
@@ -344,8 +379,7 @@ class LlamadaController {
                 return res.status(404).json({ msg: `No se encontró estado Asterisk con código: ${status}` });
             }
 
-            // Este endpoint solo recibe estados de error (llamada no conectó)
-            // Siempre id_estado_llamada = 3 (Fallida/No contestada)
+            // Estados de error (llamada no conectó) -> id_estado_llamada = 3 (Fallida/No contestada)
             const id_estado_llamada = 3;
 
             // Actualizar la llamada (no se actualiza duracion_seg ni fecha_fin)

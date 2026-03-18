@@ -17,10 +17,29 @@ class CampaniaEjecucionModel {
             );
 
             const [rows] = await this.connection.execute(
-                `SELECT ce.*, bn.nombre as base_nombre, c.nombre as campania_nombre
+                `SELECT ce.*, bn.nombre as base_nombre, c.nombre as campania_nombre,
+                    COALESCE(stats.total_llamadas, 0)::integer as total_llamadas,
+                    COALESCE(stats.llamadas_exitosas, 0)::integer as llamadas_exitosas,
+                    COALESCE(stats.llamadas_fallidas, 0)::integer as llamadas_fallidas,
+                    COALESCE(stats.llamadas_pendientes, 0)::integer as llamadas_pendientes,
+                    CASE
+                        WHEN COALESCE(stats.total_llamadas, 0) = 0 THEN 'pendiente'
+                        WHEN COALESCE(stats.llamadas_pendientes, 0) > 0 THEN 'en_proceso'
+                        ELSE 'ejecutado'
+                    END as estado_ejecucion
                 FROM campania_ejecucion ce
                 INNER JOIN base_numero bn ON ce.id_base_numero = bn.id
                 INNER JOIN campania c ON ce.id_campania = c.id
+                LEFT JOIN (
+                    SELECT id_campania_ejecucion,
+                        COUNT(*) as total_llamadas,
+                        COUNT(CASE WHEN id_estado_llamada = 4 THEN 1 END) as llamadas_exitosas,
+                        COUNT(CASE WHEN id_estado_llamada = 3 THEN 1 END) as llamadas_fallidas,
+                        COUNT(CASE WHEN id_estado_llamada IN (1, 2) THEN 1 END) as llamadas_pendientes
+                    FROM llamada
+                    WHERE estado_registro = 1
+                    GROUP BY id_campania_ejecucion
+                ) stats ON stats.id_campania_ejecucion = ce.id
                 WHERE ce.id_campania = ? AND ce.estado_registro = 1
                 ORDER BY ce.fecha_registro DESC
                 LIMIT ? OFFSET ?`,
@@ -42,10 +61,29 @@ class CampaniaEjecucionModel {
     async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT ce.*, bn.nombre as base_nombre, c.nombre as campania_nombre
+                `SELECT ce.*, bn.nombre as base_nombre, c.nombre as campania_nombre,
+                    COALESCE(stats.total_llamadas, 0)::integer as total_llamadas,
+                    COALESCE(stats.llamadas_exitosas, 0)::integer as llamadas_exitosas,
+                    COALESCE(stats.llamadas_fallidas, 0)::integer as llamadas_fallidas,
+                    COALESCE(stats.llamadas_pendientes, 0)::integer as llamadas_pendientes,
+                    CASE
+                        WHEN COALESCE(stats.total_llamadas, 0) = 0 THEN 'pendiente'
+                        WHEN COALESCE(stats.llamadas_pendientes, 0) > 0 THEN 'en_proceso'
+                        ELSE 'ejecutado'
+                    END as estado_ejecucion
                 FROM campania_ejecucion ce
                 INNER JOIN base_numero bn ON ce.id_base_numero = bn.id
                 INNER JOIN campania c ON ce.id_campania = c.id
+                LEFT JOIN (
+                    SELECT id_campania_ejecucion,
+                        COUNT(*) as total_llamadas,
+                        COUNT(CASE WHEN id_estado_llamada = 4 THEN 1 END) as llamadas_exitosas,
+                        COUNT(CASE WHEN id_estado_llamada = 3 THEN 1 END) as llamadas_fallidas,
+                        COUNT(CASE WHEN id_estado_llamada IN (1, 2) THEN 1 END) as llamadas_pendientes
+                    FROM llamada
+                    WHERE estado_registro = 1
+                    GROUP BY id_campania_ejecucion
+                ) stats ON stats.id_campania_ejecucion = ce.id
                 WHERE ce.id = ? AND ce.estado_registro = 1`,
                 [id]
             );

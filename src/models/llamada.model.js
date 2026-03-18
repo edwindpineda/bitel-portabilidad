@@ -1,23 +1,5 @@
 const { pool } = require("../config/dbConnection.js");
 
-// Función para obtener fecha en formato MySQL con zona horaria Lima, Perú
-const getFechaLima = () => {
-    const options = {
-        timeZone: 'America/Lima',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-    };
-    const formatter = new Intl.DateTimeFormat('en-CA', options);
-    const parts = formatter.formatToParts(new Date());
-    const get = (type) => parts.find(p => p.type === type)?.value || '00';
-    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
-};
-
 class LlamadaModel {
     constructor(dbConnection = null) {
         this.connection = dbConnection || pool;
@@ -85,6 +67,30 @@ class LlamadaModel {
         }
     }
 
+    async getConfigByProviderCallId(provider_call_id) {
+        try {
+            const [rows] = await this.connection.execute(
+                `SELECT l.id, l.id_empresa, l.id_campania, l.provider_call_id,
+                        e.nombre_comercial as empresa_nombre, e.canal,
+                        c.nombre as campania_nombre, c.id_plantilla, c.id_voz,
+                        p.prompt, p.nombre as plantilla_nombre,
+                        v.voice_code,
+                        bnd.telefono, bnd.nombre as contacto_nombre, bnd.numero_documento, bnd.json_adicional
+                FROM llamada l
+                INNER JOIN empresa e ON e.id = l.id_empresa
+                INNER JOIN campania c ON c.id = l.id_campania
+                LEFT JOIN plantilla p ON p.id = c.id_plantilla
+                LEFT JOIN voz v ON v.id = c.id_voz
+                LEFT JOIN base_numero_detalle bnd ON bnd.id = l.id_base_numero_detalle
+                WHERE l.provider_call_id = ? AND l.estado_registro = 1`,
+                [provider_call_id]
+            );
+            return rows.length > 0 ? rows[0] : null;
+        } catch (error) {
+            throw new Error(`Error al obtener config de llamada: ${error.message}`);
+        }
+    }
+
     async getByCampania(id_campania) {
         try {
             const [rows] = await this.connection.execute(
@@ -145,13 +151,11 @@ class LlamadaModel {
             const codigo_llamada = await this.getNextCodigoLlamada(id_empresa);
             console.log(`[llamada.create] codigo_llamada: ${codigo_llamada}`);
 
-            // Fecha con zona horaria Lima, Perú (UTC-5) en formato PostgreSQL
-            const fechaLima = getFechaLima();
-
+            // Estado 1 = Pendiente, fecha_inicio = NULL (Asterisk enviará ANSWER para setear estado 2 y fecha_inicio)
             const [rows] = await this.connection.execute(
                 `INSERT INTO llamada
                 (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, id_campania_ejecucion, provider_call_id, codigo_llamada, id_estado_llamada, fecha_inicio, fecha_registro, estado_registro, usuario_registro)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 2, ?, ?, 1, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima', 1, ?)
                 RETURNING id`,
                 [
                     id_empresa,
@@ -161,8 +165,6 @@ class LlamadaModel {
                     id_campania_ejecucion || null,
                     provider_call_id,
                     codigo_llamada,
-                    fechaLima,
-                    fechaLima,
                     usuario_registro
                 ]
             );
@@ -173,6 +175,21 @@ class LlamadaModel {
                 throw new Error('Ya existe una llamada con ese provider_call_id');
             }
             throw new Error(`Error al crear llamada: ${error.message}`);
+        }
+    }
+
+    async iniciarLlamada(provider_call_id) {
+        try {
+            const [, result] = await this.connection.execute(
+                `UPDATE llamada
+                SET id_estado_llamada = 2,
+                    fecha_inicio = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
+                WHERE provider_call_id = ? AND id_estado_llamada = 1`,
+                [provider_call_id]
+            );
+            return result.affectedRows > 0;
+        } catch (err) {
+            throw new Error(`Error al iniciar llamada: ${err.message}`);
         }
     }
 
@@ -220,20 +237,20 @@ class LlamadaModel {
         }
     }
 
-    async actualizarMetadataUltravox(id, { id_ultravox_call, metadata_ultravox_call, fecha_fin, duracion_seg }) {
+    async actualizarMetadataUltravox(id, { id_ultravox_call, metadata_ultravox_call, duracion_seg }) {
         try {
+            // Usar CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima' para fecha_fin
             const [, result] = await this.connection.execute(
                 `UPDATE llamada
                 SET id_ultravox_call = COALESCE(?, id_ultravox_call),
                     metadata_ultravox_call = COALESCE(?, metadata_ultravox_call),
-                    fecha_fin = COALESCE(?, fecha_fin),
+                    fecha_fin = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima',
                     duracion_seg = ?,
                     id_estado_llamada = 4
                 WHERE id = ?`,
                 [
                     id_ultravox_call || null,
                     metadata_ultravox_call || null,
-                    fecha_fin || null,
                     duracion_seg !== null && duracion_seg !== undefined ? duracion_seg : null,
                     id
                 ]
@@ -250,6 +267,7 @@ class LlamadaModel {
                 `UPDATE llamada
                 SET id_estado_llamada_asterisk = ?,
                     id_estado_llamada = ?,
+                    fecha_inicio = COALESCE(fecha_inicio, CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'),
                     duracion_seg = COALESCE(?, duracion_seg),
                     fecha_fin = COALESCE(?, fecha_fin)
                 WHERE provider_call_id = ?`,
@@ -287,6 +305,57 @@ class LlamadaModel {
             return result.affectedRows > 0;
         } catch (err) {
             throw new Error(`Error al actualizar audio de llamada: ${err.message}`);
+        }
+    }
+    /**
+     * Verifica si todas las llamadas de una ejecución ya terminaron (tienen fecha_fin o estado terminal)
+     * @param {number} id_campania_ejecucion
+     * @returns {Object} { total, terminadas, pendientes, completada: boolean }
+     */
+    async verificarEjecucionCompletada(id_campania_ejecucion) {
+        try {
+            const [rows] = await this.connection.execute(
+                `SELECT
+                    COUNT(*)::integer as total,
+                    COUNT(CASE WHEN fecha_fin IS NOT NULL OR id_estado_llamada IN (3, 4) THEN 1 END)::integer as terminadas,
+                    COUNT(CASE WHEN fecha_fin IS NULL AND id_estado_llamada NOT IN (3, 4) THEN 1 END)::integer as pendientes
+                FROM llamada
+                WHERE id_campania_ejecucion = ? AND estado_registro = 1`,
+                [id_campania_ejecucion]
+            );
+
+            const stats = rows[0];
+            return {
+                total: stats.total,
+                terminadas: stats.terminadas,
+                pendientes: stats.pendientes,
+                completada: stats.total > 0 && stats.pendientes === 0
+            };
+        } catch (error) {
+            throw new Error(`Error al verificar ejecución completada: ${error.message}`);
+        }
+    }
+
+    /**
+     * Obtiene estadísticas de llamadas de una ejecución
+     * @param {number} id_campania_ejecucion
+     * @returns {Object} { total, exitosas, fallidas, pendientes }
+     */
+    async getEstadisticasEjecucion(id_campania_ejecucion) {
+        try {
+            const [rows] = await this.connection.execute(
+                `SELECT
+                    COUNT(*)::integer as total,
+                    COUNT(CASE WHEN id_estado_llamada = 4 THEN 1 END)::integer as exitosas,
+                    COUNT(CASE WHEN id_estado_llamada = 3 THEN 1 END)::integer as fallidas,
+                    COUNT(CASE WHEN id_estado_llamada IN (1, 2) THEN 1 END)::integer as pendientes
+                FROM llamada
+                WHERE id_campania_ejecucion = ? AND estado_registro = 1`,
+                [id_campania_ejecucion]
+            );
+            return rows[0];
+        } catch (error) {
+            throw new Error(`Error al obtener estadísticas de ejecución: ${error.message}`);
         }
     }
 }

@@ -20,7 +20,6 @@ class ConfiguracionCampaniaLlamadaModel {
     async upsert({
         id_campania,
         max_intentos,
-        intervalo_reintento,
         lunes_horario,
         martes_horario,
         miercoles_horario,
@@ -38,14 +37,13 @@ class ConfiguracionCampaniaLlamadaModel {
                 // UPDATE
                 const [result] = await this.connection.execute(
                     `UPDATE configuracion_campania_llamada
-                     SET max_intentos = ?, intervalo_reintento = ?,
+                     SET max_intentos = ?,
                          lunes_horario = ?, martes_horario = ?, miercoles_horario = ?,
                          jueves_horario = ?, viernes_horario = ?, sabado_horario = ?, domingo_horario = ?,
                          usuario_actualizacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP
                      WHERE id_campania = ?`,
                     [
                         max_intentos,
-                        intervalo_reintento || 60,
                         lunes_horario || null,
                         martes_horario || null,
                         miercoles_horario || null,
@@ -62,15 +60,14 @@ class ConfiguracionCampaniaLlamadaModel {
                 // INSERT
                 const [result] = await this.connection.execute(
                     `INSERT INTO configuracion_campania_llamada
-                     (id_campania, max_intentos, intervalo_reintento,
+                     (id_campania, max_intentos,
                       lunes_horario, martes_horario, miercoles_horario, jueves_horario,
                       viernes_horario, sabado_horario, domingo_horario,
                       estado_registro, usuario_registro)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)`,
                     [
                         id_campania,
                         max_intentos,
-                        intervalo_reintento || 60,
                         lunes_horario || null,
                         martes_horario || null,
                         miercoles_horario || null,

@@ -227,14 +227,15 @@ class BaseNumeroDetalleModel {
 
     /**
      * Obtiene TODOS los números pendientes de llamar para una campaña (sin paginación).
-     * Obtiene las bases desde campania_base_numero y excluye teléfonos ya llamados.
-     * Útil para procesar llamadas en batch.
+     * Obtiene las bases desde campania_base_numero y excluye teléfonos ya llamados exitosamente
+     * o que ya alcanzaron el máximo de intentos.
      * @param {number} id_campania - ID de la campaña
+     * @param {number} max_intentos - Máximo de intentos permitidos (default 1 = sin reintentos)
      * @returns {Array} Array de números pendientes con _idBase incluido
      */
-    async getAllUniversoPendientePorCampania(id_campania) {
+    async getAllUniversoPendientePorCampania(id_campania, max_intentos = 1) {
         try {
-            console.log(`[getAllUniversoPendientePorCampania] id_campania: ${id_campania}`);
+            console.log(`[getAllUniversoPendientePorCampania] id_campania: ${id_campania}, max_intentos: ${max_intentos}`);
 
             const [rows] = await this.connection.query(
                 `SELECT bnd.*, bn.id as _idBase, e.nombre_comercial, e.id as id_empresa
@@ -242,20 +243,28 @@ class BaseNumeroDetalleModel {
                 INNER JOIN base_numero bn ON bn.id = bnd.id_base_numero
                 INNER JOIN campania_base_numero cbn ON cbn.id_base_numero = bn.id
                 INNER JOIN empresa e ON e.id = bn.id_empresa
-                WHERE cbn.id_campania = ?
+                WHERE cbn.id_campania = $1
                 AND cbn.estado_registro = 1
                 AND cbn.activo = 1
                 AND bnd.estado_registro = 1
+                -- Excluir números con llamada exitosa (estado 4)
                 AND NOT EXISTS (
                     SELECT 1 FROM llamada l
-                    INNER JOIN base_numero_detalle bnd2 ON l.id_base_numero_detalle = bnd2.id
-                    WHERE bnd2.telefono = bnd.telefono
-                    AND l.id_campania = ?
+                    WHERE l.id_base_numero_detalle = bnd.id
+                    AND l.id_campania = $1
+                    AND l.estado_registro = 1
+                    AND l.id_estado_llamada = 4
+                )
+                -- Excluir números que ya alcanzaron max_intentos
+                AND (
+                    SELECT COUNT(*) FROM llamada l
+                    WHERE l.id_base_numero_detalle = bnd.id
+                    AND l.id_campania = $1
                     AND l.estado_registro = 1
                     AND l.fecha_fin IS NOT NULL
-                )
+                ) < $2
                 ORDER BY bnd.id ASC`,
-                [id_campania, id_campania]
+                [id_campania, max_intentos]
             );
 
             console.log(`[getAllUniversoPendientePorCampania] rows encontradas: ${rows?.length || 0}`);
