@@ -2210,79 +2210,23 @@ class ConfiguracionController {
 
       // Obtener prompt, voice_code, tool_ruta y canal de la campaña y empresa
       const [campaniaRows] = await pool.execute(
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
         `SELECT p.prompt, v.voice_code, t.ruta as tool_ruta, e.canal
-=======
-        `SELECT p.prompt, v.voice_code, t.ruta ruta_tool, e.canal
->>>>>>> Stashed changes
-=======
-        `SELECT p.prompt, v.voice_code, t.ruta ruta_tool, e.canal
->>>>>>> Stashed changes
-=======
-        `SELECT p.prompt, v.voice_code, t.ruta ruta_tool, e.canal
->>>>>>> Stashed changes
-=======
-        `SELECT p.prompt, v.voice_code, t.ruta ruta_tool, e.canal
->>>>>>> Stashed changes
-=======
-        `SELECT p.prompt, v.voice_code, t.ruta ruta_tool, e.canal
->>>>>>> Stashed changes
-=======
-        `SELECT p.prompt, v.voice_code, t.ruta ruta_tool, e.canal
->>>>>>> Stashed changes
          FROM campania c
          INNER JOIN plantilla p ON c.id_plantilla = p.id
-         INNER JOIN tool t ON c.id_tool = t.id
          INNER JOIN empresa e ON c.id_empresa = e.id
+         LEFT JOIN tool t ON c.id_tool = t.id
          LEFT JOIN voz v ON c.id_voz = v.id
-         LEFT JOIN empresa e ON c.id_empresa = e.id
-         LEFT JOIN tool t ON e.id_tool = t.id
          WHERE c.id_empresa = ? AND c.id = ?`,
         [id_empresa, id_campania]
       );
       const prompt = campaniaRows[0]?.prompt || '';
       const voiceCode = campaniaRows[0]?.voice_code || null;
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
       const toolRuta = campaniaRows[0]?.tool_ruta || null;
       const canal = campaniaRows[0]?.canal || 0;
 
       // Obtener configuración de llamadas de la campaña
       const configLlamadaModel = new ConfiguracionCampaniaLlamadaModel();
       const configLlamadas = await configLlamadaModel.getByCampaniaId(id_campania);
-=======
-      const canal = campaniaRows[0]?.canal || null;
-      const ruta_tool = campaniaRows[0]?.ruta_tool || null;
->>>>>>> Stashed changes
-=======
-      const canal = campaniaRows[0]?.canal || null;
-      const ruta_tool = campaniaRows[0]?.ruta_tool || null;
->>>>>>> Stashed changes
-=======
-      const canal = campaniaRows[0]?.canal || null;
-      const ruta_tool = campaniaRows[0]?.ruta_tool || null;
->>>>>>> Stashed changes
-=======
-      const canal = campaniaRows[0]?.canal || null;
-      const ruta_tool = campaniaRows[0]?.ruta_tool || null;
->>>>>>> Stashed changes
-=======
-      const canal = campaniaRows[0]?.canal || null;
-      const ruta_tool = campaniaRows[0]?.ruta_tool || null;
->>>>>>> Stashed changes
-=======
-      const canal = campaniaRows[0]?.canal || null;
-      const ruta_tool = campaniaRows[0]?.ruta_tool || null;
->>>>>>> Stashed changes
 
       // Responder inmediatamente
       res.status(202).json({
