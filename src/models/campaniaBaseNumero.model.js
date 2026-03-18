@@ -9,9 +9,9 @@ class CampaniaBaseNumeroModel {
         try {
             const [rows] = await this.connection.execute(
                 `SELECT cbn.*, cbn.activo, bn.nombre as base_nombre, bn.id_formato, f.nombre as formato_nombre,
-                    (SELECT COUNT(*) FROM base_numero_detalle bnd
+                    (SELECT COUNT(*)::integer FROM base_numero_detalle bnd
                      WHERE bnd.id_base_numero = bn.id AND bnd.estado_registro = 1) as total_numeros,
-                    (SELECT COUNT(*) FROM campania_ejecucion ce
+                    (SELECT COUNT(*)::integer FROM campania_ejecucion ce
                      WHERE ce.id_base_numero = bn.id AND ce.id_campania = cbn.id_campania AND ce.estado_registro = 1) as total_ejecuciones
                 FROM campania_base_numero cbn
                 INNER JOIN base_numero bn ON cbn.id_base_numero = bn.id
@@ -104,7 +104,7 @@ class CampaniaBaseNumeroModel {
         try {
             const [result] = await this.connection.execute(
                 `UPDATE campania_base_numero
-                SET activo = IF(activo = 1, 0, 1),
+                SET activo = CASE WHEN activo = 1 THEN 0 ELSE 1 END,
                     usuario_actualizacion = ?,
                     fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ? AND estado_registro = 1`,

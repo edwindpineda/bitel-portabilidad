@@ -12,7 +12,7 @@ class BaseNumeroDetalleModel {
             const offset = (pageNum - 1) * limitNum;
 
             const [countRows] = await this.connection.execute(
-                `SELECT COUNT(*) as total FROM base_numero_detalle WHERE id_base_numero = ? AND estado_registro = 1`,
+                `SELECT COUNT(*)::integer as total FROM base_numero_detalle WHERE id_base_numero = ? AND estado_registro = 1`,
                 [id_base_numero]
             );
 
@@ -270,7 +270,7 @@ class BaseNumeroDetalleModel {
 
             // Verificar cuántos registros hay en base_numero_detalle
             const [countRows] = await this.connection.query(
-                'SELECT COUNT(*) as total FROM base_numero_detalle WHERE id_base_numero = ? AND estado_registro = 1',
+                'SELECT COUNT(*)::integer as total FROM base_numero_detalle WHERE id_base_numero = ? AND estado_registro = 1',
                 [id_base_numero]
             );
             console.log(`[syncToPersona] Registros en base_numero_detalle: ${countRows[0].total}`);

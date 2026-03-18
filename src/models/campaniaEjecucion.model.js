@@ -12,11 +12,11 @@ class CampaniaEjecucionModel {
             const offset = (pageNum - 1) * limitNum;
 
             const [countRows] = await this.connection.execute(
-                `SELECT COUNT(*) as total FROM campania_ejecucion WHERE id_campania = ? AND estado_registro = 1`,
+                `SELECT COUNT(*)::integer as total FROM campania_ejecucion WHERE id_campania = ? AND estado_registro = 1`,
                 [id_campania]
             );
 
-            const [rows] = await this.connection.query(
+            const [rows] = await this.connection.execute(
                 `SELECT ce.*, bn.nombre as base_nombre, c.nombre as campania_nombre
                 FROM campania_ejecucion ce
                 INNER JOIN base_numero bn ON ce.id_base_numero = bn.id
@@ -142,7 +142,7 @@ class CampaniaEjecucionModel {
             const [rows] = await this.connection.execute(
                 `SELECT
                     estado_ejecucion,
-                    COUNT(*) as cantidad
+                    COUNT(*)::integer as cantidad
                 FROM campania_ejecucion
                 WHERE id_campania = ? AND estado_registro = 1
                 GROUP BY estado_ejecucion`,

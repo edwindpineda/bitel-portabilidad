@@ -8,7 +8,7 @@ class FormatoModel {
     async getAll(id_empresa = null) {
         try {
             let query = `SELECT f.*,
-                    (SELECT COUNT(*) FROM formato_campo fc WHERE fc.id_formato = f.id AND fc.estado_registro = 1) as total_campos
+                    (SELECT COUNT(*)::integer FROM formato_campo fc WHERE fc.id_formato = f.id AND fc.estado_registro = 1) as total_campos
                 FROM formato f
                 WHERE f.estado_registro = 1`;
 

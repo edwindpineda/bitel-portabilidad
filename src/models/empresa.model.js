@@ -87,7 +87,7 @@ class EmpresaModel {
   async getCount() {
     try {
       const [rows] = await this.connection.execute(
-        `SELECT COUNT(*) as total FROM empresa WHERE estado_registro = 1`
+        `SELECT COUNT(*)::integer as total FROM empresa WHERE estado_registro = 1`
       );
       return rows[0].total;
     } catch (error) {

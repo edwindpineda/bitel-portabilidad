@@ -36,8 +36,8 @@ const testConnection = async () => {
     }
 };
 
-// Wrapper para mantener compatibilidad con mysql2 (execute -> query)
-const execute = async (sql, params = []) => {
+// Wrapper para mantener compatibilidad con mysql2 (execute/query -> pg query)
+const executeQuery = async (sql, params = []) => {
     // Convertir placeholders de MySQL (?) a PostgreSQL ($1, $2, ...)
     let paramIndex = 0;
     const pgSql = sql.replace(/\?/g, () => `$${++paramIndex}`);
@@ -46,10 +46,10 @@ const execute = async (sql, params = []) => {
     return [result.rows, result];
 };
 
-// Wrapper del pool con método execute compatible
+// Wrapper del pool con métodos execute y query compatibles
 const poolWrapper = {
-    query: pool.query.bind(pool),
-    execute: execute,
+    query: executeQuery,
+    execute: executeQuery,
     connect: pool.connect.bind(pool),
     end: pool.end.bind(pool),
     on: pool.on.bind(pool)

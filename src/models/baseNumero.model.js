@@ -9,7 +9,7 @@ class BaseNumeroModel {
         try {
             let query = `SELECT bn.*,
                 f.nombre as formato_nombre,
-                (SELECT COUNT(*) FROM base_numero_detalle bnd WHERE bnd.id_base_numero = bn.id AND bnd.estado_registro = 1) as total_registros
+                (SELECT COUNT(*)::integer FROM base_numero_detalle bnd WHERE bnd.id_base_numero = bn.id AND bnd.estado_registro = 1) as total_registros
             FROM base_numero bn
             LEFT JOIN formato f ON bn.id_formato = f.id
             WHERE bn.estado_registro = 1`;
@@ -105,8 +105,8 @@ class BaseNumeroModel {
         try {
             const [rows] = await this.connection.execute(
                 `SELECT
-                    COUNT(*) as total,
-                    SUM(CASE WHEN estado_registro = 1 THEN 1 ELSE 0 END) as activos
+                    COUNT(*)::integer as total,
+                    SUM(CASE WHEN estado_registro = 1 THEN 1 ELSE 0 END)::integer as activos
                 FROM base_numero_detalle
                 WHERE id_base_numero = ?`,
                 [id]

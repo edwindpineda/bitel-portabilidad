@@ -16,9 +16,9 @@ class CampaniaModel {
                     v.nacionalidad AS voz_nacionalidad,
                     v.genero AS voz_genero,
                     v.voice_code AS voz_voice_code,
-                    (SELECT COUNT(*) FROM campania_base_numero cbn
+                    (SELECT COUNT(*)::integer FROM campania_base_numero cbn
                      WHERE cbn.id_campania = c.id AND cbn.estado_registro = 1) as total_bases,
-                    (SELECT COUNT(*) FROM campania_ejecucion ce
+                    (SELECT COUNT(*)::integer FROM campania_ejecucion ce
                      WHERE ce.id_campania = c.id AND ce.estado_registro = 1) as total_ejecuciones
                 FROM campania c
                 LEFT JOIN tipo_campania tc ON c.id_tipo_campania = tc.id AND tc.estado_registro = 1
@@ -48,7 +48,7 @@ class CampaniaModel {
             const [rows] = await this.connection.execute(
                 `SELECT c.*, tc.nombre AS tipo_campania_nombre, f.nombre AS formato_nombre, p.nombre AS plantilla_nombre,
                     v.nacionalidad AS voz_nacionalidad, v.genero AS voz_genero, v.voice_code AS voz_voice_code,
-                    (SELECT COUNT(*) FROM campania_base_numero cbn
+                    (SELECT COUNT(*)::integer FROM campania_base_numero cbn
                      WHERE cbn.id_campania = c.id AND cbn.estado_registro = 1) as total_bases
                 FROM campania c
                 LEFT JOIN tipo_campania tc ON c.id_tipo_campania = tc.id AND tc.estado_registro = 1
@@ -73,7 +73,7 @@ class CampaniaModel {
             // Obtener bases asociadas
             const [bases] = await this.connection.execute(
                 `SELECT cbn.*, bn.nombre as base_nombre, bn.id_formato,
-                    (SELECT COUNT(*) FROM base_numero_detalle bnd
+                    (SELECT COUNT(*)::integer FROM base_numero_detalle bnd
                      WHERE bnd.id_base_numero = bn.id AND bnd.estado_registro = 1) as total_numeros
                 FROM campania_base_numero cbn
                 INNER JOIN base_numero bn ON cbn.id_base_numero = bn.id
