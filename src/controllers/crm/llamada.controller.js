@@ -346,26 +346,26 @@ class LlamadaController {
                 return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
             }
 
-            // Actualizar estado a 4 (Completada)
-            const updated = await llamadaModel.actualizarEstadoLlamadaDirecto(provider_call_id, 4);
+            // Actualizar estado a 2 (En curso) y fecha_inicio
+            const updated = await llamadaModel.iniciarLlamada(provider_call_id);
 
             if (!updated) {
-                return res.status(500).json({ msg: "No se pudo actualizar el estado de la llamada" });
+                logger.warn(`[llamada.controller.js] callEntrada: Llamada ${provider_call_id} ya estaba iniciada o no se pudo actualizar`);
             }
 
-            logger.info(`[llamada.controller.js] callEntrada: Llamada ${provider_call_id} actualizada a estado 4 (Completada)`);
+            logger.info(`[llamada.controller.js] callEntrada: Llamada ${provider_call_id} iniciada - estado=2, fecha_inicio=NOW`);
 
             return res.status(200).json({
-                msg: "Estado de llamada actualizado exitosamente",
+                msg: "Llamada iniciada exitosamente",
                 data: {
                     provider_call_id,
                     id_llamada: llamada.id,
-                    id_estado_llamada: 4
+                    id_estado_llamada: 2
                 }
             });
         } catch (error) {
             logger.error(`[llamada.controller.js] Error en callEntrada: ${error.message}`);
-            return res.status(500).json({ msg: "Error al actualizar estado de llamada" });
+            return res.status(500).json({ msg: "Error al iniciar llamada" });
         }
     }
 
