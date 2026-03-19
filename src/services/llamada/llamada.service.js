@@ -153,7 +153,7 @@ class LlamadaService {
                         voice: voiceCode,
                         tipificaciones,
                         prompt: prompt,
-                        tool_ruta: toolRuta,
+                        ruta_tool: toolRuta,
                         canal: canal,
                         plataforma: process.env.PLATAFORMA || 'APP',
                         empresa: {
