@@ -167,6 +167,7 @@ router.delete("/campania-bases/:id", ConfiguracionController.removeBaseFromCampa
 router.get("/campanias/:idCampania/ejecuciones", ConfiguracionController.getEjecucionesByCampania);
 router.get("/campanias/:idCampania/estadisticas", ConfiguracionController.getEstadisticasCampania);
 router.post("/campania-ejecuciones/ejecutar", ConfiguracionController.ejecutarCampania);
+router.post("/campanias/reprocesar", ConfiguracionController.reprocesarCampania);
 router.get("/campania-ejecuciones/:id", ConfiguracionController.getEjecucionById);
 router.patch("/campania-ejecuciones/:id/estado", ConfiguracionController.updateEstadoEjecucion);
 router.patch("/campania-ejecuciones/:id/cancelar", ConfiguracionController.cancelarEjecucion);

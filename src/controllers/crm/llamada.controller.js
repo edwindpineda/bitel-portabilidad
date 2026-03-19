@@ -138,7 +138,8 @@ class LlamadaController {
 
     async uploadAudio(req, res) {
         try {
-            const { provider_call_id } = req.body;
+            const { provider_call_id, duracion_seg, segundos } = req.body;
+            const duracion = duracion_seg || segundos || null;
 
             if (!req.file) {
                 return res.status(400).json({ msg: "No se proporcionó ningún archivo de audio" });
@@ -164,15 +165,18 @@ class LlamadaController {
             // Subir audio a S3 con folder 'llamadas' usando id_empresa de la llamada
             const archivo_llamada = await s3Service.uploadFile(req.file, 'llamadas', llamada.id_empresa);
 
-            // Actualizar la llamada con el archivo de audio y estado COMPLETED
+            // Actualizar la llamada con el archivo de audio, estado COMPLETED y duración
             const updated = await llamadaModel.actualizarAudioLlamadaPorProvider(provider_call_id, {
                 archivo_llamada,
-                id_estado_llamada_asterisk: estadoCompleted?.id || null
+                id_estado_llamada_asterisk: estadoCompleted?.id || null,
+                duracion_seg: duracion ? parseInt(duracion) : null
             });
 
             if (!updated) {
                 return res.status(404).json({ msg: "No se pudo actualizar la llamada" });
             }
+
+            logger.info(`[llamada.controller.js] uploadAudio: Audio subido para ${provider_call_id}, duracion_seg=${duracion}`);
 
             return res.status(200).json({
                 msg: "Audio subido exitosamente",
@@ -180,7 +184,8 @@ class LlamadaController {
                     provider_call_id,
                     id_llamada: llamada.id,
                     archivo_llamada,
-                    id_estado_llamada_asterisk: estadoCompleted?.id || null
+                    id_estado_llamada_asterisk: estadoCompleted?.id || null,
+                    duracion_seg: duracion ? parseInt(duracion) : null
                 }
             });
         } catch (error) {
@@ -216,7 +221,6 @@ class LlamadaController {
             const id_llamada = llamada.id;
             logger.info(`[llamada.controller.js] Encontrada llamada con id: ${id_llamada}`);
 
-            // Actualizar la llamada con id_ultravox_call, metadata, fecha_fin y duracion_seg
             // Convertir metadata a string JSON si viene como objeto
             let metadataString = null;
             if (metadataInput) {
@@ -227,22 +231,9 @@ class LlamadaController {
                 }
             }
 
-            // Calcular duracion_seg a partir de fecha_inicio y el momento actual
-            // PostgreSQL maneja fecha_fin con CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
-            let duracion_seg = null;
-            if (llamada.fecha_inicio) {
-                const fecha_inicio = new Date(llamada.fecha_inicio);
-                const ahora = Date.now();
-                duracion_seg = Math.round((ahora - fecha_inicio.getTime()) / 1000);
-                if (duracion_seg < 0) duracion_seg = 0;
-            }
-
-            logger.info(`[llamada.controller.js] Calculando duracion_seg: ${duracion_seg}s (fecha_inicio: ${llamada.fecha_inicio})`);
-
             await llamadaModel.actualizarMetadataUltravox(id_llamada, {
                 id_ultravox_call: id_ultravox_call || null,
-                metadata_ultravox_call: metadataString,
-                duracion_seg
+                metadata_ultravox_call: metadataString
             });
 
             // Guardar transcripción si viene
@@ -281,6 +272,140 @@ class LlamadaController {
             logger.error(`[llamada.controller.js] Error al guardar transcripción: ${error.message}`);
             logger.error(`[llamada.controller.js] Stack: ${error.stack}`);
             return res.status(500).json({ msg: "Error al guardar transcripción", error: error.message });
+        }
+    }
+
+    async callNoContesta(req, res) {
+        try {
+            const { provider_call_id, status } = req.body;
+
+            if (!provider_call_id) {
+                return res.status(400).json({ msg: "El campo provider_call_id es requerido" });
+            }
+
+            if (!status) {
+                return res.status(400).json({ msg: "El campo status es requerido" });
+            }
+
+            const llamadaModel = new LlamadaModel();
+            const estadoAsteriskModel = new EstadoLlamadaAsteriskModel();
+
+            // Buscar la llamada
+            const llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+            if (!llamada) {
+                logger.warn(`[llamada.controller.js] callNoContesta: No se encontró llamada con provider_call_id: ${provider_call_id}`);
+                return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
+            }
+
+            // Buscar el estado de Asterisk por código
+            const estadoAsterisk = await estadoAsteriskModel.getByCodigo(status);
+            if (!estadoAsterisk) {
+                logger.warn(`[llamada.controller.js] callNoContesta: No se encontró estado Asterisk con código: ${status}`);
+                return res.status(404).json({ msg: `No se encontró estado Asterisk con código: ${status}` });
+            }
+
+            // Actualizar la llamada: id_estado_llamada = 3 (Fallida) y id_estado_llamada_asterisk
+            const updated = await llamadaModel.actualizarEstadoNoContesta(provider_call_id, estadoAsterisk.id);
+
+            if (!updated) {
+                return res.status(500).json({ msg: "No se pudo actualizar el estado de la llamada" });
+            }
+
+            logger.info(`[llamada.controller.js] callNoContesta: Llamada ${provider_call_id} actualizada - estado_llamada=3, estado_asterisk=${status}(${estadoAsterisk.id})`);
+
+            return res.status(200).json({
+                msg: "Estado de llamada actualizado exitosamente",
+                data: {
+                    provider_call_id,
+                    id_llamada: llamada.id,
+                    id_estado_llamada: 3,
+                    id_estado_llamada_asterisk: estadoAsterisk.id,
+                    status
+                }
+            });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error en callNoContesta: ${error.message}`);
+            return res.status(500).json({ msg: "Error al actualizar estado de llamada" });
+        }
+    }
+
+    async callEntrada(req, res) {
+        try {
+            const { provider_call_id } = req.body;
+
+            if (!provider_call_id) {
+                return res.status(400).json({ msg: "El campo provider_call_id es requerido" });
+            }
+
+            const llamadaModel = new LlamadaModel();
+
+            // Buscar la llamada
+            const llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+            if (!llamada) {
+                logger.warn(`[llamada.controller.js] callEntrada: No se encontró llamada con provider_call_id: ${provider_call_id}`);
+                return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
+            }
+
+            // Actualizar estado a 4 (Completada)
+            const updated = await llamadaModel.actualizarEstadoLlamadaDirecto(provider_call_id, 4);
+
+            if (!updated) {
+                return res.status(500).json({ msg: "No se pudo actualizar el estado de la llamada" });
+            }
+
+            logger.info(`[llamada.controller.js] callEntrada: Llamada ${provider_call_id} actualizada a estado 4 (Completada)`);
+
+            return res.status(200).json({
+                msg: "Estado de llamada actualizado exitosamente",
+                data: {
+                    provider_call_id,
+                    id_llamada: llamada.id,
+                    id_estado_llamada: 4
+                }
+            });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error en callEntrada: ${error.message}`);
+            return res.status(500).json({ msg: "Error al actualizar estado de llamada" });
+        }
+    }
+
+    async callTerminada(req, res) {
+        try {
+            const { provider_call_id } = req.body;
+
+            if (!provider_call_id) {
+                return res.status(400).json({ msg: "El campo provider_call_id es requerido" });
+            }
+
+            const llamadaModel = new LlamadaModel();
+
+            // Buscar la llamada
+            const llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+            if (!llamada) {
+                logger.warn(`[llamada.controller.js] callTerminada: No se encontró llamada con provider_call_id: ${provider_call_id}`);
+                return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
+            }
+
+            // Actualizar estado a 4 (Completada) y fecha_fin
+            const updated = await llamadaModel.actualizarEstadoTerminada(provider_call_id);
+
+            if (!updated) {
+                return res.status(500).json({ msg: "No se pudo actualizar el estado de la llamada" });
+            }
+
+            logger.info(`[llamada.controller.js] callTerminada: Llamada ${provider_call_id} terminada - estado=4, fecha_fin=NOW`);
+
+            return res.status(200).json({
+                msg: "Llamada terminada exitosamente",
+                data: {
+                    provider_call_id,
+                    id_llamada: llamada.id,
+                    id_estado_llamada: 4
+                }
+            });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error en callTerminada: ${error.message}`);
+            return res.status(500).json({ msg: "Error al terminar llamada" });
         }
     }
 

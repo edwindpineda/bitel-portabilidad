@@ -2255,6 +2255,150 @@ class ConfiguracionController {
     }
   }
 
+  async reprocesarCampania(req, res) {
+    try {
+      const { id_campania, tipo, tipificaciones } = req.body;
+      const id_empresa = req.user?.idEmpresa;
+      const usuario_registro = req.user?.userId || null;
+
+      if (!id_campania) {
+        return res.status(400).json({ msg: "La campaña es requerida" });
+      }
+
+      if (tipo === 'tipificacion' && (!tipificaciones || tipificaciones.length === 0)) {
+        return res.status(400).json({ msg: "Debe seleccionar al menos una tipificación" });
+      }
+
+      // Obtener bases activas de la campaña
+      const [basesActivas] = await pool.execute(
+        `SELECT id_base_numero FROM campania_base_numero
+         WHERE id_campania = ? AND estado_registro = 1 AND activo = 1`,
+        [id_campania]
+      );
+
+      if (!basesActivas.length) {
+        return res.status(400).json({ msg: "No hay bases activas en esta campaña" });
+      }
+
+      // Obtener los números a volver a llamar según el tipo
+      let numerosQuery = '';
+      let numerosParams = [];
+
+      if (tipo === 'todos') {
+        // Obtener TODOS los números de las bases activas de la campaña
+        numerosQuery = `
+          SELECT DISTINCT bnd.id as id_base_numero_detalle
+          FROM base_numero_detalle bnd
+          INNER JOIN campania_base_numero cbn ON cbn.id_base_numero = bnd.id_base_numero
+          WHERE cbn.id_campania = $1
+          AND cbn.estado_registro = 1
+          AND cbn.activo = 1
+          AND bnd.estado_registro = 1
+        `;
+        numerosParams = [id_campania];
+      } else {
+        // Obtener solo los números con las tipificaciones seleccionadas (de llamadas previas)
+        const tipPlaceholders = tipificaciones.map((_, i) => `$${i + 2}`).join(',');
+        numerosQuery = `
+          SELECT DISTINCT l.id_base_numero_detalle
+          FROM llamada l
+          WHERE l.id_campania = $1
+          AND l.estado_registro = 1
+          AND l.fecha_fin IS NOT NULL
+          AND l.id_tipificacion IN (${tipPlaceholders})
+        `;
+        numerosParams = [id_campania, ...tipificaciones];
+      }
+
+      const [numerosARellamar] = await pool.query(numerosQuery, numerosParams);
+
+      if (!numerosARellamar.length) {
+        const msgError = tipo === 'todos'
+          ? "No hay números en las bases de esta campaña"
+          : "No hay números con las tipificaciones seleccionadas";
+        return res.status(400).json({ msg: msgError });
+      }
+
+      // Crear una nueva ejecución por cada base activa
+      const ejecucionModel = new CampaniaEjecucionModel();
+      const ejecucionesCreadas = [];
+
+      for (const base of basesActivas) {
+        const idEjecucion = await ejecucionModel.create({
+          id_empresa,
+          id_campania,
+          id_base_numero: base.id_base_numero,
+          fecha_programada: new Date(),
+          usuario_registro
+        });
+        ejecucionesCreadas.push(idEjecucion);
+      }
+
+      const idEjecucion = ejecucionesCreadas[0];
+
+      // Obtener tipificaciones de la empresa
+      const [tipificacionesEmpresa] = await pool.execute(
+        `SELECT * FROM tipificacion_llamada WHERE id_empresa = ?`,
+        [id_empresa]
+      );
+
+      // Obtener prompt, voice_code, tool_ruta y canal de la campaña
+      const [campaniaRows] = await pool.execute(
+        `SELECT p.prompt, v.voice_code, t.ruta as tool_ruta, e.canal
+         FROM campania c
+         INNER JOIN plantilla p ON c.id_plantilla = p.id
+         INNER JOIN empresa e ON c.id_empresa = e.id
+         LEFT JOIN tool t ON c.id_tool = t.id
+         LEFT JOIN voz v ON c.id_voz = v.id
+         WHERE c.id_empresa = ? AND c.id = ?`,
+        [id_empresa, id_campania]
+      );
+      const prompt = campaniaRows[0]?.prompt || '';
+      const voiceCode = campaniaRows[0]?.voice_code || null;
+      const toolRuta = campaniaRows[0]?.tool_ruta || null;
+      const canal = campaniaRows[0]?.canal || 0;
+
+      // Obtener configuración de llamadas de la campaña
+      const configLlamadaModel = new ConfiguracionCampaniaLlamadaModel();
+      const configLlamadas = await configLlamadaModel.getByCampaniaId(id_campania);
+
+      logger.info(`[reprocesarCampania] Campaña ${id_campania} - Tipo: ${tipo}. Números a rellamar: ${numerosARellamar.length}. Ejecución: ${idEjecucion}`);
+
+      // Responder inmediatamente
+      res.status(202).json({
+        msg: "Nueva ejecución creada para volver a llamar",
+        data: {
+          id_ejecucion: idEjecucion,
+          total_bases: basesActivas.length,
+          numeros_a_llamar: numerosARellamar.length,
+          tipo: tipo
+        }
+      });
+
+      // Extraer solo los IDs de los números a rellamar
+      const idsNumerosRellamar = numerosARellamar.map(n => n.id_base_numero_detalle);
+
+      // Procesar llamadas en background con el filtro de números específicos
+      llamadaService.procesarLlamadasAsync({
+        idEjecucion,
+        idCampania: id_campania,
+        idEmpresa: id_empresa,
+        tipificaciones: tipificacionesEmpresa,
+        prompt: prompt,
+        voiceCode: voiceCode,
+        toolRuta: toolRuta,
+        canal: canal,
+        configLlamadas: configLlamadas,
+        filtroNumeros: idsNumerosRellamar, // Solo llamar a estos números
+        esRellamada: true,
+      });
+
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al reprocesar campaña: ${error.message}`);
+      return res.status(500).json({ msg: "Error al reprocesar campaña" });
+    }
+  }
+
   async getEjecucionById(req, res) {
     try {
       const { id } = req.params;

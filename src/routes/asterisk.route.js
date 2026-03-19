@@ -50,4 +50,13 @@ router.post("/transcripcion", authAsteriskToken, LlamadaController.guardarTransc
 // Ruta de estado de llamada Asterisk (webhook)
 router.post("/call-status", authAsteriskToken, LlamadaController.actualizarEstadoAsterisk);
 
+// Ruta para marcar llamada como no contestada (estado 3)
+router.post("/call-no-contesta", authAsteriskToken, LlamadaController.callNoContesta);
+
+// Ruta para marcar llamada como completada (estado 4)
+router.post("/call-entrada", authAsteriskToken, LlamadaController.callEntrada);
+
+// Ruta para marcar llamada como terminada (estado 4 + fecha_fin)
+router.post("/call-terminada", authAsteriskToken, LlamadaController.callTerminada);
+
 module.exports = router;

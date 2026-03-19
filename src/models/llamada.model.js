@@ -221,6 +221,50 @@ class LlamadaModel {
         }
     }
 
+    async actualizarEstadoLlamadaDirecto(provider_call_id, id_estado_llamada) {
+        try {
+            const [, result] = await this.connection.execute(
+                `UPDATE llamada
+                SET id_estado_llamada = ?
+                WHERE provider_call_id = ?`,
+                [id_estado_llamada, provider_call_id]
+            );
+            return result.affectedRows > 0;
+        } catch (err) {
+            throw new Error(`Error al actualizar estado de llamada: ${err.message}`);
+        }
+    }
+
+    async actualizarEstadoNoContesta(provider_call_id, id_estado_llamada_asterisk) {
+        try {
+            const [, result] = await this.connection.execute(
+                `UPDATE llamada
+                SET id_estado_llamada = 3,
+                    id_estado_llamada_asterisk = ?
+                WHERE provider_call_id = ?`,
+                [id_estado_llamada_asterisk, provider_call_id]
+            );
+            return result.affectedRows > 0;
+        } catch (err) {
+            throw new Error(`Error al actualizar estado no contesta: ${err.message}`);
+        }
+    }
+
+    async actualizarEstadoTerminada(provider_call_id) {
+        try {
+            const [, result] = await this.connection.execute(
+                `UPDATE llamada
+                SET id_estado_llamada = 4,
+                    fecha_fin = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
+                WHERE provider_call_id = ?`,
+                [provider_call_id]
+            );
+            return result.affectedRows > 0;
+        } catch (err) {
+            throw new Error(`Error al actualizar estado terminada: ${err.message}`);
+        }
+    }
+
     async actualizarArchivoLlamada(id, archivo_llamada) {
         try {
             const [, result] = await this.connection.execute(
@@ -237,21 +281,16 @@ class LlamadaModel {
         }
     }
 
-    async actualizarMetadataUltravox(id, { id_ultravox_call, metadata_ultravox_call, duracion_seg }) {
+    async actualizarMetadataUltravox(id, { id_ultravox_call, metadata_ultravox_call }) {
         try {
-            // Usar CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima' para fecha_fin
             const [, result] = await this.connection.execute(
                 `UPDATE llamada
                 SET id_ultravox_call = COALESCE(?, id_ultravox_call),
-                    metadata_ultravox_call = COALESCE(?, metadata_ultravox_call),
-                    fecha_fin = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima',
-                    duracion_seg = ?,
-                    id_estado_llamada = 4
+                    metadata_ultravox_call = COALESCE(?, metadata_ultravox_call)
                 WHERE id = ?`,
                 [
                     id_ultravox_call || null,
                     metadata_ultravox_call || null,
-                    duracion_seg !== null && duracion_seg !== undefined ? duracion_seg : null,
                     id
                 ]
             );
@@ -285,20 +324,22 @@ class LlamadaModel {
         }
     }
 
-    async actualizarAudioLlamadaPorProvider(provider_call_id, { archivo_llamada, id_ultravox_call, metadata_ultravox_call, id_estado_llamada_asterisk }) {
+    async actualizarAudioLlamadaPorProvider(provider_call_id, { archivo_llamada, id_ultravox_call, metadata_ultravox_call, id_estado_llamada_asterisk, duracion_seg }) {
         try {
             const [, result] = await this.connection.execute(
                 `UPDATE llamada
                 SET archivo_llamada = COALESCE(?, archivo_llamada),
                     id_ultravox_call = COALESCE(?, id_ultravox_call),
                     metadata_ultravox_call = COALESCE(?, metadata_ultravox_call),
-                    id_estado_llamada_asterisk = COALESCE(?, id_estado_llamada_asterisk)
+                    id_estado_llamada_asterisk = COALESCE(?, id_estado_llamada_asterisk),
+                    duracion_seg = COALESCE(?, duracion_seg)
                 WHERE provider_call_id = ?`,
                 [
                     archivo_llamada || null,
                     id_ultravox_call || null,
                     metadata_ultravox_call ? JSON.stringify(metadata_ultravox_call) : null,
                     id_estado_llamada_asterisk || null,
+                    duracion_seg !== null && duracion_seg !== undefined ? duracion_seg : null,
                     provider_call_id
                 ]
             );

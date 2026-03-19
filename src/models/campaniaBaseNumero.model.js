@@ -28,7 +28,7 @@ class CampaniaBaseNumeroModel {
 
     async add({ id_empresa, id_campania, id_base_numero, usuario_registro }) {
         try {
-            const [result] = await this.connection.execute(
+            const [rows, result] = await this.connection.execute(
                 `INSERT INTO campania_base_numero
                 (id_empresa, id_campania, id_base_numero, activo, estado_registro, usuario_registro)
                 VALUES (?, ?, ?, 1, 1, ?)`,

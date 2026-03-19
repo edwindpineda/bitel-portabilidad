@@ -58,6 +58,48 @@ class LlamadaService {
         return await detalleModel.getAllUniversoPendientePorCampania(idCampania, maxIntentos);
     }
 
+    /**
+     * Carga números específicos para rellamada.
+     * Carga TODOS los números del filtro sin excluir llamadas anteriores.
+     * @param {number} idCampania - ID de la campaña
+     * @param {Array} filtroNumeros - Array de IDs de base_numero_detalle a rellamar
+     * @param {number} maxIntentos - Máximo de intentos permitidos
+     * @param {number} idEjecucion - ID de la ejecución actual
+     */
+    async cargarNumerosParaRellamada(idCampania, filtroNumeros, maxIntentos = 1, idEjecucion) {
+        if (!filtroNumeros || filtroNumeros.length === 0) {
+            return [];
+        }
+
+        const placeholders = filtroNumeros.map((_, i) => `$${i + 2}`).join(',');
+
+        const query = `
+            SELECT bnd.*, bn.id as _idBase, e.nombre_comercial, e.id as id_empresa
+            FROM base_numero_detalle bnd
+            INNER JOIN base_numero bn ON bn.id = bnd.id_base_numero
+            INNER JOIN campania_base_numero cbn ON cbn.id_base_numero = bn.id
+            INNER JOIN empresa e ON e.id = bn.id_empresa
+            WHERE cbn.id_campania = $1
+            AND cbn.estado_registro = 1
+            AND cbn.activo = 1
+            AND bnd.estado_registro = 1
+            AND bnd.id IN (${placeholders})
+            ORDER BY bnd.id ASC
+        `;
+
+        const params = [idCampania, ...filtroNumeros];
+
+        try {
+            const { pool } = require('../../config/dbConnection');
+            const [rows] = await pool.query(query, params);
+            logger.info(`[LlamadaService] cargarNumerosParaRellamada: ${rows.length} números cargados para rellamada`);
+            return rows;
+        } catch (error) {
+            logger.error(`[LlamadaService] Error al cargar números para rellamada: ${error.message}`);
+            return [];
+        }
+    }
+
     formatearTelefono(telefono) {
         const limpio = String(telefono).replace(/\D/g, '');
         return limpio.startsWith('51') ? limpio : `51${limpio}`;
@@ -165,7 +207,7 @@ class LlamadaService {
      * Hace rondas hasta que todos los números estén contactados o alcancen max_intentos.
      * El estado de la ejecución se calcula dinámicamente desde la tabla llamada.
      */
-    async procesarLlamadasAsync({ idEjecucion, idCampania, idEmpresa, tipificaciones, prompt, voiceCode, toolRuta, canal, configLlamadas }) {
+    async procesarLlamadasAsync({ idEjecucion, idCampania, idEmpresa, tipificaciones, prompt, voiceCode, toolRuta, canal, configLlamadas, filtroNumeros = null, esRellamada = false }) {
         if (this.ejecucionesActivas.has(idEjecucion)) {
             logger.warn(`[LlamadaService] Ejecución ${idEjecucion} ya está en proceso`);
             return;
@@ -187,8 +229,15 @@ class LlamadaService {
                     break;
                 }
 
-                // Cargar números pendientes (ya excluye exitosas y las que alcanzaron max_intentos)
-                const numeros = await this.cargarUniversoPendiente(idCampania, maxIntentos);
+                // Cargar números pendientes
+                let numeros;
+                if (esRellamada && filtroNumeros && filtroNumeros.length > 0) {
+                    // Para rellamadas, cargar solo los números específicos del filtro
+                    numeros = await this.cargarNumerosParaRellamada(idCampania, filtroNumeros, maxIntentos, idEjecucion);
+                } else {
+                    // Comportamiento normal: cargar universo pendiente
+                    numeros = await this.cargarUniversoPendiente(idCampania, maxIntentos);
+                }
 
                 if (numeros.length === 0) {
                     logger.info(`[LlamadaService] Ronda ${ronda}: No hay números pendientes, finalizando`);
