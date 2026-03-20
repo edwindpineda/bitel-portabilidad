@@ -277,11 +277,7 @@ class LlamadaController {
 
     async callNoContesta(req, res) {
         try {
-            const { provider_call_id, status } = req.body;
-
-            if (!provider_call_id) {
-                return res.status(400).json({ msg: "El campo provider_call_id es requerido" });
-            }
+            const { provider_call_id, status, destination, id_campania } = req.body;
 
             if (!status) {
                 return res.status(400).json({ msg: "El campo status es requerido" });
@@ -289,12 +285,29 @@ class LlamadaController {
 
             const llamadaModel = new LlamadaModel();
             const estadoAsteriskModel = new EstadoLlamadaAsteriskModel();
+            let llamada = null;
+            let finalProviderCallId = provider_call_id;
 
-            // Buscar la llamada
-            const llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+            // 1. Si viene provider_call_id, buscar por él
+            if (provider_call_id) {
+                llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+            }
+
+            // 2. Si no encontró y vienen destination + id_campania, buscar llamada pendiente (flujo batch)
+            if (!llamada && destination && id_campania) {
+                logger.info(`[llamada.controller.js] callNoContesta: Buscando llamada pendiente por teléfono ${destination} y campaña ${id_campania}`);
+                llamada = await llamadaModel.getPendientePorTelefonoCampania(destination, id_campania);
+
+                if (llamada && provider_call_id) {
+                    // Vincular el provider_call_id a esta llamada
+                    await llamadaModel.actualizarProviderCallId(llamada.id, provider_call_id);
+                    logger.info(`[llamada.controller.js] callNoContesta: Llamada ${llamada.id} vinculada con provider_call_id ${provider_call_id}`);
+                }
+            }
+
             if (!llamada) {
-                logger.warn(`[llamada.controller.js] callNoContesta: No se encontró llamada con provider_call_id: ${provider_call_id}`);
-                return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
+                logger.warn(`[llamada.controller.js] callNoContesta: No se encontró llamada - provider_call_id: ${provider_call_id}, destination: ${destination}, id_campania: ${id_campania}`);
+                return res.status(404).json({ msg: "No se encontró llamada" });
             }
 
             // Buscar el estado de Asterisk por código
@@ -305,18 +318,33 @@ class LlamadaController {
             }
 
             // Actualizar la llamada: id_estado_llamada = 3 (Fallida) y id_estado_llamada_asterisk
-            const updated = await llamadaModel.actualizarEstadoNoContesta(provider_call_id, estadoAsterisk.id);
+            // Usar el provider_call_id de la llamada encontrada si no vino en el request
+            finalProviderCallId = llamada.provider_call_id || provider_call_id;
+
+            let updated = false;
+            if (finalProviderCallId) {
+                updated = await llamadaModel.actualizarEstadoNoContesta(finalProviderCallId, estadoAsterisk.id);
+            }
+
+            // Si no se pudo actualizar por provider_call_id (es null), actualizar directamente por id
+            if (!updated) {
+                const [, result] = await llamadaModel.connection.execute(
+                    `UPDATE llamada SET id_estado_llamada = 3, id_estado_llamada_asterisk = $1 WHERE id = $2`,
+                    [estadoAsterisk.id, llamada.id]
+                );
+                updated = result.affectedRows > 0;
+            }
 
             if (!updated) {
                 return res.status(500).json({ msg: "No se pudo actualizar el estado de la llamada" });
             }
 
-            logger.info(`[llamada.controller.js] callNoContesta: Llamada ${provider_call_id} actualizada - estado_llamada=3, estado_asterisk=${status}(${estadoAsterisk.id})`);
+            logger.info(`[llamada.controller.js] callNoContesta: Llamada ${llamada.id} actualizada - estado_llamada=3, estado_asterisk=${status}(${estadoAsterisk.id})`);
 
             return res.status(200).json({
                 msg: "Estado de llamada actualizado exitosamente",
                 data: {
-                    provider_call_id,
+                    provider_call_id: finalProviderCallId,
                     id_llamada: llamada.id,
                     id_estado_llamada: 3,
                     id_estado_llamada_asterisk: estadoAsterisk.id,
