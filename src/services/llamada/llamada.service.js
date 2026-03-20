@@ -160,7 +160,8 @@ class LlamadaService {
                             id: num.id_empresa,
                             nombre: num.nombre_comercial,
                         },
-                        config_llamadas: configLlamadas || null
+                        config_llamadas: configLlamadas || null,
+                        id_campania: idCampania
                     }
                 };
 
