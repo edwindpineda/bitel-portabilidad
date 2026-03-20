@@ -145,7 +145,7 @@ class EnvioMasivoWhatsappController {
             }
 
             // Actualizar estado del envio masivo a enviado (en proceso de envio)
-            await EnvioMasivoWhatsappModel.updateEstado(id, 'enviado', userId);
+            await EnvioMasivoWhatsappModel.updateEstado(id, 'entregado', userId);
 
             let cantidadExitosos = 0;
             let cantidadFallidos = 0;
@@ -173,7 +173,7 @@ class EnvioMasivoWhatsappController {
                         plantilla.language || 'es'
                     );
 
-                    await EnvioPersonaModel.updateEstado(ep.id, 'enviado', null, userId);
+                    await EnvioPersonaModel.updateEstado(ep.id, 'entregado', null, userId);
                     cantidadExitosos++;
                 } catch (error) {
                     const errorMsg = error.response?.data?.error?.message || error.message || 'Error desconocido';
