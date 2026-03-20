@@ -106,7 +106,7 @@ class EnvioPersonaModel {
 
                 for (const persona of batch) {
                     const placeholders = [];
-                    for (let j = 0; j < 6; j++) {
+                    for (let j = 0; j < 7; j++) {
                         placeholders.push(`$${++paramIndex}`);
                     }
                     values.push(`(${placeholders.join(', ')})`);
@@ -116,12 +116,13 @@ class EnvioPersonaModel {
                         persona.estado || 'pendiente',
                         persona.fecha_envio || null,
                         persona.id_campania_ejecucion || null,
+                        1,
                         usuario_registro || null
                     );
                 }
 
                 const sql = `INSERT INTO envio_persona
-                    (id_envio_masivo, id_persona, estado, fecha_envio, id_campania_ejecucion, usuario_registro)
+                    (id_envio_masivo, id_persona, estado, fecha_envio, id_campania_ejecucion, estado_registro, usuario_registro)
                     VALUES ${values.join(', ')}`;
 
                 try {
