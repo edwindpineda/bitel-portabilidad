@@ -33,7 +33,7 @@ class LlamadaService {
     }
 
     /**
-     * Realiza una llamada via Ultravox
+     * Realiza una llamada via Ultravox (individual - legacy)
      */
     async realizarLlamada(body) {
         try {
@@ -44,6 +44,24 @@ class LlamadaService {
         } catch (error) {
             console.log(`[LlamadaService.realizarLlamada] Error HTTP:`, error.response?.status, JSON.stringify(error.response?.data));
             logger.error(`[LlamadaService] Error al realizar llamada a ${body.destination}: ${error.message}`);
+            throw error;
+        }
+    }
+
+    /**
+     * Realiza múltiples llamadas en un solo request (batch)
+     * @param {Object} batchBody - { calls: [...], extras: {...} }
+     * @returns {Object} { success: true, results: [{ destination, success, channelId/error }, ...] }
+     */
+    async realizarLlamadasBatch(batchBody) {
+        try {
+            console.log(`[LlamadaService.realizarLlamadasBatch] Enviando batch de ${batchBody.calls.length} llamadas`);
+            const response = await this.client.post('/batch', batchBody);
+            console.log(`[LlamadaService.realizarLlamadasBatch] Respuesta batch recibida`);
+            return response.data;
+        } catch (error) {
+            console.log(`[LlamadaService.realizarLlamadasBatch] Error HTTP:`, error.response?.status, JSON.stringify(error.response?.data));
+            logger.error(`[LlamadaService] Error en batch de llamadas: ${error.message}`);
             throw error;
         }
     }
@@ -113,7 +131,7 @@ class LlamadaService {
     }
 
     /**
-     * Procesa una ronda de llamadas en bloques.
+     * Procesa una ronda de llamadas en bloques (modo batch).
      * @returns {Object} { enviadas, fallidas }
      */
     async procesarRonda({ idEjecucion, idCampania, idEmpresa, numeros, tipificaciones, prompt, voiceCode, toolRuta, canal, configLlamadas, ronda }) {
@@ -124,7 +142,7 @@ class LlamadaService {
         const totalNumeros = numeros.length;
         const totalBloques = Math.ceil(totalNumeros / BATCH_SIZE);
 
-        logger.info(`[LlamadaService] Ronda ${ronda}: ${totalNumeros} números a procesar en ${totalBloques} bloques`);
+        logger.info(`[LlamadaService] Ronda ${ronda}: ${totalNumeros} números a procesar en ${totalBloques} bloques (modo batch)`);
 
         for (let i = 0; i < totalNumeros; i += BATCH_SIZE) {
             // Verificar si fue cancelada
@@ -139,9 +157,10 @@ class LlamadaService {
 
             logger.info(`[LlamadaService] Ronda ${ronda} - Bloque ${numBloque}/${totalBloques} (${bloque.length} números)`);
 
-            const promesas = bloque.map(async (num) => {
+            // Construir el batch request
+            const calls = bloque.map(num => {
                 const telefono = this.formatearTelefono(num.telefono);
-                const body = {
+                return {
                     destination: telefono,
                     data: {
                         nombre_completo: num.nombre,
@@ -149,50 +168,63 @@ class LlamadaService {
                         id_empresa: num.id_empresa,
                         ...(num.json_adicional || {})
                     },
-                    extras: {
-                        voice: voiceCode,
-                        tipificaciones,
-                        prompt: prompt,
-                        tool_ruta: toolRuta,
-                        canal: canal,
-                        plataforma: process.env.PLATAFORMA || 'APP',
-                        empresa: {
-                            id: num.id_empresa,
-                            nombre: num.nombre_comercial,
-                        },
-                        config_llamadas: configLlamadas || null,
-                        id_campania: idCampania
+                    // Guardamos referencia para después registrar en BD
+                    _ref: {
+                        id: num.id,
+                        id_base_numero: num.id_base_numero
                     }
                 };
-
-                try {
-                    const result = await this.realizarLlamada(body);
-                    if (result?.success) {
-                        await llamadaModel.create({
-                            id_empresa: idEmpresa,
-                            id_campania: idCampania,
-                            id_base_numero: num.id_base_numero,
-                            id_base_numero_detalle: num.id,
-                            id_campania_ejecucion: idEjecucion,
-                            provider_call_id: result.data.channelId
-                        });
-                        return { success: true, telefono };
-                    }
-                    return { success: false, telefono, error: 'No success en respuesta' };
-                } catch (error) {
-                    console.error(`[LlamadaService] Error en llamada ${telefono}:`, error.message);
-                    return { success: false, telefono, error: error.message };
-                }
             });
 
-            const resultados = await Promise.allSettled(promesas);
-
-            for (const resultado of resultados) {
-                if (resultado.status === 'fulfilled' && resultado.value.success) {
-                    enviadas++;
-                } else {
-                    fallidas++;
+            const batchBody = {
+                calls: calls.map(({ _ref, ...call }) => call), // Sin _ref para el API
+                extras: {
+                    voice: voiceCode,
+                    tipificaciones,
+                    prompt: prompt,
+                    tool_ruta: toolRuta,
+                    canal: canal,
+                    plataforma: process.env.PLATAFORMA || 'APP',
+                    empresa: {
+                        id: idEmpresa,
+                        nombre: numeros[0]?.nombre_comercial || '',
+                    },
+                    config_llamadas: configLlamadas || null,
+                    id_campania: idCampania
                 }
+            };
+
+            try {
+                const result = await this.realizarLlamadasBatch(batchBody);
+
+                if (result?.success && result?.encoladas > 0) {
+                    // Registrar todas las llamadas del batch como encoladas (sin channelId)
+                    // El webhook call-entrada las actualizará cuando inicien
+                    for (const originalCall of calls) {
+                        try {
+                            await llamadaModel.create({
+                                id_empresa: idEmpresa,
+                                id_campania: idCampania,
+                                id_base_numero: originalCall._ref.id_base_numero,
+                                id_base_numero_detalle: originalCall._ref.id,
+                                id_campania_ejecucion: idEjecucion,
+                                provider_call_id: null // Se actualiza via webhook call-entrada
+                            });
+                            enviadas++;
+                        } catch (dbError) {
+                            logger.warn(`[LlamadaService] Error al registrar llamada ${originalCall.destination}: ${dbError.message}`);
+                            fallidas++;
+                        }
+                    }
+                    logger.info(`[LlamadaService] Batch encolado: ${result.encoladas} llamadas`);
+                } else {
+                    // Si el batch completo falló, contar todas como fallidas
+                    fallidas += bloque.length;
+                    logger.error(`[LlamadaService] Batch falló: ${result?.mensaje || 'Sin detalle'}`);
+                }
+            } catch (error) {
+                console.error(`[LlamadaService] Error en batch bloque ${numBloque}:`, error.message);
+                fallidas += bloque.length;
             }
 
             if (i + BATCH_SIZE < totalNumeros) {

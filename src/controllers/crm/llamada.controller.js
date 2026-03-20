@@ -331,18 +331,32 @@ class LlamadaController {
 
     async callEntrada(req, res) {
         try {
-            const { provider_call_id } = req.body;
+            const { provider_call_id, destination, id_campania } = req.body;
 
             if (!provider_call_id) {
                 return res.status(400).json({ msg: "El campo provider_call_id es requerido" });
             }
 
             const llamadaModel = new LlamadaModel();
+            let llamada = null;
 
-            // Buscar la llamada
-            const llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+            // 1. Primero buscar por provider_call_id (flujo normal)
+            llamada = await llamadaModel.getByProviderCallId(provider_call_id);
+
+            // 2. Si no encontró y vienen destination + id_campania, buscar llamada pendiente (flujo batch)
+            if (!llamada && destination && id_campania) {
+                logger.info(`[llamada.controller.js] callEntrada: Buscando llamada pendiente por teléfono ${destination} y campaña ${id_campania}`);
+                llamada = await llamadaModel.getPendientePorTelefonoCampania(destination, id_campania);
+
+                if (llamada) {
+                    // Vincular el provider_call_id a esta llamada
+                    await llamadaModel.actualizarProviderCallId(llamada.id, provider_call_id);
+                    logger.info(`[llamada.controller.js] callEntrada: Llamada ${llamada.id} vinculada con provider_call_id ${provider_call_id}`);
+                }
+            }
+
             if (!llamada) {
-                logger.warn(`[llamada.controller.js] callEntrada: No se encontró llamada con provider_call_id: ${provider_call_id}`);
+                logger.warn(`[llamada.controller.js] callEntrada: No se encontró llamada - provider_call_id: ${provider_call_id}, destination: ${destination}, id_campania: ${id_campania}`);
                 return res.status(404).json({ msg: "No se encontró llamada con ese provider_call_id" });
             }
 
