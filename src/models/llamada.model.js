@@ -336,7 +336,7 @@ class LlamadaModel {
                 `UPDATE llamada
                 SET archivo_llamada = ?,
                     id_estado_llamada = 3,
-                    fecha_fin = CURRENT_TIMESTAMP
+                    fecha_fin = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
                 WHERE id = ?`,
                 [archivo_llamada, id]
             );
