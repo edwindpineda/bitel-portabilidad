@@ -67,6 +67,71 @@ class LlamadaModel {
         }
     }
 
+    /**
+     * Normaliza un teléfono quitando prefijos 51 y 021
+     */
+    normalizarTelefono(telefono) {
+        let limpio = String(telefono).replace(/\D/g, '');
+        // Quitar 51 al inicio (código país Perú)
+        if (limpio.startsWith('51') && limpio.length > 9) {
+            limpio = limpio.slice(2);
+        }
+        // Quitar 021 al inicio (código área Lima alternativo)
+        if (limpio.startsWith('021')) {
+            limpio = limpio.slice(3);
+        }
+        // Quitar 01 al inicio (código área Lima)
+        if (limpio.startsWith('01') && limpio.length > 9) {
+            limpio = limpio.slice(2);
+        }
+        return limpio;
+    }
+
+    /**
+     * Busca una llamada pendiente (sin provider_call_id) por teléfono y campaña.
+     * Usado para vincular llamadas creadas en batch con el channelId cuando inician.
+     */
+    async getPendientePorTelefonoCampania(telefono, id_campania) {
+        try {
+            // Normalizar teléfono de entrada
+            const telefonoBase = this.normalizarTelefono(telefono);
+
+            const [rows] = await this.connection.execute(
+                `SELECT l.* FROM llamada l
+                INNER JOIN base_numero_detalle bnd ON bnd.id = l.id_base_numero_detalle
+                WHERE l.id_campania = $1
+                AND l.provider_call_id IS NULL
+                AND l.id_estado_llamada = 1
+                AND l.estado_registro = 1
+                AND (
+                    -- Comparar el teléfono normalizado (últimos 9 dígitos)
+                    RIGHT(REGEXP_REPLACE(bnd.telefono, '\\D', '', 'g'), 9) = RIGHT($2, 9)
+                )
+                ORDER BY l.fecha_registro DESC
+                LIMIT 1`,
+                [id_campania, telefonoBase]
+            );
+            return rows.length > 0 ? rows[0] : null;
+        } catch (error) {
+            throw new Error(`Error al obtener llamada pendiente: ${error.message}`);
+        }
+    }
+
+    /**
+     * Actualiza el provider_call_id de una llamada
+     */
+    async actualizarProviderCallId(id, provider_call_id) {
+        try {
+            const [, result] = await this.connection.execute(
+                `UPDATE llamada SET provider_call_id = ? WHERE id = ?`,
+                [provider_call_id, id]
+            );
+            return result.affectedRows > 0;
+        } catch (error) {
+            throw new Error(`Error al actualizar provider_call_id: ${error.message}`);
+        }
+    }
+
     async getConfigByProviderCallId(provider_call_id) {
         try {
             const [rows] = await this.connection.execute(

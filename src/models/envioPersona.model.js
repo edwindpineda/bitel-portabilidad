@@ -65,20 +65,18 @@ class EnvioPersonaModel {
         id_persona,
         estado,
         fecha_envio,
-        id_campania_ejecucion,
         usuario_registro
     }) {
         try {
-            const [result] = await this.connection.execute(
+            const [, result] = await this.connection.execute(
                 `INSERT INTO envio_persona
-                (id_envio_masivo, id_persona, estado, fecha_envio, id_campania_ejecucion, estado_registro, usuario_registro)
-                VALUES (?, ?, ?, ?, ?, 1, ?)`,
+                (id_envio_masivo, id_persona, estado, fecha_envio, estado_registro, usuario_registro)
+                VALUES (?, ?, ?, ?, 1, ?)`,
                 [
                     id_envio_masivo,
                     id_persona || null,
                     estado || 'pendiente',
                     fecha_envio || null,
-                    id_campania_ejecucion || null,
                     usuario_registro || null
                 ]
             );
@@ -115,13 +113,13 @@ class EnvioPersonaModel {
                         persona.id_persona || null,
                         persona.estado || 'pendiente',
                         persona.fecha_envio || null,
-                        persona.id_campania_ejecucion || null,
+                        1,
                         usuario_registro || null
                     );
                 }
 
                 const sql = `INSERT INTO envio_persona
-                    (id_envio_masivo, id_persona, estado, fecha_envio, id_campania_ejecucion, usuario_registro)
+                    (id_envio_masivo, id_persona, estado, fecha_envio, estado_registro, usuario_registro)
                     VALUES ${values.join(', ')}`;
 
                 try {
@@ -146,20 +144,18 @@ class EnvioPersonaModel {
         estado,
         fecha_envio,
         error_mensaje,
-        id_campania_ejecucion,
         usuario_actualizacion
     }) {
         try {
-            const [result] = await this.connection.execute(
+            const [, result] = await this.connection.execute(
                 `UPDATE envio_persona
                 SET estado = ?, fecha_envio = ?, error_mensaje = ?,
-                    id_campania_ejecucion = ?, usuario_actualizacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP
+                    usuario_actualizacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP
                 WHERE id = ? AND estado_registro = 1`,
                 [
                     estado || null,
                     fecha_envio || null,
                     error_mensaje || null,
-                    id_campania_ejecucion || null,
                     usuario_actualizacion || null,
                     id
                 ]
@@ -172,7 +168,7 @@ class EnvioPersonaModel {
 
     async updateEstado(id, estado, error_mensaje = null, usuario_actualizacion = null) {
         try {
-            const [result] = await this.connection.execute(
+            const [, result] = await this.connection.execute(
                 `UPDATE envio_persona SET estado = ?, error_mensaje = ?, usuario_actualizacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ? AND estado_registro = 1`,
                 [estado, error_mensaje, usuario_actualizacion, id]
             );
@@ -184,7 +180,7 @@ class EnvioPersonaModel {
 
     async delete(id, usuario_actualizacion = null) {
         try {
-            const [result] = await this.connection.execute(
+            const [, result] = await this.connection.execute(
                 `UPDATE envio_persona SET estado_registro = 0, usuario_actualizacion = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = ?`,
                 [usuario_actualizacion, id]
             );

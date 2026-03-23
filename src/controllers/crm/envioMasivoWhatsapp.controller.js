@@ -73,6 +73,7 @@ class EnvioMasivoWhatsappController {
                 usuario_registro: userId
             });
 
+            logger.info(`[envioMasivoWhatsapp.controller.js] Envío masivo creado con id: ${id}`);
             return res.status(201).json({ data: { id }, msg: "Envío masivo creado correctamente" });
         } catch (error) {
             logger.error(`[envioMasivoWhatsapp.controller.js] Error al crear envío masivo: ${error.message}`);
@@ -136,14 +137,19 @@ class EnvioMasivoWhatsappController {
                 return res.status(400).json({ msg: "La plantilla asociada no fue encontrada" });
             }
 
+            // Detectar parámetros en el body de la plantilla ({{1}}, {{2}}, etc.)
+            const bodyParams = plantilla.body ? (plantilla.body.match(/\{\{\d+\}\}/g) || []) : [];
+            const numBodyParams = new Set(bodyParams).size;
+
             // Obtener los envio_persona pendientes
             const envioPersonas = await EnvioPersonaModel.getByEnvioMasivo(id);
+            logger.info(`[envioMasivoWhatsapp.controller.js] Envio ${id}: encontradas ${envioPersonas.length} personas, params plantilla: ${numBodyParams}`);
             if (envioPersonas.length === 0) {
                 return res.status(400).json({ msg: "No hay personas asociadas a este envío" });
             }
 
             // Actualizar estado del envio masivo a enviado (en proceso de envio)
-            await EnvioMasivoWhatsappModel.updateEstado(id, 'enviado', userId);
+            await EnvioMasivoWhatsappModel.updateEstado(id, 'entregado', userId);
 
             let cantidadExitosos = 0;
             let cantidadFallidos = 0;
@@ -164,14 +170,27 @@ class EnvioMasivoWhatsappController {
                 }
 
                 try {
+                    // Construir components si la plantilla tiene parámetros
+                    const components = [];
+                    if (numBodyParams > 0) {
+                        const bodyParameters = [];
+                        for (let p = 0; p < numBodyParams; p++) {
+                            // Usar nombre de persona como fallback para {{1}}
+                            const valor = p === 0 ? (ep.persona_nombre || 'Cliente') : '';
+                            bodyParameters.push({ type: 'text', text: valor });
+                        }
+                        components.push({ type: 'body', parameters: bodyParameters });
+                    }
+
                     await whatsappGraphService.enviarPlantilla(
                         idEmpresa,
                         celular,
                         plantilla.name,
-                        plantilla.language || 'es'
+                        plantilla.language || 'es',
+                        components
                     );
 
-                    await EnvioPersonaModel.updateEstado(ep.id, 'enviado', null, userId);
+                    await EnvioPersonaModel.updateEstado(ep.id, 'entregado', null, userId);
                     cantidadExitosos++;
                 } catch (error) {
                     const errorMsg = error.response?.data?.error?.message || error.message || 'Error desconocido';
