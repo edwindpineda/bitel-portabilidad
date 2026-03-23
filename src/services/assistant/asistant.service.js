@@ -1,12 +1,13 @@
 const { createLlmProvider } = require("../llm");
 const MemoryService = require("./memory.service");
 const { buildSystemPrompt } = require("./promptCache.service");
-const { toolDefinitions } = require("./tools/toolDefinitions");
 const ToolExecutor = require("./tools/toolExecutor");
 const { getLocalDateWithDay } = require("../../utils/customTimestamp");
+const { pool } = require("../../config/dbConnection");
 const logger = require("../../config/logger/loggerClient");
 
 const MAX_TOOL_ITERATIONS = 5;
+const _toolCache = {};
 
 class AssistantService {
 
@@ -14,6 +15,23 @@ class AssistantService {
         this.llmProvider = createLlmProvider();
         this.model = process.env.LLM_MODEL || "gpt-4.1-mini";
         this.temperature = Number(process.env.LLM_TEMPERATURE) || 0.5;
+    }
+
+    async getToolDefinitions(id_empresa) {
+        if (_toolCache[id_empresa]) return _toolCache[id_empresa];
+
+        const [rows] = await pool.query(
+            `SELECT t.ruta FROM empresa e
+             INNER JOIN tool t ON e.id_tool_chatbot = t.id
+             WHERE e.id = $1 AND t.estado_registro = 1`,
+            [id_empresa]
+        );
+
+        const ruta = rows.length > 0 ? rows[0].ruta : 'toolGenerica.js';
+        const { toolDefinitions } = require(`./tools/${ruta}`);
+        _toolCache[id_empresa] = toolDefinitions;
+        logger.info(`[AssistantService] Tools cargadas para empresa ${id_empresa}: ${ruta}`);
+        return toolDefinitions;
     }
 
     /**
@@ -27,10 +45,13 @@ class AssistantService {
      */
     async runProcess({ chatId, message, persona, id_empresa }) {
         try {
-            const systemPrompt = buildSystemPrompt({
+            const systemPrompt = await buildSystemPrompt({
                 persona,
-                timestamp: getLocalDateWithDay()
+                timestamp: getLocalDateWithDay(),
+                id_empresa
             });
+
+            const toolDefinitions = await this.getToolDefinitions(id_empresa);
 
             const history = await MemoryService.getConversationHistory(chatId);
 
@@ -39,7 +60,7 @@ class AssistantService {
                 { role: "user", content: message }
             ];
 
-            const toolExecutor = new ToolExecutor();
+            const toolExecutor = new ToolExecutor(persona);
 
             const newMessages = [{ role: "user", content: message }];
 
