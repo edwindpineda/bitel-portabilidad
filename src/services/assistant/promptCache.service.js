@@ -1,24 +1,36 @@
-const fs = require("fs");
-const path = require("path");
+const PromptAsistenteModel = require("../../models/promptAsistente.model");
 const logger = require("../../config/logger/loggerClient");
 
-let _cachedPromptTemplate = null;
+const _cache = {};
+const promptModel = new PromptAsistenteModel();
 
-function loadPromptTemplate() {
-    if (_cachedPromptTemplate) return _cachedPromptTemplate;
+async function getPromptByEmpresa(id_empresa) {
+    if (_cache[id_empresa]) return _cache[id_empresa];
 
-    const filePath = path.join(__dirname, "prompts", "auna.md");
-    _cachedPromptTemplate = fs.readFileSync(filePath, "utf-8");
-    logger.info("[promptCache] System prompt cargado y cacheado en memoria");
-    return _cachedPromptTemplate;
+    const record = await promptModel.getByEmpresa(id_empresa);
+    if (!record || !record.prompt_sistema) {
+        throw new Error(`No se encontró prompt_asistente para la empresa ${id_empresa}`);
+    }
+
+    _cache[id_empresa] = record.prompt_sistema;
+    logger.info(`[promptCache] Prompt cargado desde BD para empresa ${id_empresa}`);
+    return _cache[id_empresa];
 }
 
-function buildSystemPrompt({ persona, timestamp }) {
-    const template = loadPromptTemplate();
+async function buildSystemPrompt({ persona, timestamp, id_empresa }) {
+    const template = await getPromptByEmpresa(id_empresa);
 
     return template
         .replace("{{datos}}", JSON.stringify(persona))
         .replace("{{timestamp}}", timestamp);
 }
 
-module.exports = { loadPromptTemplate, buildSystemPrompt };
+function clearCache(id_empresa) {
+    if (id_empresa) {
+        delete _cache[id_empresa];
+    } else {
+        Object.keys(_cache).forEach(k => delete _cache[k]);
+    }
+}
+
+module.exports = { buildSystemPrompt, clearCache };
