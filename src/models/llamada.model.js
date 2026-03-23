@@ -173,25 +173,51 @@ class LlamadaModel {
     async getByCampaniaEjecucion(id_campania_ejecucion) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT l.*,
-                        tl.nombre as tipificacion_llamada_nombre, tl.color as tipificacion_llamada_color,
-                        ca.nombre as campania_nombre,
-                        bnd.telefono, bnd.nombre as contacto_nombre, bnd.numero_documento,
-                        ce.id as id_campania_ejecucion_rel,
-                        el.nombre as estado_llamada_nombre, el.color as estado_llamada_color,
-                        (SELECT COUNT(*)::integer FROM transcripcion t WHERE t.id_llamada = l.id AND t.estado_registro = 1) as tiene_transcripcion
+                `SELECT 
+                    l.*,
+                    tl.nombre AS tipificacion_llamada_nombre,
+                    tl.color AS tipificacion_llamada_color,
+            
+                    vt.nombre_nivel_1,
+                    vt.nombre_nivel_2,
+                    vt.nombre_nivel_3,
+                    vt.nombre_tipificacion,
+            
+                    ca.nombre AS campania_nombre,
+                    bnd.telefono,
+                    bnd.nombre AS contacto_nombre,
+                    bnd.numero_documento,
+                    ce.id AS id_campania_ejecucion_rel,
+                    el.nombre AS estado_llamada_nombre,
+                    el.color AS estado_llamada_color,
+                    (
+                        SELECT COUNT(*)::integer
+                        FROM transcripcion t
+                        WHERE t.id_llamada = l.id
+                          AND t.estado_registro = 1
+                    ) AS tiene_transcripcion
                 FROM llamada l
-                LEFT JOIN tipificacion_llamada tl ON tl.id = l.id_tipificacion_llamada
-                LEFT JOIN campania ca ON ca.id = l.id_campania
-                LEFT JOIN base_numero_detalle bnd ON bnd.id = l.id_base_numero_detalle
-                LEFT JOIN campania_ejecucion ce ON ce.id = l.id_campania_ejecucion
-                LEFT JOIN estado_llamada el ON el.id = l.id_estado_llamada
-                WHERE l.id_campania_ejecucion = ? AND l.estado_registro = 1
+                LEFT JOIN tipificacion_llamada tl
+                    ON tl.id = l.id_tipificacion_llamada
+                LEFT JOIN public.vw_tipificacion_llamada_mapeada vt
+                    ON vt.id_tipificacion::text = l.id_tipificacion_llamada::text
+                   AND vt.id_empresa::text = l.id_empresa::text
+                LEFT JOIN campania ca
+                    ON ca.id = l.id_campania
+                LEFT JOIN base_numero_detalle bnd
+                    ON bnd.id = l.id_base_numero_detalle
+                LEFT JOIN campania_ejecucion ce
+                    ON ce.id = l.id_campania_ejecucion
+                LEFT JOIN estado_llamada el
+                    ON el.id = l.id_estado_llamada
+                WHERE l.id_campania_ejecucion = ?
+                  AND l.estado_registro = 1
                 ORDER BY l.fecha_registro DESC`,
                 [id_campania_ejecucion]
             );
             return rows;
         } catch (error) {
+            console.error('❌ Error real en getByCampaniaEjecucion:', error);
             throw new Error(`Error al obtener llamadas por ejecucion: ${error.message}`);
         }
     }
