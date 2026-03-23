@@ -246,7 +246,7 @@ class LlamadaModel {
             const [rows] = await this.connection.execute(
                 `INSERT INTO llamada
                 (id_empresa, id_campania, id_base_numero, id_base_numero_detalle, id_campania_ejecucion, provider_call_id, codigo_llamada, id_estado_llamada, fecha_inicio, fecha_registro, estado_registro, usuario_registro)
-                VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima', 1, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1, NULL, CURRENT_TIMESTAMP, 1, ?)
                 RETURNING id`,
                 [
                     id_empresa,
@@ -274,7 +274,7 @@ class LlamadaModel {
             const [, result] = await this.connection.execute(
                 `UPDATE llamada
                 SET id_estado_llamada = 2,
-                    fecha_inicio = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
+                    fecha_inicio = CURRENT_TIMESTAMP
                 WHERE provider_call_id = ? AND id_estado_llamada = 1`,
                 [provider_call_id]
             );
@@ -346,7 +346,7 @@ class LlamadaModel {
             const [, result] = await this.connection.execute(
                 `UPDATE llamada
                 SET id_estado_llamada = 4,
-                    fecha_fin = CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'
+                    fecha_fin = CURRENT_TIMESTAMP
                 WHERE provider_call_id = ?`,
                 [provider_call_id]
             );
@@ -397,7 +397,7 @@ class LlamadaModel {
                 `UPDATE llamada
                 SET id_estado_llamada_asterisk = ?,
                     id_estado_llamada = ?,
-                    fecha_inicio = COALESCE(fecha_inicio, CURRENT_TIMESTAMP AT TIME ZONE 'America/Lima'),
+                    fecha_inicio = COALESCE(fecha_inicio, CURRENT_TIMESTAMP),
                     duracion_seg = COALESCE(?, duracion_seg),
                     fecha_fin = COALESCE(?, fecha_fin)
                 WHERE provider_call_id = ?`,
