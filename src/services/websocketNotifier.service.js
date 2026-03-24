@@ -1,6 +1,6 @@
 const logger = require('../config/logger/loggerClient');
 
-const WS_SERVER_URL = process.env.WS_SERVER_URL || 'http://localhost:8080';
+const WS_SERVER_URL = process.env.WS_SERVER_URL || 'https://bitel-websocket.xylure.easypanel.host';
 
 /**
  * Notifica al servidor WebSocket sobre mensajes entrantes/salientes
