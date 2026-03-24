@@ -1889,7 +1889,6 @@ class ConfiguracionController {
     try {
       const { id } = req.params;
       const { id_formato, nombre, descripcion, prompt } = req.body;
-      const idEmpresa = req.user?.idEmpresa || null;
       const usuario_actualizacion = req.user?.userId || null;
 
       if (!id_formato || !nombre || !prompt) {
@@ -1902,8 +1901,7 @@ class ConfiguracionController {
         nombre,
         descripcion,
         prompt,
-        usuario_actualizacion,
-        id_empresa: idEmpresa
+        usuario_actualizacion
       });
 
       if (!updated) {
