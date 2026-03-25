@@ -63,8 +63,9 @@ class MessageProcessingController {
                     usuario_registro: null
                 });
             }
-
-            persona = {...persona, ...persona.json_adicional}
+            logger.info(`[messageProcessing.controller.js] Datos persona ${JSON.stringify(persona)}`);
+            persona = { ...persona, ...persona.json_adicional }
+            logger.info(`[messageProcessing.controller.js] Datos formateado ${JSON.stringify(persona)}`);
 
             let chat = await Chat.findByPersona(persona.id);
             if (!chat) {
