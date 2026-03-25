@@ -22,6 +22,7 @@ const PromptAsistenteModel = require("../../models/promptAsistente.model.js");
 const ConfiguracionCampaniaLlamadaModel = require("../../models/configuracionCampaniaLlamada.model.js");
 const TipoPersonaModel = require("../../models/tipoPersona.model.js");
 const VozModel = require("../../models/voz.model.js");
+const CampoSistemaModel = require("../../models/campoSistema.model.js");
 const { pool } = require("../../config/dbConnection.js");
 const logger = require('../../config/logger/loggerClient.js');
 const xlsx = require('xlsx');
@@ -3164,6 +3165,19 @@ class ConfiguracionController {
     }
   }
 
+  // ============ CAMPOS SISTEMA ============
+
+  async getCamposSistema(req, res) {
+    try {
+      const model = new CampoSistemaModel();
+      const campos = await model.getAll();
+      return res.status(200).json({ data: campos });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener campos del sistema: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener campos del sistema" });
+    }
+  }
+
   // ============ FORMATO CAMPO PLANTILLA ============
 
   async getCamposPlantilla(req, res) {
@@ -3197,15 +3211,15 @@ class ConfiguracionController {
 
   async createCampoPlantilla(req, res) {
     try {
-      const { id_plantilla, id_formato_campo } = req.body;
+      const { id_plantilla, id_formato_campo, id_campo_sistema } = req.body;
       const usuario_registro = req.user?.userId || null;
 
-      if (!id_plantilla || !id_formato_campo) {
-        return res.status(400).json({ msg: "id_plantilla e id_formato_campo son requeridos" });
+      if (!id_plantilla || (!id_formato_campo && !id_campo_sistema)) {
+        return res.status(400).json({ msg: "id_plantilla y al menos id_formato_campo o id_campo_sistema son requeridos" });
       }
 
       const model = new FormatoCampoPlantillaModel();
-      const id = await model.create({ id_plantilla, id_formato_campo, usuario_registro });
+      const id = await model.create({ id_plantilla, id_formato_campo, id_campo_sistema, usuario_registro });
 
       return res.status(201).json({ msg: "Campo de plantilla creado exitosamente", data: { id } });
     } catch (error) {
@@ -3214,6 +3228,11 @@ class ConfiguracionController {
     }
   }
 
+  /**
+   * Sincroniza campos de plantilla.
+   * Acepta campo_ids (array de objetos con id_formato_campo o id_campo_sistema)
+   * o el formato legacy (array de números que se interpretan como id_formato_campo)
+   */
   async syncCamposPlantilla(req, res) {
     try {
       const { idPlantilla } = req.params;
@@ -3224,8 +3243,16 @@ class ConfiguracionController {
         return res.status(400).json({ msg: "campo_ids debe ser un array" });
       }
 
+      // Normalizar: si recibimos números planos, convertir al formato de objetos
+      const campoItems = campo_ids.map((item) => {
+        if (typeof item === 'number' || typeof item === 'string') {
+          return { id_formato_campo: Number(item) };
+        }
+        return item;
+      });
+
       const model = new FormatoCampoPlantillaModel();
-      const ids = await model.syncByPlantilla(idPlantilla, campo_ids, usuario_registro);
+      const ids = await model.syncByPlantilla(idPlantilla, campoItems, usuario_registro);
 
       return res.status(200).json({ msg: "Campos de plantilla sincronizados", data: { ids } });
     } catch (error) {

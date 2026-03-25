@@ -8,11 +8,19 @@ class FormatoCampoPlantillaModel {
     async getAllByPlantilla(idPlantilla) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT fcp.*, fc.nombre_campo, fc.etiqueta, fc.tipo_dato, fc.requerido, fc.orden
+                `SELECT fcp.id, fcp.id_plantilla, fcp.id_formato_campo, fcp.id_campo_sistema,
+                    COALESCE(fc.nombre_campo, cs.nombre) AS nombre_campo,
+                    COALESCE(fc.etiqueta, cs.etiqueta) AS etiqueta,
+                    COALESCE(fc.tipo_dato, cs.tipo_dato) AS tipo_dato,
+                    COALESCE(fc.requerido, cs.requerido::int) AS requerido,
+                    fc.orden,
+                    CASE WHEN fcp.id_campo_sistema IS NOT NULL THEN 'sistema' ELSE 'formato' END AS origen
                 FROM formato_campo_plantilla fcp
-                INNER JOIN formato_campo fc ON fcp.id_formato_campo = fc.id AND fc.estado_registro = 1
+                LEFT JOIN formato_campo fc ON fcp.id_formato_campo = fc.id AND fc.estado_registro = 1
+                LEFT JOIN campo_sistema cs ON fcp.id_campo_sistema = cs.id AND cs.estado_registro = 1
                 WHERE fcp.id_plantilla = ? AND fcp.estado_registro = 1
-                ORDER BY fc.orden ASC`,
+                    AND (fc.id IS NOT NULL OR cs.id IS NOT NULL)
+                ORDER BY fc.orden ASC, cs.nombre ASC`,
                 [idPlantilla]
             );
             return rows;
@@ -24,9 +32,13 @@ class FormatoCampoPlantillaModel {
     async getById(id) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT fcp.*, fc.nombre_campo, fc.etiqueta, fc.tipo_dato
+                `SELECT fcp.id, fcp.id_plantilla, fcp.id_formato_campo, fcp.id_campo_sistema,
+                    COALESCE(fc.nombre_campo, cs.nombre) AS nombre_campo,
+                    COALESCE(fc.etiqueta, cs.etiqueta) AS etiqueta,
+                    COALESCE(fc.tipo_dato, cs.tipo_dato) AS tipo_dato
                 FROM formato_campo_plantilla fcp
-                INNER JOIN formato_campo fc ON fcp.id_formato_campo = fc.id
+                LEFT JOIN formato_campo fc ON fcp.id_formato_campo = fc.id
+                LEFT JOIN campo_sistema cs ON fcp.id_campo_sistema = cs.id
                 WHERE fcp.id = ? AND fcp.estado_registro = 1`,
                 [id]
             );
@@ -36,13 +48,13 @@ class FormatoCampoPlantillaModel {
         }
     }
 
-    async create({ id_plantilla, id_formato_campo, usuario_registro }) {
+    async create({ id_plantilla, id_formato_campo, id_campo_sistema, usuario_registro }) {
         try {
             const [result] = await this.connection.execute(
                 `INSERT INTO formato_campo_plantilla
-                (id_plantilla, id_formato_campo, estado_registro, usuario_registro)
-                VALUES (?, ?, 1, ?)`,
-                [id_plantilla, id_formato_campo, usuario_registro || null]
+                (id_plantilla, id_formato_campo, id_campo_sistema, estado_registro, usuario_registro)
+                VALUES (?, ?, ?, 1, ?)`,
+                [id_plantilla, id_formato_campo || null, id_campo_sistema || null, usuario_registro || null]
             );
             return result.insertId;
         } catch (error) {
@@ -50,15 +62,23 @@ class FormatoCampoPlantillaModel {
         }
     }
 
-    async bulkCreate(idPlantilla, campoIds, usuarioRegistro = null) {
+    /**
+     * Crea campos en lote. Cada item puede ser:
+     * - { id_formato_campo: N } para campos de formato
+     * - { id_campo_sistema: N } para campos del sistema
+     */
+    async bulkCreate(idPlantilla, campoItems, usuarioRegistro = null) {
         try {
             const results = [];
-            for (const idCampo of campoIds) {
+            for (const item of campoItems) {
+                const idFormatoCampo = item.id_formato_campo || null;
+                const idCampoSistema = item.id_campo_sistema || null;
+
                 const [result] = await this.connection.execute(
                     `INSERT INTO formato_campo_plantilla
-                    (id_plantilla, id_formato_campo, estado_registro, usuario_registro)
-                    VALUES (?, ?, 1, ?)`,
-                    [idPlantilla, idCampo, usuarioRegistro]
+                    (id_plantilla, id_formato_campo, id_campo_sistema, estado_registro, usuario_registro)
+                    VALUES (?, ?, ?, 1, ?)`,
+                    [idPlantilla, idFormatoCampo, idCampoSistema, usuarioRegistro]
                 );
                 results.push(result.insertId);
             }
@@ -96,14 +116,18 @@ class FormatoCampoPlantillaModel {
         }
     }
 
-    async syncByPlantilla(idPlantilla, campoIds, usuarioRegistro = null) {
+    /**
+     * Sincroniza campos de plantilla. Acepta array de objetos:
+     * [{ id_formato_campo: N }, { id_campo_sistema: N }, ...]
+     */
+    async syncByPlantilla(idPlantilla, campoItems, usuarioRegistro = null) {
         try {
             // Desactivar todos los campos actuales
             await this.deleteByPlantilla(idPlantilla, usuarioRegistro);
 
             // Crear los nuevos
-            if (campoIds && campoIds.length > 0) {
-                return await this.bulkCreate(idPlantilla, campoIds, usuarioRegistro);
+            if (campoItems && campoItems.length > 0) {
+                return await this.bulkCreate(idPlantilla, campoItems, usuarioRegistro);
             }
             return [];
         } catch (error) {

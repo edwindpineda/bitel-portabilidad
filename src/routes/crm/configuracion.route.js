@@ -238,6 +238,9 @@ router.get("/tipos-persona", ConfiguracionController.getTiposPersona);
 // Rutas de Conversaciones
 router.get("/conversaciones", ConfiguracionController.getConversaciones);
 
+// Rutas de Campos Sistema
+router.get("/campos-sistema", ConfiguracionController.getCamposSistema);
+
 // Rutas de Formato Campo Plantilla
 router.get("/plantillas-whatsapp/:idPlantilla/campos", ConfiguracionController.getCamposPlantilla);
 router.get("/formato-campo-plantilla/:id", ConfiguracionController.getCampoPlantillaById);
