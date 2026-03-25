@@ -169,7 +169,7 @@ class N8nEnvioMasivoController {
       }
 
       // Actualizar estado a enviado (en proceso)
-      await EnvioMasivoWhatsappModel.updateEstado(id, 'enviado');
+      await EnvioMasivoWhatsappModel.updateEstado(id, 'entregado');
 
       const resultados = {
         envio_id: parseInt(id),
@@ -254,7 +254,7 @@ class N8nEnvioMasivoController {
                 resultados.detalles.push({
                   telefono: celular,
                   nombre: detalle.nombre || '',
-                  status: 'enviado'
+                  status: 'entregado'
                 });
 
                 // Registrar chat y mensaje saliente en BD
