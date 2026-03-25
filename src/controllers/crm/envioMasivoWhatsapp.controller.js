@@ -265,7 +265,7 @@ class EnvioMasivoWhatsappController {
                                     await Mensaje.create({
                                         id_chat: chat.id,
                                         contenido: `[Envío masivo] Plantilla: ${plantilla.name}`,
-                                        direccion: "in",
+                                        direccion: "out",
                                         wid_mensaje: null,
                                         tipo_mensaje: "plantilla",
                                         fecha_hora: new Date(),
