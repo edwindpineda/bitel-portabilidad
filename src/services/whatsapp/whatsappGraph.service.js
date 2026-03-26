@@ -433,7 +433,9 @@ class WhatsappGraphService {
       payload.template.components = components;
     }
 
-    logger.info(`[WhatsappGraph] Enviando plantilla ${templateName} a ${formattedPhone}`);
+    logger.info(`[WhatsappGraph] Enviando plantilla ${templateName} a ${formattedPhone}`, {
+      payload: JSON.stringify(payload)
+    });
 
     try {
       const response = await axios.post(url, payload, {
@@ -443,6 +445,8 @@ class WhatsappGraphService {
         },
         timeout: 30000
       });
+
+      logger.info(`[WhatsappGraph] Respuesta envío plantilla ${templateName}: ${JSON.stringify(response.data)}`);
 
       return {
         success: true,
