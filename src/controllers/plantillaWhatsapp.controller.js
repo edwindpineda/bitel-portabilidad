@@ -138,11 +138,49 @@ class PlantillaWhatsappController {
         }
       }
 
+      // 4. Re-leer BD ya sincronizada y construir response desde datos locales
+      const plantillasActualizadas = await plantillaWhatsappRepository.findAll(idEmpresa);
+
+      // Indexar datos de Meta para agregar campos que no se guardan en BD (quality_score, rejected_reason, components)
+      const mapaMeta = {};
+      for (const t of result.templates) {
+        mapaMeta[t.name] = t;
+      }
+
+      const templates = plantillasActualizadas.map(local => {
+        const meta = mapaMeta[local.name];
+        return {
+          id: local.meta_template_id,
+          id_local: local.id,
+          meta_template_id: local.meta_template_id,
+          name: local.name,
+          status: local.status,
+          category: local.category,
+          language: local.language,
+          header_type: local.header_type,
+          header_text: local.header_text,
+          body: local.body,
+          footer: local.footer,
+          buttons: local.buttons,
+          url_imagen: local.url_imagen,
+          id_formato: local.id_formato,
+          formato_nombre: local.formato_nombre,
+          stats_enviados: local.stats_enviados || 0,
+          stats_entregados: local.stats_entregados || 0,
+          stats_leidos: local.stats_leidos || 0,
+          fecha_registro: local.fecha_registro,
+          // Campos exclusivos de Meta (no se guardan en BD)
+          components: meta?.components || [],
+          quality_score: meta?.quality_score || null,
+          rejected_reason: meta?.rejected_reason || null
+        };
+      });
+
       return res.status(200).json({
         success: true,
         data: {
-          templates: result.templates,
-          total: result.total,
+          templates,
+          total: templates.length,
           waba_id: result.waba_id
         }
       });
