@@ -1,0 +1,12 @@
+{
+  "name": "bitel-websocket",
+  "version": "1.0.0",
+  "description": "Servidor WebSocket para Bitel Portabilidad CRM",
+  "main": "websocketServer.js",
+  "scripts": {
+    "start": "node websocketServer.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

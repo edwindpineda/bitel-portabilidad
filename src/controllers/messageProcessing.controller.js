@@ -173,8 +173,8 @@ class MessageProcessingController {
             });
 
             // Notificar al WebSocket sobre mensaje saliente
-            websocketNotifier.notificarMensajeSaliente(persona.id, {
-                id_contacto: persona.id,
+            websocketNotifier.notificarMensajeSaliente(chatId, {
+                id_contacto: chatId,
                 contenido: respuestaTexto,
                 direccion: "out",
                 wid_mensaje: widRespuesta || widTrimmed,
