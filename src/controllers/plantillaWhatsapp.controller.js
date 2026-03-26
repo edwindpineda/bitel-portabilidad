@@ -425,6 +425,9 @@ class PlantillaWhatsappController {
         return res.status(400).json({ msg: "El teléfono y nombre de plantilla son requeridos" });
       }
 
+      // Obtener plantilla de BD para registrar el body real
+      const plantillaBd = await plantillaWhatsappRepository.findByName(template_name, id_empresa);
+
       const result = await whatsappGraphService.enviarPlantilla(
         id_empresa,
         phone,
@@ -441,7 +444,7 @@ class PlantillaWhatsappController {
 
       // Crear chat si no existe y guardar mensaje saliente
       try {
-        const persona = await Persona.selectByCelular(phone, id_empresa);
+        let persona = await Persona.selectByCelular(phone, id_empresa);
         if (!persona) {
           const usuarioInstance = new Usuario();
           const asesores = await usuarioInstance.getByRol(3);
@@ -467,22 +470,32 @@ class PlantillaWhatsappController {
               usuario_registro: null
           });
         }
-        
+
         let chat = await Chat.findByPersona(persona.id);
         if (!chat) {
-          chat = await Chat.create({
+          const chatId = await Chat.create({
             id_empresa,
             id_persona: persona.id,
             usuario_registro: null
           });
+          chat = { id: chatId };
+        }
+
+        // Reemplazar {{1}}, {{2}}, etc. con los valores reales enviados
+        let contenidoMensaje = plantillaBd?.body || template_name;
+        const bodyComp = (components || []).find(c => c.type === 'body');
+        if (bodyComp && bodyComp.parameters) {
+          bodyComp.parameters.forEach((param, i) => {
+            contenidoMensaje = contenidoMensaje.replace(`{{${i + 1}}}`, param.text);
+          });
         }
 
         await Mensaje.create({
-          id_chat: chat.id || chat,
-          contenido: `Hola soy Lili, aqui te comparto el link de operación: ${template_name}`,
+          id_chat: chat.id,
+          contenido: contenidoMensaje,
           direccion: "out",
           wid_mensaje: null,
-          tipo_mensaje: "texto",
+          tipo_mensaje: "plantilla",
           fecha_hora: new Date(),
           usuario_registro: null
         });
