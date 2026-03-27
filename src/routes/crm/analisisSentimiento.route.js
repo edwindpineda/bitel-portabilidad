@@ -9,7 +9,10 @@ router.get("/analisis/llamada/:idLlamada", AnalisisSentimientoController.getByLl
 // GET /crm/analisis/chat/:idChat
 router.get("/analisis/chat/:idChat", AnalisisSentimientoController.getByChat);
 
-// GET /crm/analisis/dashboard?fecha_inicio=2026-01-01&fecha_fin=2026-03-31
+// GET /crm/analisis/dashboard
 router.get("/analisis/dashboard", AnalisisSentimientoController.getDashboard);
+
+// POST /crm/analisis/backfill-llamadas?limit=50
+router.post("/analisis/backfill-llamadas", AnalisisSentimientoController.backfillLlamadas);
 
 module.exports = router;

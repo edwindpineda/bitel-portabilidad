@@ -2,6 +2,8 @@ const { pool } = require("../../config/dbConnection.js");
 const AnalisisLlamadaModel = require("../../models/analisisLlamada.model.js");
 const AnalisisSentimientoModel = require("../../models/analisisSentimiento.model.js");
 const PreguntaFrecuenteAnalisisModel = require("../../models/preguntaFrecuenteAnalisis.model.js");
+const TranscripcionModel = require("../../models/transcripcion.model.js");
+const sentimientoService = require('../../services/analisis/sentimiento.service.js');
 const logger = require('../../config/logger/loggerClient.js');
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -224,6 +226,63 @@ class AnalisisSentimientoController {
         } catch (error) {
             logger.error(`[analisisSentimiento.controller] Error getDashboard: ${error.message}`);
             return res.status(500).json({ msg: "Error al obtener dashboard de análisis" });
+        }
+    }
+    async backfillLlamadas(req, res) {
+        try {
+            const { idEmpresa } = req.user;
+            const limit = parseInt(req.query.limit) || 50;
+
+            const [candidatos] = await pool.execute(
+                `SELECT l.id as id_llamada, l.fecha_registro
+                FROM llamada l
+                INNER JOIN transcripcion t ON t.id_llamada = l.id AND t.estado_registro = 1
+                LEFT JOIN analisis_sentimiento a ON a.id_llamada = l.id AND a.estado_registro = 1
+                WHERE l.id_empresa = ? AND l.estado_registro = 1 AND a.id IS NULL
+                GROUP BY l.id, l.fecha_registro
+                ORDER BY l.fecha_registro DESC
+                LIMIT ?`,
+                [idEmpresa, limit]
+            );
+
+            if (candidatos.length === 0) {
+                return res.status(200).json({ msg: "Sin llamadas pendientes", data: { procesados: 0, errores: 0, pendientes: 0 } });
+            }
+
+            const transcripcionModel = new TranscripcionModel();
+            let procesados = 0;
+            let errores = 0;
+
+            for (const c of candidatos) {
+                try {
+                    const transcripcion = await transcripcionModel.getByLlamada(c.id_llamada);
+                    if (transcripcion.length > 0) {
+                        await sentimientoService.analizarLlamada(c.id_llamada, transcripcion, idEmpresa);
+                        procesados++;
+                    }
+                } catch (err) {
+                    logger.error(`[analisisSentimiento.controller] Backfill error llamada ${c.id_llamada}: ${err.message}`);
+                    errores++;
+                }
+            }
+
+            // Contar pendientes restantes
+            const [pendientesRows] = await pool.execute(
+                `SELECT COUNT(DISTINCT l.id) as total
+                FROM llamada l
+                INNER JOIN transcripcion t ON t.id_llamada = l.id AND t.estado_registro = 1
+                LEFT JOIN analisis_sentimiento a ON a.id_llamada = l.id AND a.estado_registro = 1
+                WHERE l.id_empresa = ? AND l.estado_registro = 1 AND a.id IS NULL`,
+                [idEmpresa]
+            );
+
+            return res.status(200).json({
+                msg: "Backfill completado",
+                data: { procesados, errores, pendientes: parseInt(pendientesRows[0]?.total || 0) }
+            });
+        } catch (error) {
+            logger.error(`[analisisSentimiento.controller] Error backfill: ${error.message}`);
+            return res.status(500).json({ msg: "Error en backfill", error: error.message });
         }
     }
 }
