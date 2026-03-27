@@ -166,7 +166,7 @@ class LlamadaController {
             const archivo_llamada = await s3Service.uploadFile(req.file, 'llamadas', llamada.id_empresa);
 
             // Actualizar la llamada con el archivo de audio, estado COMPLETED y duración directamente por id
-            const [, result] = await llamadaModel.connection.execute(
+            const [result] = await llamadaModel.connection.execute(
                 `UPDATE llamada SET archivo_llamada = $1, id_estado_llamada_asterisk = $2, duracion_seg = $3 WHERE id = $4`,
                 [archivo_llamada, estadoCompleted?.id || null, duracion ? parseInt(duracion) : null, id_llamada]
             );
@@ -180,7 +180,7 @@ class LlamadaController {
             return res.status(200).json({
                 msg: "Audio subido exitosamente",
                 data: {
-                    id_llamada: llamada.id,
+                    id_llamada: parseInt(id_llamada),
                     archivo_llamada,
                     id_estado_llamada_asterisk: estadoCompleted?.id || null,
                     duracion_seg: duracion ? parseInt(duracion) : null
@@ -303,7 +303,7 @@ class LlamadaController {
             }
 
             // Actualizar la llamada directamente por id: id_estado_llamada = 3 (Fallida)
-            const [, result] = await llamadaModel.connection.execute(
+            const [result] = await llamadaModel.connection.execute(
                 `UPDATE llamada SET id_estado_llamada = 3, id_estado_llamada_asterisk = $1, id_tipificacion_llamada = 240, fecha_inicio = CURRENT_TIMESTAMP WHERE id = $2`,
                 [estadoAsterisk ? estadoAsterisk.id : null, id_llamada]
             );
@@ -318,7 +318,7 @@ class LlamadaController {
                 msg: "Estado de llamada actualizado exitosamente",
                 data: {
                     provider_call_id: provider_call_id || llamada.provider_call_id,
-                    id_llamada: llamada.id,
+                    id_llamada: parseInt(id_llamada),
                     id_estado_llamada: 3,
                     id_estado_llamada_asterisk: estadoAsterisk ? estadoAsterisk.id : null,
                     status
@@ -349,7 +349,7 @@ class LlamadaController {
             }
 
             // Actualizar estado a 2 (En curso), fecha_inicio y vincular provider_call_id
-            const [, result] = await llamadaModel.connection.execute(
+            const [result] = await llamadaModel.connection.execute(
                 `UPDATE llamada
                 SET id_estado_llamada = 2,
                     fecha_inicio = CURRENT_TIMESTAMP,
@@ -369,7 +369,7 @@ class LlamadaController {
                 msg: "Llamada iniciada exitosamente",
                 data: {
                     provider_call_id,
-                    id_llamada: llamada.id,
+                    id_llamada: parseInt(id_llamada),
                     id_estado_llamada: 2
                 }
             });
@@ -411,7 +411,7 @@ class LlamadaController {
             }
 
             // Actualizar estado a 4 (Completada) y fecha_fin directamente por id
-            const [, result] = await llamadaModel.connection.execute(
+            const [result] = await llamadaModel.connection.execute(
                 `UPDATE llamada SET id_estado_llamada = 4, fecha_fin = CURRENT_TIMESTAMP WHERE id = $1`,
                 [llamada.id]
             );
@@ -426,7 +426,7 @@ class LlamadaController {
                 msg: "Llamada terminada exitosamente",
                 data: {
                     provider_call_id: provider_call_id || llamada.provider_call_id,
-                    id_llamada: llamada.id,
+                    id_llamada: llamada.id || parseInt(id_llamada),
                     id_estado_llamada: 4
                 }
             });
