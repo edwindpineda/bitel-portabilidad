@@ -332,9 +332,10 @@ class PlantillaWhatsappController {
         }
       }
 
-      // 2. Actualizar en BD
+      // 2. Actualizar en BD (status pasa a PENDING tras edición en Meta)
       const [updated] = await plantillaWhatsappRepository.update(id, {
         name: name.toLowerCase().replace(/\s+/g, '_'),
+        status: 'PENDING',
         category,
         language,
         header_type,
