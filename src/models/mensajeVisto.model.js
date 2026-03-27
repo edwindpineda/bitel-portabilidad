@@ -69,8 +69,8 @@ class MensajeVistoModel {
     async registrar({ id_mensaje, id_usuario, id_contacto, tipo_recuperacion, fecha_visto }) {
         const [result] = await this.connection.execute(
             `INSERT INTO mensaje_visto (id_mensaje, id_usuario, id_contacto, tipo_recuperacion, fecha_visto, mensaje_enviado, estado_registro, usuario_registro, fecha_registro, fecha_actualizacion)
-             VALUES (?, ?, ?, ?, ? AT TIME ZONE 'America/Lima', false, 1, ?, ? AT TIME ZONE 'America/Lima', NOW() AT TIME ZONE 'America/Lima')`,
-            [id_mensaje, id_usuario, id_contacto, tipo_recuperacion || null, fecha_visto, id_usuario, fecha_visto]
+             VALUES (?, ?, ?, ?, ? AT TIME ZONE 'America/Lima', false, 1, ?, NOW() AT TIME ZONE 'America/Lima', NOW() AT TIME ZONE 'America/Lima')`,
+            [id_mensaje, id_usuario, id_contacto, tipo_recuperacion || null, fecha_visto, id_usuario]
         );
         return result.insertId;
     }
@@ -141,7 +141,7 @@ class MensajeVistoModel {
         if (!registros.length) return 0;
 
         const valores = registros.map(() =>
-            '(?, ?, ?, ?, ? AT TIME ZONE \'America/Lima\', false, 1, ?, ? AT TIME ZONE \'America/Lima\', NOW() AT TIME ZONE \'America/Lima\')'
+            '(?, ?, ?, ?, ? AT TIME ZONE \'America/Lima\', false, 1, ?, NOW() AT TIME ZONE \'America/Lima\', NOW() AT TIME ZONE \'America/Lima\')'
         ).join(', ');
 
         const params = registros.flatMap(r => [
@@ -150,8 +150,7 @@ class MensajeVistoModel {
             r.id_contacto,
             r.tipo_recuperacion || null,
             r.fecha_visto,
-            r.id_usuario,
-            r.fecha_visto
+            r.id_usuario
         ]);
 
         const [result] = await this.connection.execute(
