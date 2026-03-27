@@ -32,6 +32,8 @@ const envioMasivoWhatsappRoutes = require("./routes/crm/envioMasivoWhatsapp.rout
 const envioPersonaRoutes = require("./routes/crm/envioBase.route.js");
 const n8nEnvioMasivoRoutes = require("./routes/crm/n8nEnvioMasivo.route.js");
 const n8nEmpresaRoutes = require("./routes/crm/n8nEmpresa.route.js");
+const n8nMensajeVistoRoutes = require("./routes/crm/n8nMensajeVisto.route.js");
+const n8nRecuperacionRoutes = require("./routes/crm/n8nRecuperacion.route.js");
 const app = express();
 
 // CORS - permitir todas las peticiones (debe ir primero)
@@ -67,6 +69,8 @@ app.use("/api/sandbox", sandboxRoutes);
 app.use("/api/asterisk", asteriskRoutes);
 app.use("/api/n8n", n8nEnvioMasivoRoutes);
 app.use("/api/n8n", n8nEmpresaRoutes);
+app.use("/api/n8n", n8nMensajeVistoRoutes);
+app.use("/api/n8n", n8nRecuperacionRoutes);
 app.post("/api/crm/tipificaciones", ConfiguracionController.createTipificacion);
 // Rutas protegidas del CRM (requieren auth)
 app.use("/api/crm", authMiddleware, configuracionRoutes, llamadaRoutes, tipificacionLlamadaRoutes, personaRoutes, whatsappRoutes, transcripcionRoutes, configuracionWhatsappRoutes, consumoIndicadoresRoutes);
