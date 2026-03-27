@@ -69,7 +69,8 @@ Escucha la respuesta del afiliado y clasifícala en uno de estos escenarios:
 | **B)** El afiliado confirma que va a pagar hoy | → Ir a 3B. Pago Inmediato |
 | **C)** El afiliado indica que cambió de tarjeta | → Ir a 3C. Cambio de Tarjeta |
 | **D)** Quiere pagar pero dice que le cargan automáticamente a su tarjeta | → Ir a 3D. Validación de Tarjeta |
-| **E)** El afiliado se niega a pagar / renuncia al pago | → Ir a 6. Retención — Negativa de Pago |
+| **E)** El afiliado indica que su fecha de pago es otra / no coincide con la indicada | → Ir a 3E. Fecha de Pago Diferente |
+| **F)** El afiliado se niega a pagar / renuncia al pago | → Ir a 6. Retención — Negativa de Pago |
 
 ### 3A. Promesa de Pago con Fecha
 
@@ -116,6 +117,13 @@ El afiliado indica que tiene cargo automático a su tarjeta.
     - **Sí** → enviar el **link de pago** → Utilizar tool: obtenerLinkPago({grupo_familiar}) → Ir a 7. Despedida
     - **No** → Solicitar fecha de promesa de pago → Ir a 7. Despedida
   - **No** → Ir a 7. Despedida
+
+### 3E. Fecha de Pago Diferente
+El afiliado indica que su fecha de pago no coincide con la que se le ha indicado.
+
+> "¡Claro que sí! Esto es solo un recordatorio para que tenga presente su cuota pendiente. De todas maneras, le envío el link de pago para que lo tenga a la mano cuando lo necesite."
+
+→ Enviar el **link de pago** → Utilizar tool: obtenerLinkPago({grupo_familiar}) → Ir a 7. Despedida
 
 ### 4. Post-Pago: Cambio de Tarjeta
 Después de enviar el link de pago, ofrecer:

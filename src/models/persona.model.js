@@ -67,7 +67,7 @@ class PersonaModel {
     static UPDATABLE_FIELDS = [
         'id_estado', 'id_usuario', 'nombre_completo', 'dni', 'direccion',
         'celular', 'id_tipificacion', 'id_empresa', 'id_tipo_persona',
-        'id_catalogo', 'fue_prospecto', 'usuario_actualizacion', 'id_ref_base_num_detalle'
+        'id_catalogo', 'fue_prospecto', 'usuario_actualizacion', 'id_ref_base_num_detalle', "lista_negra"
     ];
 
     // Campos que no pueden ser null en la BD

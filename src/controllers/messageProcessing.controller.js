@@ -67,6 +67,12 @@ class MessageProcessingController {
                 });
             }
             // logger.info(`[messageProcessing.controller.js] Datos persona ${JSON.stringify(persona)}`);
+            if (question === "No contactar") {
+                await Persona.updatePersona({ lista_negra: true });
+                logger.info(`[messageProcessing.controller.js] Persona con numero ${phone} actualizado en lista negra`);
+                return;
+            }
+
 
             let chat = await Chat.findByPersona(persona.id);
             if (!chat) {
