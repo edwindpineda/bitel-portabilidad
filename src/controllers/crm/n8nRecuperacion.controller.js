@@ -55,7 +55,8 @@ class N8nRecuperacionController {
         id_mensaje: msg.id_mensaje,
         id_usuario: msg.id_usuario,
         id_contacto: msg.id_chat,
-        tipo_recuperacion: null
+        tipo_recuperacion: null,
+        fecha_visto: msg.fecha_hora
       }));
 
       const totalInsertados = await mensajeVistoModel.bulkCreate(registros);

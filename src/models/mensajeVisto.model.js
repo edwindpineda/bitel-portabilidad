@@ -66,11 +66,11 @@ class MensajeVistoModel {
      * @param {Object} data
      * @returns {Promise<number>} id del registro creado
      */
-    async registrar({ id_mensaje, id_usuario, id_contacto, tipo_recuperacion }) {
+    async registrar({ id_mensaje, id_usuario, id_contacto, tipo_recuperacion, fecha_visto }) {
         const [result] = await this.connection.execute(
             `INSERT INTO mensaje_visto (id_mensaje, id_usuario, id_contacto, tipo_recuperacion, fecha_visto, mensaje_enviado, estado_registro, usuario_registro, fecha_registro, fecha_actualizacion)
-             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, false, 1, ?, NOW(), NOW())`,
-            [id_mensaje, id_usuario, id_contacto, tipo_recuperacion || null, id_usuario]
+             VALUES (?, ?, ?, ?, ? AT TIME ZONE 'America/Lima', false, 1, ?, ? AT TIME ZONE 'America/Lima', NOW() AT TIME ZONE 'America/Lima')`,
+            [id_mensaje, id_usuario, id_contacto, tipo_recuperacion || null, fecha_visto, id_usuario, fecha_visto]
         );
         return result.insertId;
     }
@@ -83,7 +83,7 @@ class MensajeVistoModel {
      */
     async actualizarEstadoEnvio(id, enviado, errorEnvio = null) {
         await this.connection.execute(
-            `UPDATE mensaje_visto SET mensaje_enviado = ?, error_envio = ?, fecha_actualizacion = NOW() WHERE id = ?`,
+            `UPDATE mensaje_visto SET mensaje_enviado = ?, error_envio = ?, fecha_actualizacion = NOW() AT TIME ZONE 'America/Lima' WHERE id = ?`,
             [enviado, errorEnvio, id]
         );
     }
@@ -141,7 +141,7 @@ class MensajeVistoModel {
         if (!registros.length) return 0;
 
         const valores = registros.map(() =>
-            '(?, ?, ?, ?, CURRENT_TIMESTAMP, false, 1, ?, NOW(), NOW())'
+            '(?, ?, ?, ?, ? AT TIME ZONE \'America/Lima\', false, 1, ?, ? AT TIME ZONE \'America/Lima\', NOW() AT TIME ZONE \'America/Lima\')'
         ).join(', ');
 
         const params = registros.flatMap(r => [
@@ -149,7 +149,9 @@ class MensajeVistoModel {
             r.id_usuario,
             r.id_contacto,
             r.tipo_recuperacion || null,
-            r.id_usuario
+            r.fecha_visto,
+            r.id_usuario,
+            r.fecha_visto
         ]);
 
         const [result] = await this.connection.execute(
