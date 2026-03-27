@@ -17,9 +17,18 @@ class PagoService {
       })
     });
 
-    const result = await response.json();
-
-    return result?.tipo_token + " " + result?.token_acceso
+    const text = await response.text();
+    if (!text) {
+      logger.error(`[pago.service.js] obtenerToken: respuesta vacía - status=${response.status}, alcance=${alcance}`);
+      throw new Error(`API token respondió vacío (status ${response.status})`);
+    }
+    try {
+      const result = JSON.parse(text);
+      return result?.tipo_token + " " + result?.token_acceso;
+    } catch (e) {
+      logger.error(`[pago.service.js] obtenerToken: JSON inválido - status=${response.status}, body=${text.substring(0, 300)}`);
+      throw new Error(`API token JSON inválido (status ${response.status})`);
+    }
   }
 
 
@@ -40,12 +49,17 @@ class PagoService {
       })
     });
 
-    if (response.ok) {
-      const result = await response.json();
-
+    const textPago = await response.text();
+    if (!response.ok || !textPago) {
+      logger.error(`[pago.service.js] generarLinkPago: fallo - status=${response.status}, grupo_familiar=${grupo_familiar}, telefono=${telefono}, body=${(textPago || 'vacío').substring(0, 300)}`);
+      return null;
+    }
+    try {
+      const result = JSON.parse(textPago);
       return result.enlace;
-    } else {
-      return null
+    } catch (e) {
+      logger.error(`[pago.service.js] generarLinkPago: JSON inválido - status=${response.status}, grupo_familiar=${grupo_familiar}, body=${textPago.substring(0, 300)}`);
+      return null;
     }
   }
 
@@ -66,10 +80,17 @@ class PagoService {
       })
     });
 
-    if (response.ok) {
-      const result = await response.json();
-
+    const textCambio = await response.text();
+    if (!response.ok || !textCambio) {
+      logger.error(`[pago.service.js] generarLinkCambio: fallo - status=${response.status}, grupo_familiar=${grupo_familiar}, telefono=${telefono}, body=${(textCambio || 'vacío').substring(0, 300)}`);
+      return null;
+    }
+    try {
+      const result = JSON.parse(textCambio);
       return result.enlace;
+    } catch (e) {
+      logger.error(`[pago.service.js] generarLinkCambio: JSON inválido - status=${response.status}, grupo_familiar=${grupo_familiar}, body=${textCambio.substring(0, 300)}`);
+      return null;
     }
   }
 }
