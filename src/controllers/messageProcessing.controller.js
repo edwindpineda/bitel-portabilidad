@@ -6,7 +6,6 @@ const Chat = require("../models/chat.model.js");
 const Mensaje = require("../models/mensaje.model.js");
 const ConfiguracionWhatsapp = require("../models/configuracionWhatsapp.model.js");
 const websocketNotifier = require("../services/websocketNotifier.service.js");
-const s3Service = require("../services/s3.service.js");
 const transcriptionService = require("../services/transcription/transcription.service.js");
 const logger = require("../config/logger/loggerClient");
 
@@ -84,53 +83,19 @@ class MessageProcessingController {
                 });
             }
 
-            // Procesar archivos entrantes (descargar media de WhatsApp y subir a S3)
-            let contenidoArchivo = null;
-            let mediaBuffer = null;
-            let mediaExtension = null;
-            if (archivos.length > 0) {
-                const archivo = archivos[0];
-                if (archivo.url) {
-                    contenidoArchivo = archivo.url;
-                } else if (archivo.media_id || archivo.id) {
-                    try {
-                        const mediaId = archivo.media_id || archivo.id;
-                        const media = await WhatsappGraphService.descargarMedia(empresaId, mediaId);
-                        mediaBuffer = media.buffer;
-                        mediaExtension = media.extension;
-                        const fakeFile = {
-                            buffer: media.buffer,
-                            mimetype: media.contentType,
-                            originalname: `whatsapp_${Date.now()}${media.extension}`
-                        };
-                        contenidoArchivo = await s3Service.uploadFile(fakeFile, 'chat-incoming', empresaId);
-                        logger.info(`[messageProcessing] Media ${mediaId} subido a S3: ${contenidoArchivo}`);
-                    } catch (mediaError) {
-                        logger.error(`[messageProcessing] Error descargando media: ${mediaError.message}`);
-                    }
-                }
-            }
+            // Obtener URL del archivo (ya viene de S3 via ws_trigger.php)
+            let contenidoArchivo = archivos.length > 0 ? archivos[0].url : null;
 
             // Transcribir audio a texto si el mensaje es de tipo audio/voz
             let textoTranscrito = null;
             const esAudio = ['audio', 'voice', 'ptt'].includes(tipoMensaje);
-            if (esAudio && mediaBuffer && transcriptionService.isAudioSupported(mediaExtension)) {
+
+            if (esAudio && contenidoArchivo) {
                 try {
-                    textoTranscrito = await transcriptionService.transcribe(
-                        mediaBuffer,
-                        `audio_${Date.now()}${mediaExtension}`
-                    );
+                    textoTranscrito = await transcriptionService.transcribeFromUrl(contenidoArchivo);
                     logger.info(`[messageProcessing] Audio transcrito: "${textoTranscrito.substring(0, 100)}"`);
                 } catch (transcriptionError) {
                     logger.error(`[messageProcessing] Error transcribiendo audio: ${transcriptionError.message}`);
-                }
-            } else if (esAudio && contenidoArchivo && !mediaBuffer) {
-                // Audio llegó como URL (sin buffer local), transcribir desde URL
-                try {
-                    textoTranscrito = await transcriptionService.transcribeFromUrl(contenidoArchivo);
-                    logger.info(`[messageProcessing] Audio transcrito desde URL: "${textoTranscrito.substring(0, 100)}"`);
-                } catch (transcriptionError) {
-                    logger.error(`[messageProcessing] Error transcribiendo audio desde URL: ${transcriptionError.message}`);
                 }
             }
 
