@@ -39,7 +39,7 @@ class AssistantService {
                 { role: "user", content: message }
             ];
 
-            const toolExecutor = new ToolExecutor();
+            const toolExecutor = new ToolExecutor(chatId);
 
             const newMessages = [{ role: "user", content: message }];
 

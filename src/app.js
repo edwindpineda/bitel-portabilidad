@@ -31,6 +31,7 @@ const asteriskRoutes = require("./routes/asterisk.route.js");
 const envioMasivoWhatsappRoutes = require("./routes/crm/envioMasivoWhatsapp.route.js");
 const envioPersonaRoutes = require("./routes/crm/envioPersona.route.js");
 const n8nEnvioMasivoRoutes = require("./routes/crm/n8nEnvioMasivo.route.js");
+const kpiRoutes = require("./routes/kpi.route.js");
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use("/api/crm/admin/tools", authMiddleware, toolRoutes);
 app.use("/api/crm", authMiddleware, whatsappEmbeddedRoutes);
 app.use("/api/crm", authMiddleware, envioMasivoWhatsappRoutes, envioPersonaRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
+app.use('/api/kpi', authMiddleware, kpiRoutes);
 
 
 // Ruta de health check
