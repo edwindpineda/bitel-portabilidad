@@ -2,7 +2,6 @@ const EnvioMasivoWhatsappModel = require("../../models/envioMasivoWhatsapp.model
 const EnvioPersonaModel = require("../../models/envioBase.model.js");
 const PlantillaWhatsappModel = require("../../models/plantillaWhatsapp.model.js");
 const FormatoCampoPlantillaModel = require("../../models/formatoCampoPlantilla.model.js");
-const BaseNumeroDetalleModel = require("../../models/baseNumeroDetalle.model.js");
 const whatsappGraphService = require("../../services/whatsapp/whatsappGraph.service.js");
 const Persona = require("../../models/persona.model.js");
 const Chat = require("../../models/chat.model.js");
@@ -155,10 +154,10 @@ class EnvioMasivoWhatsappController {
 
             // Obtener las bases asociadas al envío
             const envioBaseRecords = await EnvioPersonaModel.getByEnvioMasivo(id);
-            logger.info(`[envioMasivoWhatsapp.controller.js] Envio ${id}: ${envioBaseRecords.length} bases, ${camposPlantilla.length} campos mapeados, ${numBodyParams} params en plantilla`);
+            logger.info(`[envioMasivoWhatsapp.controller.js] Envio ${id}: ${envioBaseRecords.length} registros, ${camposPlantilla.length} campos mapeados, ${numBodyParams} params en plantilla`);
 
             if (envioBaseRecords.length === 0) {
-                return res.status(400).json({ msg: "No hay bases asociadas a este envío" });
+                return res.status(400).json({ msg: "No hay registros asociados a este envío" });
             }
 
             // Actualizar estado del envio masivo (en proceso de envio)
@@ -166,143 +165,143 @@ class EnvioMasivoWhatsappController {
 
             let cantidadExitosos = 0;
             let cantidadFallidos = 0;
-            const baseNumeroDetalleModel = new BaseNumeroDetalleModel();
 
             for (const eb of envioBaseRecords) {
-                // Solo procesar bases pendientes
+                // Solo procesar registros pendientes
                 if (eb.estado !== 'pendiente') {
                     continue;
                 }
 
                 try {
-                    // Obtener todos los registros de base_numero_detalle de esta base
-                    const detalles = await baseNumeroDetalleModel.getAllByBaseNumeroSinPaginar(eb.id_base);
-                    logger.info(`[envioMasivoWhatsapp.controller.js] Base ${eb.id_base}: ${detalles.length} registros`);
+                    // eb.id_base ahora apunta a base_numero_detalle.id
+                    // Los datos del detalle ya vienen en el JOIN del query
+                    const detalle = {
+                        id: eb.id_base,
+                        telefono: eb.detalle_telefono,
+                        nombre: eb.detalle_nombre,
+                        correo: eb.detalle_correo,
+                        tipo_documento: eb.detalle_tipo_documento,
+                        numero_documento: eb.detalle_numero_documento,
+                        json_adicional: eb.detalle_json_adicional
+                    };
 
-                    for (const detalle of detalles) {
-                        let celular = (detalle.telefono || '').trim().replace(/[\s\-\(\)\+]/g, '');
-                        if (celular.startsWith('0')) celular = celular.substring(1);
-                        if (celular.length <= 9 && celular.length > 0) celular = '51' + celular;
-                        if (!celular) {
-                            cantidadFallidos++;
-                            continue;
-                        }
-
-                        try {
-                            // Construir components resolviendo variables desde los campos mapeados
-                            const components = [];
-
-                            if (camposPlantilla.length > 0 && numBodyParams > 0) {
-                                // Resolver variables usando el mapeo de campos
-                                const bodyParameters = camposPlantilla.map((campo) => {
-                                    const nombreCampo = campo.nombre_campo;
-                                    let valor = '';
-
-                                    if (DIRECT_COLUMNS.includes(nombreCampo)) {
-                                        // Campo es una columna directa de base_numero_detalle
-                                        valor = detalle[nombreCampo] || '';
-                                    } else if (detalle.json_adicional) {
-                                        // Buscar en json_adicional
-                                        const jsonData = typeof detalle.json_adicional === 'string'
-                                            ? JSON.parse(detalle.json_adicional)
-                                            : detalle.json_adicional;
-                                        valor = jsonData?.[nombreCampo] || '';
-                                    }
-
-                                    return { type: 'text', text: String(valor) || '' };
-                                });
-                                components.push({ type: 'body', parameters: bodyParameters });
-                            } else if (numBodyParams > 0) {
-                                // Sin mapeo de campos, fallback: usar nombre para {{1}}
-                                const bodyParameters = [];
-                                for (let p = 0; p < numBodyParams; p++) {
-                                    const valor = p === 0 ? (detalle.nombre || 'Cliente') : '';
-                                    bodyParameters.push({ type: 'text', text: valor });
-                                }
-                                components.push({ type: 'body', parameters: bodyParameters });
-                            }
-
-                            await whatsappGraphService.enviarPlantilla(
-                                idEmpresa,
-                                celular,
-                                plantilla.name,
-                                plantilla.language || 'es',
-                                components
-                            );
-
-                            cantidadExitosos++;
-
-                            // Actualizar persona y registrar mensaje en BD
-                            try {
-                                let personaBd = await Persona.selectByCelular(celular, idEmpresa);
-                                if (!personaBd) {
-                                    personaBd = await Persona.createPersona({
-                                        id_estado: 1,
-                                        celular: celular,
-                                        nombre_completo: detalle.nombre || null,
-                                        id_empresa: idEmpresa,
-                                        usuario_registro: userId
-                                    });
-                                    if (!personaBd || !personaBd.id) {
-                                        personaBd = await Persona.selectByCelular(celular, idEmpresa);
-                                    }
-                                }
-
-                                if (personaBd && personaBd.id) {
-                                    await Persona.updatePersona(personaBd.id, {
-                                        id_ref_base_num_detalle: detalle.id,
-                                        usuario_actualizacion: userId
-                                    });
-
-                                    let chat = await Chat.findByPersona(personaBd.id);
-                                    if (!chat) {
-                                        const chatId = await Chat.create({
-                                            id_empresa: idEmpresa,
-                                            id_persona: personaBd.id,
-                                            usuario_registro: userId
-                                        });
-                                        chat = { id: chatId };
-                                    }
-
-                                    // Reemplazar {{1}}, {{2}}, etc. con los valores reales enviados
-                                    let contenidoMensaje = plantilla.body || `[Envío masivo] Plantilla: ${plantilla.name}`;
-                                    const bodyComp = components.find(c => c.type === 'body');
-                                    if (bodyComp && bodyComp.parameters) {
-                                        bodyComp.parameters.forEach((param, i) => {
-                                            contenidoMensaje = contenidoMensaje.replace(`{{${i + 1}}}`, param.text);
-                                        });
-                                    }
-
-                                    await Mensaje.create({
-                                        id_chat: chat.id,
-                                        contenido: contenidoMensaje,
-                                        direccion: "out",
-                                        wid_mensaje: null,
-                                        tipo_mensaje: "plantilla",
-                                        fecha_hora: new Date(),
-                                        usuario_registro: userId
-                                    });
-                                }
-                            } catch (personaError) {
-                                logger.error(`[envioMasivoWhatsapp.controller.js] Error actualizando persona/mensaje para ${celular}: ${personaError.message}`);
-                            }
-                        } catch (sendError) {
-                            const errorMsg = sendError.response?.data?.error?.message || sendError.message || 'Error desconocido';
-                            cantidadFallidos++;
-                            logger.error(`[envioMasivoWhatsapp.controller.js] Error enviando a ${celular}: ${errorMsg}`);
-                        }
-
-                        // Delay entre mensajes para evitar rate limiting
-                        if (DELAY_BETWEEN_MESSAGES > 0) {
-                            await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_MESSAGES));
-                        }
+                    let celular = (detalle.telefono || '').trim().replace(/[\s\-\(\)\+]/g, '');
+                    if (celular.startsWith('0')) celular = celular.substring(1);
+                    if (celular.length <= 9 && celular.length > 0) celular = '51' + celular;
+                    if (!celular) {
+                        cantidadFallidos++;
+                        await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', 'Sin número de teléfono', userId);
+                        continue;
                     }
 
-                    // Marcar la base como entregada
-                    await EnvioPersonaModel.updateEstado(eb.id, 'entregado', null, userId);
+                    try {
+                        // Construir components resolviendo variables desde los campos mapeados
+                        const components = [];
+
+                        if (camposPlantilla.length > 0 && numBodyParams > 0) {
+                            const bodyParameters = camposPlantilla.map((campo) => {
+                                const nombreCampo = campo.nombre_campo;
+                                let valor = '';
+
+                                if (DIRECT_COLUMNS.includes(nombreCampo)) {
+                                    valor = detalle[nombreCampo] || '';
+                                } else if (detalle.json_adicional) {
+                                    const jsonData = typeof detalle.json_adicional === 'string'
+                                        ? JSON.parse(detalle.json_adicional)
+                                        : detalle.json_adicional;
+                                    valor = jsonData?.[nombreCampo] || '';
+                                }
+
+                                return { type: 'text', text: String(valor) || '' };
+                            });
+                            components.push({ type: 'body', parameters: bodyParameters });
+                        } else if (numBodyParams > 0) {
+                            const bodyParameters = [];
+                            for (let p = 0; p < numBodyParams; p++) {
+                                const valor = p === 0 ? (detalle.nombre || 'Cliente') : '';
+                                bodyParameters.push({ type: 'text', text: valor });
+                            }
+                            components.push({ type: 'body', parameters: bodyParameters });
+                        }
+
+                        await whatsappGraphService.enviarPlantilla(
+                            idEmpresa,
+                            celular,
+                            plantilla.name,
+                            plantilla.language || 'es',
+                            components
+                        );
+
+                        cantidadExitosos++;
+                        await EnvioPersonaModel.updateEstado(eb.id, 'entregado', null, userId);
+
+                        // Actualizar persona y registrar mensaje en BD
+                        try {
+                            let personaBd = await Persona.selectByCelular(celular, idEmpresa);
+                            if (!personaBd) {
+                                personaBd = await Persona.createPersona({
+                                    id_estado: 1,
+                                    celular: celular,
+                                    nombre_completo: detalle.nombre || null,
+                                    id_empresa: idEmpresa,
+                                    usuario_registro: userId
+                                });
+                                if (!personaBd || !personaBd.id) {
+                                    personaBd = await Persona.selectByCelular(celular, idEmpresa);
+                                }
+                            }
+
+                            if (personaBd && personaBd.id) {
+                                await Persona.updatePersona(personaBd.id, {
+                                    id_ref_base_num_detalle: detalle.id,
+                                    usuario_actualizacion: userId
+                                });
+
+                                let chat = await Chat.findByPersona(personaBd.id);
+                                if (!chat) {
+                                    const chatId = await Chat.create({
+                                        id_empresa: idEmpresa,
+                                        id_persona: personaBd.id,
+                                        usuario_registro: userId
+                                    });
+                                    chat = { id: chatId };
+                                }
+
+                                let contenidoMensaje = plantilla.body || `[Envío masivo] Plantilla: ${plantilla.name}`;
+                                const bodyComp = components.find(c => c.type === 'body');
+                                if (bodyComp && bodyComp.parameters) {
+                                    bodyComp.parameters.forEach((param, i) => {
+                                        contenidoMensaje = contenidoMensaje.replace(`{{${i + 1}}}`, param.text);
+                                    });
+                                }
+
+                                await Mensaje.create({
+                                    id_chat: chat.id,
+                                    contenido: contenidoMensaje,
+                                    direccion: "out",
+                                    wid_mensaje: null,
+                                    tipo_mensaje: "plantilla",
+                                    fecha_hora: new Date(),
+                                    usuario_registro: userId
+                                });
+                            }
+                        } catch (personaError) {
+                            logger.error(`[envioMasivoWhatsapp.controller.js] Error actualizando persona/mensaje para ${celular}: ${personaError.message}`);
+                        }
+                    } catch (sendError) {
+                        const errorMsg = sendError.response?.data?.error?.message || sendError.message || 'Error desconocido';
+                        cantidadFallidos++;
+                        await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                        logger.error(`[envioMasivoWhatsapp.controller.js] Error enviando a ${celular}: ${errorMsg}`);
+                    }
+
+                    // Delay entre mensajes para evitar rate limiting
+                    if (DELAY_BETWEEN_MESSAGES > 0) {
+                        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_MESSAGES));
+                    }
                 } catch (baseError) {
                     await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', baseError.message, userId);
-                    logger.error(`[envioMasivoWhatsapp.controller.js] Error procesando base ${eb.id_base}: ${baseError.message}`);
+                    logger.error(`[envioMasivoWhatsapp.controller.js] Error procesando detalle ${eb.id_base}: ${baseError.message}`);
                 }
             }
 

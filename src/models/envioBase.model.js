@@ -8,9 +8,13 @@ class EnvioBaseModel {
     async getAll(id_envio_masivo = null) {
         try {
             let query = `
-                SELECT eb.*, bn.nombre as base_nombre, bn.descripcion as base_descripcion
+                SELECT eb.*, bnd.telefono as detalle_telefono, bnd.nombre as detalle_nombre,
+                       bnd.correo as detalle_correo, bnd.tipo_documento as detalle_tipo_documento,
+                       bnd.numero_documento as detalle_numero_documento, bnd.json_adicional as detalle_json_adicional,
+                       bnd.id_base_numero, bn.nombre as base_nombre, bn.descripcion as base_descripcion
                 FROM envio_base eb
-                LEFT JOIN base_numero bn ON eb.id_base = bn.id
+                LEFT JOIN base_numero_detalle bnd ON eb.id_base = bnd.id
+                LEFT JOIN base_numero bn ON bnd.id_base_numero = bn.id
                 WHERE eb.estado_registro = 1
             `;
             const params = [];
@@ -44,9 +48,13 @@ class EnvioBaseModel {
     async getByEnvioMasivo(id_envio_masivo) {
         try {
             const [rows] = await this.connection.execute(
-                `SELECT eb.*, bn.nombre as base_nombre, bn.descripcion as base_descripcion
+                `SELECT eb.*, bnd.telefono as detalle_telefono, bnd.nombre as detalle_nombre,
+                        bnd.correo as detalle_correo, bnd.tipo_documento as detalle_tipo_documento,
+                        bnd.numero_documento as detalle_numero_documento, bnd.json_adicional as detalle_json_adicional,
+                        bnd.id_base_numero, bn.nombre as base_nombre, bn.descripcion as base_descripcion
                 FROM envio_base eb
-                LEFT JOIN base_numero bn ON eb.id_base = bn.id
+                LEFT JOIN base_numero_detalle bnd ON eb.id_base = bnd.id
+                LEFT JOIN base_numero bn ON bnd.id_base_numero = bn.id
                 WHERE eb.id_envio_masivo = ? AND eb.estado_registro = 1
                 ORDER BY eb.fecha_registro DESC`,
                 [id_envio_masivo]

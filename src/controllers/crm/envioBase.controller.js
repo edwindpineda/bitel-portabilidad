@@ -1,4 +1,5 @@
 const EnvioBaseModel = require("../../models/envioBase.model.js");
+const BaseNumeroDetalleModel = require("../../models/baseNumeroDetalle.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 
 class EnvioBaseController {
