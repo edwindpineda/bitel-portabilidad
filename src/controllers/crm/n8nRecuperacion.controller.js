@@ -279,7 +279,7 @@ class N8nRecuperacionController {
       // Generar nuevo link de pago
       let enlace = null;
       try {
-        enlace = await PagoService.generarLinkPago(grupoFamiliar, candidato.celular);
+        enlace = await PagoService.generarLinkPago(grupoFamiliar, candidato.celular, candidato.id_chat, candidato.id_persona);
       } catch (e) {
         logger.error(`[n8nRecuperacion] enviar-recuperacion mv.id=${id_mensaje_visto}: error generando link: ${e.message}`);
         await mensajeVistoModel.actualizarEstadoEnvio(id_mensaje_visto, false, `error link pago: ${e.message}`);
