@@ -282,6 +282,9 @@ class LlamadaModel {
 
         try {
             const id_empresa = llamadas[0].id_empresa;
+            const cantidadLlamadas = llamadas.length;
+
+            console.log(`[llamada.bulkCreate] Iniciando bulk insert de ${cantidadLlamadas} llamadas para ejecución ${idEjecucion}`);
 
             // Obtener el siguiente código base
             const [codigoRows] = await this.connection.execute(
@@ -322,7 +325,8 @@ class LlamadaModel {
                 VALUES ${values.join(', ')}
             `;
 
-            await this.connection.query(sqlInsert, params);
+            const [insertResult] = await this.connection.query(sqlInsert, params);
+            console.log(`[llamada.bulkCreate] INSERT ejecutado - rowCount: ${insertResult?.rowCount || 'N/A'}`);
 
             // 2. SELECT para obtener los IDs de las llamadas recién creadas
             const placeholdersSelect = detalleIds.map((_, i) => `$${i + 2}`).join(',');
@@ -337,7 +341,11 @@ class LlamadaModel {
 
             const [rows] = await this.connection.query(sqlSelect, [idEjecucion, ...detalleIds]);
 
-            console.log(`[llamada.bulkCreate] Insertadas y recuperadas ${rows.length} llamadas`);
+            console.log(`[llamada.bulkCreate] SELECT recuperó ${rows.length}/${cantidadLlamadas} llamadas`);
+
+            if (rows.length !== cantidadLlamadas) {
+                console.warn(`[llamada.bulkCreate] ADVERTENCIA: Se esperaban ${cantidadLlamadas} registros pero se recuperaron ${rows.length}`);
+            }
 
             // Retornar array con id_llamada y id_base_numero_detalle para mapear
             return rows.map(row => ({

@@ -4,7 +4,7 @@ const BaseNumeroDetalleModel = require('../../models/baseNumeroDetalle.model.js'
 const LlamadaModel = require('../../models/llamada.model.js');
 
 const ULTRAVOX_API_URL = process.env.ULTRAVOX_API_URL || 'https://bot.ai-you.io/api/calls/ultravox';
-const BATCH_SIZE = 100; // Tamaño de cada bloque de llamadas (recomendado: 100)
+const BATCH_SIZE = 250; // Tamaño de cada bloque de llamadas
 const BATCH_DELAY_MS = 500; // Delay entre bloques (500ms)
 const RETRY_WAIT_MS = 60000; // Espera entre rondas de reintentos (60 segundos)
 
@@ -13,7 +13,7 @@ class LlamadaService {
         this.client = axios.create({
             baseURL: ULTRAVOX_API_URL,
             headers: { 'Content-Type': 'application/json', "X-Origin-Service": "portabilidad-bitel.ai-you.io" },
-            timeout: 30000
+            timeout: 120000 // 2 minutos para evitar timeout en batches grandes
         });
         // Map de ejecuciones activas: idEjecucion -> { active: bool, ... }
         this.ejecucionesActivas = new Map();
@@ -145,15 +145,18 @@ class LlamadaService {
         logger.info(`[LlamadaService] Ronda ${ronda}: ${totalNumeros} números a procesar en ${totalBloques} bloques (modo batch)`);
 
         for (let i = 0; i < totalNumeros; i += BATCH_SIZE) {
+            const numBloque = Math.floor(i / BATCH_SIZE) + 1;
+            console.log(`[LlamadaService] ========== INICIANDO BLOQUE ${numBloque}/${totalBloques} ==========`);
+
             // Verificar si fue cancelada
             const estado = this.ejecucionesActivas.get(idEjecucion);
             if (!estado?.active) {
-                logger.info(`[LlamadaService] Ejecución ${idEjecucion} cancelada en ronda ${ronda}, bloque ${Math.floor(i / BATCH_SIZE) + 1}`);
+                logger.info(`[LlamadaService] Ejecución ${idEjecucion} cancelada en ronda ${ronda}, bloque ${numBloque}`);
+                console.log(`[LlamadaService] CANCELADO: Ejecución ${idEjecucion} cancelada en bloque ${numBloque}`);
                 break;
             }
 
             const bloque = numeros.slice(i, i + BATCH_SIZE);
-            const numBloque = Math.floor(i / BATCH_SIZE) + 1;
 
             logger.info(`[LlamadaService] Ronda ${ronda} - Bloque ${numBloque}/${totalBloques} (${bloque.length} números)`);
 
@@ -239,17 +242,22 @@ class LlamadaService {
             };
 
             try {
+                console.log(`[LlamadaService] Bloque ${numBloque}: Enviando ${calls.length} llamadas a Ultravox...`);
                 const result = await this.realizarLlamadasBatch(batchBody);
 
                 if (result?.success && result?.encoladas > 0) {
                     logger.info(`[LlamadaService] Batch encolado: ${result.encoladas} llamadas`);
+                    console.log(`[LlamadaService] Bloque ${numBloque}: ÉXITO - ${result.encoladas} llamadas encoladas`);
                 } else {
                     logger.error(`[LlamadaService] Batch falló: ${result?.mensaje || 'Sin detalle'}`);
+                    console.log(`[LlamadaService] Bloque ${numBloque}: FALLÓ - ${result?.mensaje || 'Sin detalle'}`);
                 }
             } catch (error) {
                 console.error(`[LlamadaService] Error en batch bloque ${numBloque}:`, error.message);
                 // Las llamadas ya están creadas en BD, el error es solo al encolar
             }
+
+            console.log(`[LlamadaService] ========== BLOQUE ${numBloque}/${totalBloques} FINALIZADO ==========`);
 
             if (i + BATCH_SIZE < totalNumeros) {
                 await this.sleep(BATCH_DELAY_MS);
