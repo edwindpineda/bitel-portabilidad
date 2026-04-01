@@ -572,6 +572,48 @@ class LlamadaController {
             return res.status(500).json({ msg: "Error al actualizar estado de llamada", error: error.message });
         }
     }
+
+    async getQueueStats(req, res) {
+        try {
+            const stats = await llamadaService.getQueueStats();
+            return res.status(200).json({ data: stats });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al obtener stats de cola: ${error.message}`);
+            return res.status(500).json({ msg: "Error al obtener estadísticas de la cola" });
+        }
+    }
+
+    async getJobStatus(req, res) {
+        try {
+            const { jobId } = req.params;
+            const job = await llamadaService.getJobStatus(parseInt(jobId));
+
+            if (!job) {
+                return res.status(404).json({ msg: "Job no encontrado" });
+            }
+
+            return res.status(200).json({ data: job });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al obtener estado del job: ${error.message}`);
+            return res.status(500).json({ msg: "Error al obtener estado del job" });
+        }
+    }
+
+    async cancelJob(req, res) {
+        try {
+            const { jobId } = req.params;
+            const cancelled = await llamadaService.cancelarJob(parseInt(jobId));
+
+            if (!cancelled) {
+                return res.status(400).json({ msg: "No se pudo cancelar el job (puede que ya esté completado o no exista)" });
+            }
+
+            return res.status(200).json({ msg: "Job cancelado exitosamente" });
+        } catch (error) {
+            logger.error(`[llamada.controller.js] Error al cancelar job: ${error.message}`);
+            return res.status(500).json({ msg: "Error al cancelar job" });
+        }
+    }
 }
 
 module.exports = new LlamadaController();

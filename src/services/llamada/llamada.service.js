@@ -2,8 +2,10 @@ const axios = require('axios');
 const logger = require('../../config/logger/loggerClient.js');
 const BaseNumeroDetalleModel = require('../../models/baseNumeroDetalle.model.js');
 const LlamadaModel = require('../../models/llamada.model.js');
+const jobQueueService = require('../jobQueue/jobQueue.service.js');
 
 const ULTRAVOX_API_URL = process.env.ULTRAVOX_API_URL || 'https://bot.ai-you.io/api/calls/ultravox';
+const UMBRAL_COLA = 10000; // Usar cola PostgreSQL para más de 10,000 registros
 const BATCH_SIZE = 250; // Tamaño de cada bloque de llamadas
 const BATCH_DELAY_MS = 500; // Delay entre bloques (500ms)
 const RETRY_WAIT_MS = 60000; // Espera entre rondas de reintentos (60 segundos)
@@ -359,6 +361,98 @@ class LlamadaService {
      */
     getEjecucionesActivas() {
         return Array.from(this.ejecucionesActivas.keys());
+    }
+
+    /**
+     * Encola un trabajo de llamadas masivas para procesamiento en background.
+     * Usa cola PostgreSQL para volúmenes grandes, proceso directo para pequeños.
+     *
+     * @param {Object} params - Parámetros de la ejecución
+     * @param {boolean} forzarCola - Forzar uso de cola aunque el volumen sea pequeño
+     * @returns {Object} { usaCola: boolean, jobId?: number, totalRegistros: number }
+     */
+    async encolarLlamadas({ idEjecucion, idCampania, idEmpresa, tipificaciones, prompt, voiceCode, toolRuta, canal, configLlamadas, filtroNumeros = null, esRellamada = false }, forzarCola = false) {
+        // Contar registros para decidir el método
+        const detalleModel = new BaseNumeroDetalleModel();
+        const totalRegistros = esRellamada && filtroNumeros?.length > 0
+            ? filtroNumeros.length
+            : await detalleModel.countUniversoPendientePorCampania(idCampania, configLlamadas?.max_intentos || 1);
+
+        logger.info(`[LlamadaService] encolarLlamadas: ${totalRegistros} registros para campaña ${idCampania}`);
+
+        // Decidir si usar cola o proceso directo
+        const usarCola = forzarCola || totalRegistros > UMBRAL_COLA;
+
+        if (usarCola) {
+            // Usar cola PostgreSQL para volúmenes grandes
+            logger.info(`[LlamadaService] Usando cola PostgreSQL para ${totalRegistros} registros`);
+
+            const result = await jobQueueService.enqueueJob({
+                idCampania,
+                idEjecucion,
+                idEmpresa,
+                tipificaciones,
+                prompt,
+                voiceCode,
+                toolRuta,
+                canal,
+                configLlamadas,
+                filtroNumeros,
+                esRellamada
+            });
+
+            return {
+                usaCola: true,
+                jobId: result.jobId,
+                totalRegistros: result.totalRegistros,
+                mensaje: `Job ${result.jobId} encolado con ${result.totalRegistros} registros`
+            };
+        } else {
+            // Proceso directo para volúmenes pequeños (comportamiento original)
+            logger.info(`[LlamadaService] Procesando directamente ${totalRegistros} registros`);
+
+            // Lanzar proceso async (no esperamos)
+            this.procesarLlamadasAsync({
+                idEjecucion,
+                idCampania,
+                idEmpresa,
+                tipificaciones,
+                prompt,
+                voiceCode,
+                toolRuta,
+                canal,
+                configLlamadas,
+                filtroNumeros,
+                esRellamada
+            });
+
+            return {
+                usaCola: false,
+                totalRegistros,
+                mensaje: `Procesando ${totalRegistros} registros directamente`
+            };
+        }
+    }
+
+    /**
+     * Obtiene el estado de un job en la cola
+     */
+    async getJobStatus(jobId) {
+        return await jobQueueService.getJobStatus(jobId);
+    }
+
+    /**
+     * Cancela un job en la cola
+     */
+    async cancelarJob(jobId) {
+        return await jobQueueService.cancelJob(jobId);
+    }
+
+    /**
+     * Obtiene estadísticas de la cola
+     */
+    async getQueueStats() {
+        return await jobQueueService.getQueueStats();
     }
 }
 

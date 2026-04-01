@@ -7,6 +7,7 @@ const { connectRedis } = require('./config/redis');
 
 const logger = require('./config/logger/loggerClient');
 const { iniciarCronSentimiento } = require('./cron/analisisSentimiento.cron.js');
+const jobQueueService = require('./services/jobQueue/jobQueue.service.js');
 
 const PORT = process.env.PORT || 3000;
 
@@ -39,6 +40,14 @@ const startServer = async () => {
 
   // Iniciar cron de análisis de sentimiento
   iniciarCronSentimiento();
+
+  // Iniciar worker de cola de jobs para llamadas masivas
+  try {
+    jobQueueService.startWorker(5000); // Revisar cada 5 segundos
+    logger.info('[server.js] Worker de cola de jobs iniciado');
+  } catch (error) {
+    logger.error(`[server.js] Error al iniciar worker de jobs: ${error.message}`);
+  }
 };
 
 startServer();

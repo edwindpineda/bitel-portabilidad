@@ -56,4 +56,9 @@ router.post("/llamadas/upload-audio", authAsteriskToken, uploadAudio.single('aud
 // Ruta de transcripcion (autenticada con token Asterisk)
 router.post("/llamadas/transcripcion", authAsteriskToken, LlamadaController.guardarTranscripcion);
 
+// Rutas de monitoreo de cola de jobs
+router.get("/llamadas/queue/stats", LlamadaController.getQueueStats);
+router.get("/llamadas/queue/job/:jobId", LlamadaController.getJobStatus);
+router.post("/llamadas/queue/cancel/:jobId", LlamadaController.cancelJob);
+
 module.exports = router;
