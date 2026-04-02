@@ -86,6 +86,48 @@ class UsuarioModel {
     }
   }
 
+  async getByEmpresa(idEmpresa) {
+    try {
+      const [rows] = await this.connection.execute(
+        `SELECT u.id, u.username, u.id_rol, u.id_sucursal, u.id_padre, u.id_empresa, u.estado_registro, u.fecha_registro,
+                r.nombre as rol_nombre,
+                s.nombre as sucursal_nombre,
+                p.username as padre_username,
+                e.razon_social as empresa_nombre
+         FROM usuario u
+         LEFT JOIN rol r ON u.id_rol = r.id
+         LEFT JOIN sucursal s ON u.id_sucursal = s.id
+         LEFT JOIN usuario p ON u.id_padre = p.id
+         LEFT JOIN empresa e ON u.id_empresa = e.id
+         WHERE u.id_empresa = ? AND u.estado_registro = 1
+         ORDER BY u.username`,
+        [idEmpresa]
+      );
+      return rows;
+    } catch (error) {
+      throw new Error(`Error al obtener usuarios por empresa: ${error.message}`);
+    }
+  }
+
+  async getByRolAndEmpresa(idRol, idEmpresa) {
+    try {
+      const [rows] = await this.connection.execute(
+        `SELECT u.id, u.username, u.id_padre, u.id_sucursal, u.id_empresa,
+                s.nombre as sucursal_nombre,
+                p.username as padre_username
+         FROM usuario u
+         LEFT JOIN sucursal s ON u.id_sucursal = s.id
+         LEFT JOIN usuario p ON u.id_padre = p.id
+         WHERE u.id_rol = ? AND u.id_empresa = ? AND u.estado_registro = 1
+         ORDER BY u.id`,
+        [idRol, idEmpresa]
+      );
+      return rows;
+    } catch (error) {
+      throw new Error(`Error al obtener usuarios por rol y empresa: ${error.message}`);
+    }
+  }
+
   async getById(id) {
     try {
       const [rows] = await this.connection.execute(

@@ -29,6 +29,8 @@ router.delete("/roles/:id", ConfiguracionController.deleteRol);
 
 // Rutas de Usuarios
 router.get("/usuarios", ConfiguracionController.getUsuarios);
+router.get("/usuarios/empresa", ConfiguracionController.getUsuariosByEmpresa);
+router.get("/usuarios/empresa/rol/:idRol", ConfiguracionController.getUsuariosByRolAndEmpresa);
 router.get("/usuarios/rol/:idRol", ConfiguracionController.getUsuariosByRol);
 router.get("/usuarios/:id", ConfiguracionController.getUsuarioById);
 router.post("/usuarios", ConfiguracionController.createUsuario);

@@ -247,6 +247,37 @@ class ConfiguracionController {
     }
   }
 
+  async getUsuariosByEmpresa(req, res) {
+    try {
+      const { idEmpresa } = req.user || {};
+      if (!idEmpresa) {
+        return res.status(400).json({ msg: "No se pudo obtener la empresa del usuario" });
+      }
+      const usuarioModel = new UsuarioModel();
+      const usuarios = await usuarioModel.getByEmpresa(idEmpresa);
+      return res.status(200).json({ data: usuarios });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener usuarios por empresa: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener usuarios por empresa" });
+    }
+  }
+
+  async getUsuariosByRolAndEmpresa(req, res) {
+    try {
+      const { idRol } = req.params;
+      const { idEmpresa } = req.user || {};
+      if (!idEmpresa) {
+        return res.status(400).json({ msg: "No se pudo obtener la empresa del usuario" });
+      }
+      const usuarioModel = new UsuarioModel();
+      const usuarios = await usuarioModel.getByRolAndEmpresa(idRol, idEmpresa);
+      return res.status(200).json({ data: usuarios });
+    } catch (error) {
+      logger.error(`[configuracion.controller.js] Error al obtener usuarios por rol y empresa: ${error.message}`);
+      return res.status(500).json({ msg: "Error al obtener usuarios por rol y empresa" });
+    }
+  }
+
     async changePassword(req, res) {
       try {
       
