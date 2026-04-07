@@ -8,6 +8,19 @@ const Chat = require("../../models/chat.model.js");
 const Mensaje = require("../../models/mensaje.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 
+/**
+ * Extrae el texto del body desde el array/string de components
+ */
+function extraerBodyDeComponents(components) {
+    let comps = components;
+    if (typeof comps === 'string') {
+        try { comps = JSON.parse(comps); } catch { return ''; }
+    }
+    if (!Array.isArray(comps)) return '';
+    const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+    return bodyComp?.text || '';
+}
+
 const DELAY_BETWEEN_MESSAGES = 500;
 
 class EnvioMasivoWhatsappController {
@@ -145,8 +158,9 @@ class EnvioMasivoWhatsappController {
             const formatoCampoPlantillaModel = new FormatoCampoPlantillaModel();
             const camposPlantilla = await formatoCampoPlantillaModel.getAllByPlantilla(plantilla.id);
 
-            // Detectar parámetros en el body de la plantilla ({{1}}, {{2}}, etc.)
-            const bodyParams = plantilla.body ? (plantilla.body.match(/\{\{\d+\}\}/g) || []) : [];
+            // Extraer body desde components y detectar parámetros ({{1}}, {{2}}, etc.)
+            const plantillaBody = extraerBodyDeComponents(plantilla.components);
+            const bodyParams = plantillaBody ? (plantillaBody.match(/\{\{\d+\}\}/g) || []) : [];
             const numBodyParams = new Set(bodyParams).size;
 
             // Columnas directas de base_numero_detalle
@@ -208,6 +222,7 @@ class EnvioMasivoWhatsappController {
                         if (camposPlantilla.length > 0 && numBodyParams > 0) {
                             // Construir parámetros en orden, asegurando que haya uno por cada {{N}}
                             const bodyParameters = [];
+                            const parametrosVacios = [];
                             for (let p = 0; p < numBodyParams; p++) {
                                 const campo = camposPlantilla[p];
                                 let valor = '';
@@ -224,16 +239,39 @@ class EnvioMasivoWhatsappController {
                                     }
                                 }
 
-                                // Meta rechaza parámetros vacíos, usar '-' como fallback
-                                bodyParameters.push({ type: 'text', text: String(valor) || '-' });
+                                if (!String(valor).trim()) {
+                                    parametrosVacios.push(`{{${p + 1}}}${campo ? ` (${campo.nombre_campo})` : ''}`);
+                                }
+                                bodyParameters.push({ type: 'text', text: String(valor) });
                             }
+
+                            // Si hay parámetros vacíos, saltar este registro
+                            if (parametrosVacios.length > 0) {
+                                const errorMsg = `Parámetros vacíos: ${parametrosVacios.join(', ')}`;
+                                cantidadFallidos++;
+                                await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                                logger.warn(`[envioMasivoWhatsapp.controller.js] ${celular}: ${errorMsg}`);
+                                continue;
+                            }
+
                             components.push({ type: 'body', parameters: bodyParameters });
                         } else if (numBodyParams > 0) {
                             const bodyParameters = [];
+                            const parametrosVacios = [];
                             for (let p = 0; p < numBodyParams; p++) {
-                                const valor = p === 0 ? (detalle.nombre || 'Cliente') : '-';
+                                const valor = p === 0 ? (detalle.nombre || '') : '';
+                                if (!valor) parametrosVacios.push(`{{${p + 1}}}`);
                                 bodyParameters.push({ type: 'text', text: valor });
                             }
+
+                            if (parametrosVacios.length > 0) {
+                                const errorMsg = `Parámetros vacíos: ${parametrosVacios.join(', ')}`;
+                                cantidadFallidos++;
+                                await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                                logger.warn(`[envioMasivoWhatsapp.controller.js] ${celular}: ${errorMsg}`);
+                                continue;
+                            }
+
                             components.push({ type: 'body', parameters: bodyParameters });
                         }
 
@@ -280,7 +318,7 @@ class EnvioMasivoWhatsappController {
                                     chat = { id: chatId };
                                 }
 
-                                let contenidoMensaje = plantilla.body || `[Envío masivo] Plantilla: ${plantilla.name}`;
+                                let contenidoMensaje = plantillaBody || `[Envío masivo] Plantilla: ${plantilla.name}`;
                                 const bodyComp = components.find(c => c.type === 'body');
                                 if (bodyComp && bodyComp.parameters) {
                                     bodyComp.parameters.forEach((param, i) => {
