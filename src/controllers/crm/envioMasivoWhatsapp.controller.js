@@ -313,6 +313,7 @@ class EnvioMasivoWhatsappController {
                     if (!celular) {
                         cantidadFallidos++;
                         await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', 'Sin número de teléfono', userId);
+                        await EnvioMasivoWhatsappModel.updateContadores(id, cantidadExitosos, cantidadFallidos);
                         continue;
                     }
 
@@ -351,6 +352,7 @@ class EnvioMasivoWhatsappController {
                                 const errorMsg = `Parámetros vacíos: ${parametrosVacios.join(', ')}`;
                                 cantidadFallidos++;
                                 await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                                await EnvioMasivoWhatsappModel.updateContadores(id, cantidadExitosos, cantidadFallidos);
                                 logger.warn(`[envioMasivoWhatsapp.controller.js] ${celular}: ${errorMsg}`);
                                 continue;
                             }
@@ -369,6 +371,7 @@ class EnvioMasivoWhatsappController {
                                 const errorMsg = `Parámetros vacíos: ${parametrosVacios.join(', ')}`;
                                 cantidadFallidos++;
                                 await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                                await EnvioMasivoWhatsappModel.updateContadores(id, cantidadExitosos, cantidadFallidos);
                                 logger.warn(`[envioMasivoWhatsapp.controller.js] ${celular}: ${errorMsg}`);
                                 continue;
                             }
@@ -457,6 +460,7 @@ class EnvioMasivoWhatsappController {
                 } catch (baseError) {
                     cantidadFallidos++;
                     await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', baseError.message, userId);
+                    await EnvioMasivoWhatsappModel.updateContadores(id, cantidadExitosos, cantidadFallidos);
                     logger.error(`[envioMasivoWhatsapp.controller.js] Error procesando detalle ${eb.id_base}: ${baseError.message}`);
                 }
             }
