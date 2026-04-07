@@ -7,10 +7,10 @@ const Chat = require("../models/chat.model.js");
 const Mensaje = require("../models/mensaje.model.js");
 
 /**
- * Extrae campos planos (body, header, footer, buttons) desde el array de components de Meta
+ * Extrae campos planos (header, footer) desde el array de components de Meta
  */
 function extraerCamposDeComponents(components) {
-  const campos = { header_type: null, header_text: null, body: null, footer: null, buttons: null };
+  const campos = { header_type: null, header_text: null, footer: null };
 
   for (const comp of (components || [])) {
     const type = (comp.type || '').toUpperCase();
@@ -19,19 +19,26 @@ function extraerCamposDeComponents(components) {
         campos.header_type = (comp.format || 'TEXT').toUpperCase();
         campos.header_text = comp.text || null;
         break;
-      case 'BODY':
-        campos.body = comp.text || null;
-        break;
       case 'FOOTER':
         campos.footer = comp.text || null;
-        break;
-      case 'BUTTONS':
-        campos.buttons = comp.buttons || null;
         break;
     }
   }
 
   return campos;
+}
+
+/**
+ * Extrae el texto del body desde el array de components
+ */
+function extraerBodyDeComponents(components) {
+  let comps = components;
+  if (typeof comps === 'string') {
+    try { comps = JSON.parse(comps); } catch { return ''; }
+  }
+  if (!Array.isArray(comps)) return '';
+  const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+  return bodyComp?.text || '';
 }
 
 /**
@@ -41,20 +48,9 @@ function tienenDiferencias(metaFields, local) {
   if (metaFields.status !== (local.status || null)) return true;
   if (metaFields.category !== (local.category || null)) return true;
   if (metaFields.language !== (local.language || null)) return true;
-  if (metaFields.body !== (local.body || null)) return true;
   if (metaFields.header_type !== (local.header_type || null)) return true;
   if (metaFields.header_text !== (local.header_text || null)) return true;
   if (metaFields.footer !== (local.footer || null)) return true;
-
-  const metaButtons = metaFields.buttons ? JSON.stringify(metaFields.buttons) : null;
-  let localButtons = local.buttons || null;
-  if (localButtons && typeof localButtons === 'string') {
-    // ya es string, ok
-  } else if (localButtons) {
-    localButtons = JSON.stringify(localButtons);
-  }
-  if (metaButtons !== localButtons) return true;
-
   return false;
 }
 
@@ -81,9 +77,7 @@ class PlantillaWhatsappController {
         language: local.language,
         header_type: local.header_type,
         header_text: local.header_text,
-        body: local.body,
         footer: local.footer,
-        buttons: local.buttons,
         components: local.components || [],
         url_imagen: local.url_imagen,
         id_formato: local.id_formato,
@@ -137,9 +131,7 @@ class PlantillaWhatsappController {
           language: metaTemplate.language || null,
           header_type: campos.header_type,
           header_text: campos.header_text,
-          body: campos.body,
           footer: campos.footer,
-          buttons: campos.buttons,
           components: metaTemplate.components || [],
           meta_template_id: metaTemplate.id ? String(metaTemplate.id) : null
         };
@@ -157,16 +149,15 @@ class PlantillaWhatsappController {
             logger.error(`[plantillaWhatsapp.controller.js] Error al insertar plantilla ${metaTemplate.name}: ${syncError.message}`);
           }
         } else {
-          if (tienenDiferencias({ ...datosSync }, local)) {
-            try {
-              await plantillaWhatsappRepository.updateByName(metaTemplate.name, idEmpresa, {
-                ...datosSync,
-                usuario_actualizacion: null
-              });
-              actualizados++;
-            } catch (syncError) {
-              logger.error(`[plantillaWhatsapp.controller.js] Error al actualizar plantilla ${metaTemplate.name}: ${syncError.message}`);
-            }
+          // Siempre actualizar para mantener components sincronizado con Meta
+          try {
+            await plantillaWhatsappRepository.updateByName(metaTemplate.name, idEmpresa, {
+              ...datosSync,
+              usuario_actualizacion: null
+            });
+            actualizados++;
+          } catch (syncError) {
+            logger.error(`[plantillaWhatsapp.controller.js] Error al actualizar plantilla ${metaTemplate.name}: ${syncError.message}`);
           }
         }
       }
@@ -238,7 +229,7 @@ class PlantillaWhatsappController {
         components
       );
 
-      // 2. Si Meta fue exitoso, guardar en BD (incluir meta_template_id)
+      // 2. Si Meta fue exitoso, guardar en BD con components
       const plantilla = await plantillaWhatsappRepository.create({
         name: nombreFormateado,
         status: resultMeta.status || 'PENDING',
@@ -246,9 +237,8 @@ class PlantillaWhatsappController {
         language: language || 'es',
         header_type,
         header_text,
-        body,
         footer,
-        buttons: buttons || [],
+        components,
         id_empresa,
         meta_template_id: resultMeta.id ? String(resultMeta.id) : null,
         id_formato: id_formato || null,
@@ -327,7 +317,7 @@ class PlantillaWhatsappController {
         }
       }
 
-      // 2. Actualizar en BD (status pasa a PENDING tras edición en Meta)
+      // 2. Actualizar en BD con components (status pasa a PENDING tras edición en Meta)
       const [updated] = await plantillaWhatsappRepository.update(id, {
         name: name.toLowerCase().replace(/\s+/g, '_'),
         status: 'PENDING',
@@ -335,9 +325,8 @@ class PlantillaWhatsappController {
         language,
         header_type,
         header_text,
-        body,
         footer,
-        buttons: buttons || [],
+        components,
         meta_template_id: meta_template_id ? String(meta_template_id) : null,
         id_formato: id_formato || null,
         usuario_actualizacion
@@ -483,7 +472,7 @@ class PlantillaWhatsappController {
         }
 
         // Reemplazar {{1}}, {{2}}, etc. con los valores reales enviados
-        let contenidoMensaje = plantillaBd?.body || template_name;
+        let contenidoMensaje = extraerBodyDeComponents(plantillaBd?.components) || template_name;
         const bodyComp = (components || []).find(c => c.type === 'body');
         if (bodyComp && bodyComp.parameters) {
           bodyComp.parameters.forEach((param, i) => {

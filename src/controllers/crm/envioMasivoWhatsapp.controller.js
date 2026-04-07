@@ -8,6 +8,19 @@ const Chat = require("../../models/chat.model.js");
 const Mensaje = require("../../models/mensaje.model.js");
 const logger = require('../../config/logger/loggerClient.js');
 
+/**
+ * Extrae el texto del body desde el array/string de components
+ */
+function extraerBodyDeComponents(components) {
+    let comps = components;
+    if (typeof comps === 'string') {
+        try { comps = JSON.parse(comps); } catch { return ''; }
+    }
+    if (!Array.isArray(comps)) return '';
+    const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+    return bodyComp?.text || '';
+}
+
 const DELAY_BETWEEN_MESSAGES = 500;
 
 class EnvioMasivoWhatsappController {
@@ -145,8 +158,9 @@ class EnvioMasivoWhatsappController {
             const formatoCampoPlantillaModel = new FormatoCampoPlantillaModel();
             const camposPlantilla = await formatoCampoPlantillaModel.getAllByPlantilla(plantilla.id);
 
-            // Detectar parámetros en el body de la plantilla ({{1}}, {{2}}, etc.)
-            const bodyParams = plantilla.body ? (plantilla.body.match(/\{\{\d+\}\}/g) || []) : [];
+            // Extraer body desde components y detectar parámetros ({{1}}, {{2}}, etc.)
+            const plantillaBody = extraerBodyDeComponents(plantilla.components);
+            const bodyParams = plantillaBody ? (plantillaBody.match(/\{\{\d+\}\}/g) || []) : [];
             const numBodyParams = new Set(bodyParams).size;
 
             // Columnas directas de base_numero_detalle
@@ -304,7 +318,7 @@ class EnvioMasivoWhatsappController {
                                     chat = { id: chatId };
                                 }
 
-                                let contenidoMensaje = plantilla.body || `[Envío masivo] Plantilla: ${plantilla.name}`;
+                                let contenidoMensaje = plantillaBody || `[Envío masivo] Plantilla: ${plantilla.name}`;
                                 const bodyComp = components.find(c => c.type === 'body');
                                 if (bodyComp && bodyComp.parameters) {
                                     bodyComp.parameters.forEach((param, i) => {
