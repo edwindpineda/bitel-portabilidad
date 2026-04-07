@@ -208,6 +208,7 @@ class EnvioMasivoWhatsappController {
                         if (camposPlantilla.length > 0 && numBodyParams > 0) {
                             // Construir parámetros en orden, asegurando que haya uno por cada {{N}}
                             const bodyParameters = [];
+                            const parametrosVacios = [];
                             for (let p = 0; p < numBodyParams; p++) {
                                 const campo = camposPlantilla[p];
                                 let valor = '';
@@ -224,16 +225,39 @@ class EnvioMasivoWhatsappController {
                                     }
                                 }
 
-                                // Meta rechaza parámetros vacíos, usar '-' como fallback
-                                bodyParameters.push({ type: 'text', text: String(valor) || '-' });
+                                if (!String(valor).trim()) {
+                                    parametrosVacios.push(`{{${p + 1}}}${campo ? ` (${campo.nombre_campo})` : ''}`);
+                                }
+                                bodyParameters.push({ type: 'text', text: String(valor) });
                             }
+
+                            // Si hay parámetros vacíos, saltar este registro
+                            if (parametrosVacios.length > 0) {
+                                const errorMsg = `Parámetros vacíos: ${parametrosVacios.join(', ')}`;
+                                cantidadFallidos++;
+                                await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                                logger.warn(`[envioMasivoWhatsapp.controller.js] ${celular}: ${errorMsg}`);
+                                continue;
+                            }
+
                             components.push({ type: 'body', parameters: bodyParameters });
                         } else if (numBodyParams > 0) {
                             const bodyParameters = [];
+                            const parametrosVacios = [];
                             for (let p = 0; p < numBodyParams; p++) {
-                                const valor = p === 0 ? (detalle.nombre || 'Cliente') : '-';
+                                const valor = p === 0 ? (detalle.nombre || '') : '';
+                                if (!valor) parametrosVacios.push(`{{${p + 1}}}`);
                                 bodyParameters.push({ type: 'text', text: valor });
                             }
+
+                            if (parametrosVacios.length > 0) {
+                                const errorMsg = `Parámetros vacíos: ${parametrosVacios.join(', ')}`;
+                                cantidadFallidos++;
+                                await EnvioPersonaModel.updateEstado(eb.id, 'cancelado', errorMsg, userId);
+                                logger.warn(`[envioMasivoWhatsapp.controller.js] ${celular}: ${errorMsg}`);
+                                continue;
+                            }
+
                             components.push({ type: 'body', parameters: bodyParameters });
                         }
 
