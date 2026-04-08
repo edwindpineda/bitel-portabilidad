@@ -1,6 +1,19 @@
 const { pool } = require('../config/dbConnection.js');
 const logger = require('../config/logger/loggerClient.js');
 
+/**
+ * Extrae el body text desde el array de components
+ */
+function getBodyFromComponents(components) {
+    let comps = components;
+    if (typeof comps === 'string') {
+        try { comps = JSON.parse(comps); } catch { return null; }
+    }
+    if (!Array.isArray(comps)) return null;
+    const bodyComp = comps.find(c => (c.type || '').toUpperCase() === 'BODY');
+    return bodyComp?.text || null;
+}
+
 class PlantillaWhatsappRepository {
     async findAll(id_empresa = null) {
         try {

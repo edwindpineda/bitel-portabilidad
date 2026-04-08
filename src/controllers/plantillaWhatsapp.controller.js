@@ -230,22 +230,31 @@ class PlantillaWhatsappController {
       );
 
       // 2. Si Meta fue exitoso, guardar en BD con components
-      const plantilla = await plantillaWhatsappRepository.create({
-        name: nombreFormateado,
-        status: resultMeta.status || 'PENDING',
-        category: category || 'MARKETING',
-        language: language || 'es',
-        header_type,
-        header_text,
-        footer,
-        components,
-        id_empresa,
-        meta_template_id: resultMeta.id ? String(resultMeta.id) : null,
-        id_formato: id_formato || null,
-        usuario_registro
-      });
-
-      logger.info(`[plantillaWhatsapp.controller.js] Plantilla creada en Meta y BD: ${nombreFormateado}`);
+      let plantilla;
+      try {
+        plantilla = await plantillaWhatsappRepository.create({
+          name: nombreFormateado,
+          status: resultMeta.status || 'PENDING',
+          category: category || 'MARKETING',
+          language: language || 'es',
+          header_type,
+          header_text,
+          footer,
+          components,
+          id_empresa,
+          meta_template_id: resultMeta.id ? String(resultMeta.id) : null,
+          id_formato: id_formato || null,
+          usuario_registro
+        });
+        logger.info(`[plantillaWhatsapp.controller.js] Plantilla creada en Meta y BD: ${nombreFormateado}`);
+      } catch (dbError) {
+        logger.error(`[plantillaWhatsapp.controller.js] Plantilla creada en Meta (${resultMeta.id}) pero falló en BD: ${dbError.message}`);
+        return res.status(201).json({
+          success: true,
+          msg: "Plantilla creada en Meta pero no se guardó en BD. Usa 'Sincronizar con Meta' para importarla.",
+          data: { meta_id: resultMeta.id, status: resultMeta.status, db_error: true }
+        });
+      }
 
       return res.status(201).json({
         success: true,
@@ -343,7 +352,7 @@ class PlantillaWhatsappController {
         msg: "Plantilla actualizada exitosamente"
       });
     } catch (error) {
-      logger.error(`[plantillaWhatsapp.controller.js] Error al actualizar plantilla: ${error.message}`);
+      logger.error(`[plantillaWhatsapp.controller.js] Error al actualizar plantilla: ${JSON.stringify(error.response?.data || error.message)}`);
       const errorMsg = error.response?.data?.error?.message || error.message || "Error al actualizar plantilla";
       return res.status(500).json({ success: false, msg: errorMsg });
     }
