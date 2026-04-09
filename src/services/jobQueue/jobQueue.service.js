@@ -229,14 +229,25 @@ class JobQueueService {
                 continue;
             }
 
+            // Parsear json_adicional si es string
+            let jsonAdicional = num.json_adicional || {};
+            if (typeof jsonAdicional === 'string') {
+                try { jsonAdicional = JSON.parse(jsonAdicional); } catch { jsonAdicional = {}; }
+            }
+
             calls.push({
                 destination: telefono,
                 data: {
-                    nombre_completo: num.nombre,
+                    nombre: num.nombre || '',
+                    nombre_completo: num.nombre || '',
+                    telefono: telefono,
                     celular: telefono,
+                    correo: num.correo || '',
+                    tipo_documento: num.tipo_documento || '',
+                    numero_documento: num.numero_documento || '',
                     id_empresa: num.id_empresa,
                     id_llamada: idLlamada,
-                    ...(num.json_adicional || {})
+                    ...jsonAdicional
                 }
             });
             enviadas++;
