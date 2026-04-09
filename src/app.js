@@ -36,6 +36,7 @@ const n8nMensajeVistoRoutes = require("./routes/crm/n8nMensajeVisto.route.js");
 const n8nRecuperacionRoutes = require("./routes/crm/n8nRecuperacion.route.js");
 const analisisSentimientoRoutes = require("./routes/crm/analisisSentimiento.route.js");
 const kpiRoutes = require("./routes/kpi.route.js");
+const ticketRoutes = require("./routes/crm/ticket.route.js");
 
 const app = express();
 
@@ -87,6 +88,7 @@ app.use("/api/crm", authMiddleware, whatsappEmbeddedRoutes);
 app.use("/api/crm", authMiddleware, envioMasivoWhatsappRoutes, envioPersonaRoutes);
 app.use('/api/assistant', messageProcessingRoutes);
 app.use('/api/kpi', authMiddleware, kpiRoutes);
+app.use("/api/crm", authMiddleware, ticketRoutes);
 
 
 // Ruta de health check
