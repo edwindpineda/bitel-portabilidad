@@ -257,6 +257,13 @@ class JobQueueService {
             return { enviadas: 0, fallidas };
         }
 
+        // LOG: Ver datos que se envían al batch
+        console.log('[JobQueueService] === DATOS BATCH ===');
+        calls.forEach((call, index) => {
+            console.log(`[JobQueueService] Call ${index + 1} data:`, JSON.stringify(call.data, null, 2));
+        });
+        console.log('[JobQueueService] === FIN DATOS BATCH ===');
+
         // 5. Enviar a Ultravox
         const batchBody = {
             calls: calls,
