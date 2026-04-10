@@ -61,6 +61,23 @@ const toolDefinitions = [
                 required: []
             }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "derivarAsesor",
+            description: "Deriva el caso a un asesor humano cuando el cliente solicita algo fuera del alcance del bot o pide hablar con una persona.",
+            parameters: {
+                type: "object",
+                properties: {
+                    motivo: {
+                        type: "string",
+                        description: "Resumen libre de lo que el cliente necesita, para contexto del asesor"
+                    }
+                },
+                required: ["motivo"]
+            }
+        }
     }
 ];
 

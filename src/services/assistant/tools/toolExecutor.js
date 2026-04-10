@@ -1,4 +1,5 @@
 const PagoService = require("../../pago/pago.service");
+const JetPotService = require("../../jetpot/jetpot.service");
 const { pool } = require("../../../config/dbConnection");
 const logger = require("../../../config/logger/loggerClient");
 
@@ -20,6 +21,8 @@ class ToolExecutor {
                 return this._tipificarConversacion(args);
             case "agregarListaNegra":
                 return this._agregarListaNegra();
+            case "derivarAsesor":
+                return this._derivarAsesor(args);
             default:
                 logger.warn(`[ToolExecutor] Tool desconocido: ${toolName}`);
                 return JSON.stringify({ error: `Tool desconocido: ${toolName}` });
@@ -74,6 +77,24 @@ class ToolExecutor {
         } catch (error) {
             logger.error(`[ToolExecutor] Error al agregar a lista negra: ${error.message}`);
             return JSON.stringify({ error: "Error al agregar a lista negra" });
+        }
+    }
+
+    async _derivarAsesor({ motivo }) {
+        logger.info(`[ToolExecutor] derivarAsesor: persona=${this.persona?.id}, motivo=${motivo}`);
+        if (!this.persona?.id) {
+            return JSON.stringify({ error: "No se pudo identificar la persona" });
+        }
+        try {
+            await JetPotService.enviarEscalacion({
+                nombre_cliente: this.persona.nombre_completo || "Sin nombre",
+                telefono_cliente: this.persona.celular || "Sin número",
+                motivo
+            });
+            return JSON.stringify({ success: true, message: "Derivación enviada al asesor" });
+        } catch (error) {
+            logger.error(`[ToolExecutor] Error al derivar asesor: ${error.message}`);
+            return JSON.stringify({ error: "Error al enviar la derivación" });
         }
     }
 
