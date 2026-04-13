@@ -18,7 +18,7 @@ class MessageProcessingController {
      */
     async processMessage(req, res) {
         try {
-            const { phone, question, wid, phone_number_id, messageType, files } = req.body;
+            const { phone, question, wid, phone_number_id, pushName, messageType, files } = req.body;
 
             if (!phone || !phone_number_id) {
                 return res.serverError(400, "Campos requeridos: phone, phone_number_id");
@@ -60,6 +60,7 @@ class MessageProcessingController {
                 persona = await Persona.createPersona({
                     id_estado: 1,
                     celular: phoneTrimmed,
+                    nombre: pushName || 'Sin Registrar',
                     id_usuario: id_asesor,
                     id_empresa: empresaId,
                     usuario_registro: null
