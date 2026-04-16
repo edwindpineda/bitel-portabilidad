@@ -16,9 +16,9 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 5432,
-    max: 20, // Máximo de conexiones simultáneas
-    idleTimeoutMillis: 60000, // Timeout para conexiones idle
-    connectionTimeoutMillis: 10000, // Timeout para conexión
+    max: 20,
+    idleTimeoutMillis: 60000,
+    connectionTimeoutMillis: 10000,
     ssl: {
         rejectUnauthorized: false // Para conexiones a RDS
     }

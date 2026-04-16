@@ -13,6 +13,7 @@ const uploadFiles = multer({
 router.get("/tickets/catalogos", TicketController.getCatalogos);
 router.get("/tickets/stats", TicketController.getStats);
 router.get("/tickets/usuarios", TicketController.getUsuarios);
+router.get("/tickets/historial/todos", TicketController.getHistorialTodos);
 
 // CRUD de tickets
 router.get("/tickets", TicketController.getAll);

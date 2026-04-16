@@ -422,6 +422,35 @@ class TicketController {
         }
     }
 
+    async getHistorialTodos(req, res) {
+        try {
+            const { rolId, idEmpresa } = req.user;
+
+            if (rolId > 2) {
+                return res.status(403).json({ msg: "No tiene permisos para ver el historial global" });
+            }
+
+            const { id_usuario, fecha_desde, fecha_hasta, numero_ticket } = req.query;
+
+            // Si no es admin central, restringir a su empresa
+            const empresaFiltro = (idEmpresa === 0 || idEmpresa === '0') ? null : idEmpresa;
+
+            const historialModel = new TicketHistorialModel();
+            const historial = await historialModel.findAll({
+                id_usuario: id_usuario || null,
+                fecha_desde: fecha_desde || null,
+                fecha_hasta: fecha_hasta || null,
+                numero_ticket: numero_ticket || null,
+                id_empresa: empresaFiltro
+            });
+
+            return res.status(200).json({ data: historial });
+        } catch (error) {
+            logger.error(`[ticket.controller.js] Error al obtener historial global: ${error.message}`);
+            return res.status(500).json({ msg: "Error al obtener historial global" });
+        }
+    }
+
     async getParticipantes(req, res) {
         try {
             const { id } = req.params;

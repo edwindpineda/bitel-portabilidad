@@ -374,12 +374,25 @@ class TicketSoporteModel {
     async getEmpresas() {
         try {
             const [rows] = await this.connection.execute(
-                'SELECT id, razon_social FROM empresa WHERE estado_registro = 1 ORDER BY razon_social'
+                `SELECT id, razon_social, 1 as id_plataforma FROM public.empresa WHERE estado_registro = 1
+                 UNION ALL
+                 SELECT id, razon_social, 2 as id_plataforma FROM fdw_inmobiliaria.empresa WHERE estado_registro = 1
+                 UNION ALL
+                 SELECT id, razon_social, 3 as id_plataforma FROM fdw_automotriz.empresa WHERE estado_registro = 1
+                 ORDER BY razon_social`
             );
             return rows;
         } catch (error) {
-            logger.error(`[ticketSoporte.model.js] Error al obtener empresas: ${error.message}`);
-            throw new Error(`Error al obtener empresas: ${error.message}`);
+            // Fallback si algún schema FDW no existe
+            try {
+                const [rows] = await this.connection.execute(
+                    'SELECT id, razon_social, 1 as id_plataforma FROM empresa WHERE estado_registro = 1 ORDER BY razon_social'
+                );
+                return rows;
+            } catch (fallbackError) {
+                logger.error(`[ticketSoporte.model.js] Error al obtener empresas: ${fallbackError.message}`);
+                throw new Error(`Error al obtener empresas: ${fallbackError.message}`);
+            }
         }
     }
 

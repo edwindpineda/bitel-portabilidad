@@ -6,7 +6,7 @@ INSERT INTO estado_ticket (nombre, descripcion, color, es_inicial, es_final, ord
 VALUES
   ('Abierto', 'Ticket recien creado', '#3B82F6', true, false, 1),
   ('En Progreso', 'Ticket siendo atendido', '#F59E0B', false, false, 2),
-  ('En Espera', 'Ticket en espera de respuesta del usuario', '#8B5CF6', false, false, 3),
+  ('En Espera de Aprobacion', 'Ticket en espera de aprobacion', '#8B5CF6', false, false, 3),
   ('Resuelto', 'Ticket resuelto', '#10B981', false, true, 4),
   ('Cerrado', 'Ticket cerrado', '#6B7280', false, true, 5)
 ON CONFLICT DO NOTHING;
