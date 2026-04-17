@@ -19,7 +19,7 @@ class JetPotService {
         });
     }
 
-    async enviarEscalacion({ nombre_cliente, telefono_cliente, motivo }) {
+    async enviarEscalacion({ nombre_cliente, telefono_cliente, motivo, grupo_familiar }) {
         logger.info(`[JetPotService] Enviando escalacion: ${telefono_cliente}`);
         try {
             const response = await this.client.post("/transaccional", {
@@ -28,7 +28,8 @@ class JetPotService {
                 variables: {
                     nombre_cliente,
                     telefono_cliente,
-                    motivo
+                    motivo,
+                    grupo_familiar
                 }
             });
             logger.info(`[JetPotService] Escalacion enviada OK: ${response.status}`);

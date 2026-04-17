@@ -85,11 +85,24 @@ class ToolExecutor {
         if (!this.persona?.id) {
             return JSON.stringify({ error: "No se pudo identificar la persona" });
         }
+
+        let grupo_familiar = "";
+        const raw = this.persona?.json_adicional;
+        if (raw) {
+            try {
+                const data = typeof raw === "string" ? JSON.parse(raw) : raw;
+                grupo_familiar = data?.grupo_familiar || "";
+            } catch (e) {
+                logger.warn(`[ToolExecutor] json_adicional inválido: ${e.message}`);
+            }
+        }
+
         try {
             await JetPotService.enviarEscalacion({
                 nombre_cliente: this.persona.nombre_completo || "Sin nombre",
                 telefono_cliente: this.persona.celular || "Sin número",
-                motivo
+                motivo,
+                grupo_familiar
             });
             return JSON.stringify({ success: true, message: "Derivación enviada al asesor" });
         } catch (error) {
